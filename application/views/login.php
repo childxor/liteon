@@ -349,6 +349,7 @@
 
 </html>
 <script>
+    // test git
     $(document).ready(function() {
         $('#showPassword').change(function() {
             $('#password').attr('type', $(this).prop('checked') ? 'text' : 'password');
