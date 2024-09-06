@@ -23,8 +23,9 @@ class Authen extends CI_Controller
             /* System Language login */
             $this->data['lang'] = $this->efs_lib->language_login();
             $this->data['department'] = $this->db->query("SELECT * FROM mas_department WHERE record_status = 'N' ORDER BY name")->result();
-
-
+            // $this->print_r($this->data['department']);
+            $this->data['position'] = $this->db->query("SELECT * FROM mas_position WHERE record_status = 'N' ORDER BY name")->result();
+            // $this->print_r($this->data['position']);
 
             $this->load->view("login", $this->data);
         }
@@ -176,7 +177,7 @@ class Authen extends CI_Controller
             $config['max_size'] = 5000; // 5MB
             $config['file_name'] = 'reportIssue_' . date('YmdHis');
 
-            if($this->load->library('upload', $config) === false) {
+            if ($this->load->library('upload', $config) === false) {
                 $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'ไม่สามารถอัพโหลดไฟล์ได้']));
                 return;
             }
@@ -433,5 +434,56 @@ class Authen extends CI_Controller
                 return;
             }
         }
+    }
+
+    public function checkField()
+    {
+        $field = $this->input->post('field');
+        $value = $this->input->post('value');
+
+        switch ($field) {
+            case 'username':
+                $this->db->where('username', $value);
+                $query = $this->db->get('sys_user');
+                if ($query->num_rows() > 0) {
+                    $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Username already exists')));
+                    return;
+                }
+                break;
+
+            case 'email':
+                $this->db->where('email', $value);
+                $query = $this->db->get('sys_user');
+                if ($query->num_rows() > 0) {
+                    $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Email already exists')));
+                    return;
+                }
+                break;
+
+            case 'card':
+                $this->db->where('card_number', $value);
+                $query = $this->db->get('sys_user');
+                if ($query->num_rows() > 0) {
+                    $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Card already exists')));
+                    return;
+                }
+                break;
+
+            case 'employee':
+                $this->db->where('emp_code', $value);
+                $query = $this->db->get('sys_user');
+                if ($query->num_rows() > 0) {
+                    $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Employee already exists')));
+                    return;
+                }
+                break;
+
+            default:
+                $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Invalid field')));
+                return;
+        }
+
+        // ถ้าไม่มีข้อผิดพลาด
+        $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'success', 'message' => 'Field is available')));
     }
 }

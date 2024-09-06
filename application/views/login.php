@@ -135,12 +135,174 @@
                             </div>
                             <div class="tab-pane fade" id="register" role="tabpanel">
                                 <form id="registerForm" action="#" method="post">
-                                    <!-- Registration form fields here -->
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="department_id">แผนก</label>
+                                            <select class="form-control" id="department_id" name="department_id" required>
+                                                <option value="">เลือกแผนก</option>
+                                                <?php foreach ($department as $row) { ?>
+                                                    <option value="<?php echo $row->id; ?>"><?php echo $row->name; ?></option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="sub_department_id">แผนกย่อย</label>
+                                            <select class="form-control" id="sub_department_id" name="sub_department_id" disabled>
+                                                <!-- เพิ่มตัวเลือกแผนกย่อยโดยไดนามิก -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="emp_code">รหัสพนักงาน</label>
+                                            <input type="text" class="form-control" id="emp_code" name="emp_code" required>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="username">ชื่อผู้ใช้</label>
+                                            <input type="text" class="form-control" id="username" name="username" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="gender_id">เพศ</label>
+                                            <select class="form-control" id="gender_id" name="gender_id" required>
+                                                <option value="M">ชาย</option>
+                                                <option value="F">หญิง</option>
+                                                <option value="O">อื่นๆ</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="prefix_name">คำนำหน้าชื่อ</label>
+                                            <select class="form-control" id="prefix_name" name="prefix_name" required>
+                                                <option value="นาย">นาย</option>
+                                                <option value="นาง">นาง</option>
+                                                <option value="นางสาว">นางสาว</option>
+                                                <option value="Mr.">Mr.</option>
+                                                <option value="Mrs.">Mrs.</option>
+                                                <option value="Miss">Miss</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="position_id">ตำแหน่ง</label>
+                                            <select class="form-control" id="position_id" name="position_id" required>
+                                                <option value="">เลือกตำแหน่ง</option>
+                                                <?php foreach ($position as $row) { ?>
+                                                    <option value="<?php echo $row->id; ?>"><?php echo $row->name; ?></option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="first_name">ชื่อ</label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="last_name">นามสกุล</label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="tel">เบอร์โทรศัพท์</label>
+                                            <input type="tel" class="form-control" id="tel" name="tel" required>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="email">อีเมล</label>
+                                            <input type="email" class="form-control" id="email" name="email" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="card_number">หมายเลขบัตร</label>
+                                        <input type="text" class="form-control" id="card_number" name="card_number" required>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="default_module_id">โมดูลเริ่มต้น</label>
+                                            <select class="form-control" id="default_module_id" name="default_module_id" disabled>
+                                                <!-- เพิ่มตัวเลือกโมดูลโดยไดนามิก -->
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="cng_lang">ภาษาที่ต้องการ</label>
+                                            <select class="form-control" id="cng_lang" name="cng_lang" required>
+                                                <option value="EN">อังกฤษ</option>
+                                                <option value="TH">ไทย</option>
+                                                <option value="CN">จีน</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">ลงทะเบียน</button>
                                 </form>
                             </div>
                             <div class="tab-pane fade" id="report" role="tabpanel">
-                                <form id="reportIssueForm">
-                                    <!-- Report issue form fields here -->
+                                <form id="reportIssueForm" enctype="multipart/form-data">
+                                    <div class="form-group">
+                                        <label for="issueType">ประเภทปัญหา</label>
+                                        <select class="form-control" id="issueType" name="issueType" required>
+                                            <option value="">เลือกประเภทปัญหา</option>
+                                            <option value="login">ปัญหาการเข้าสู่ระบบ</option>
+                                            <option value="account">ปัญหาเกี่ยวกับบัญชีผู้ใช้</option>
+                                            <option value="system">ระบบทำงานผิดพลาด</option>
+                                            <option value="data">ข้อมูลไม่ถูกต้องหรือหาย</option>
+                                            <option value="permission">ปัญหาสิทธิ์การใช้งาน</option>
+                                            <option value="performance">ระบบทำงานช้า</option>
+                                            <option value="ui">ปัญหาการแสดงผลหน้าจอ</option>
+                                            <option value="report">รายงานไม่ถูกต้อง</option>
+                                            <option value="suggestion">ข้อเสนอแนะ/ความคิดเห็น</option>
+                                            <option value="other">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="urgencyLevel">ระดับความเร่งด่วน</label>
+                                        <select class="form-control" id="urgencyLevel" name="urgencyLevel" required>
+                                            <option value="">เลือกระดับความเร่งด่วน</option>
+                                            <option value="low">ต่ำ - สามารถรอได้</option>
+                                            <option value="medium">ปานกลาง - ควรได้รับการแก้ไขเร็วๆนี้</option>
+                                            <option value="high">สูง - จำเป็นต้องได้รับการแก้ไขโดยเร็ว</option>
+                                            <option value="critical">วิกฤต - ต้องได้รับการแก้ไขทันที</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="affectedSystem">ระบบที่ได้รับผลกระทบ</label>
+                                        <select class="form-control" id="affectedSystem" name="affectedSystem" required>
+                                            <option value="">เลือกระบบที่ได้รับผลกระทบ</option>
+                                            <option value="hr">ระบบบุคลากร</option>
+                                            <option value="finance">ระบบการเงิน</option>
+                                            <option value="inventory">ระบบคลังสินค้า</option>
+                                            <option value="production">ระบบการผลิต</option>
+                                            <option value="sales">ระบบขาย</option>
+                                            <option value="crm">ระบบลูกค้าสัมพันธ์</option>
+                                            <option value="website">เว็บไซต์</option>
+                                            <option value="other">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="issueDescription">รายละเอียดปัญหา</label>
+                                        <textarea class="form-control" id="issueDescription" name="issueDescription" rows="4" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="expectedResult">ผลลัพธ์ที่คาดหวัง</label>
+                                        <textarea class="form-control" id="expectedResult" name="expectedResult" rows="2"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="contactName">ชื่อผู้แจ้งปัญหา</label>
+                                        <input type="text" class="form-control" id="contactName" name="contactName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="contactEmail">อีเมลติดต่อกลับ</label>
+                                        <input type="email" class="form-control" id="contactEmail" name="contactEmail" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="contactPhone">เบอร์โทรศัพท์ (ไม่บังคับ)</label>
+                                        <input type="tel" class="form-control" id="contactPhone" name="contactPhone">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="attachFile">แนบไฟล์ (ไม่บังคับ)</label>
+                                        <input type="file" class="form-control-file" id="attachFile" name="attachFile">
+                                        <small class="form-text text-muted">อนุญาตไฟล์: gif, jpg, png, pdf, doc, docx, xls, xlsx, ppt, pptx (ขนาดไม่เกิน 5MB)</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">ส่งรายงานปัญหา</button>
                                 </form>
                             </div>
                         </div>
@@ -195,10 +357,6 @@
     $(".preloader").fadeOut();
     $(':input:enabled:visible:first').focus();
 
-    $(function() {
-        // $("#includedContent").load('<?PHP echo base_url(); ?>assets/cookie/cookies.html');
-    });
-
     function myFunction() {
         var x = document.getElementById("myInput");
         if (x.type === "password") {
@@ -211,24 +369,55 @@
     $(document).ready(function() {
         $('#registerForm').submit(function(e) {
             e.preventDefault();
-            var password = $('#registerPassword').val();
-            var confirm_password = $('#registerConfirmPassword').val();
-            if (password != confirm_password) {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Password and Confirm Password do not match.',
-                    type: 'error',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-            $.ajax({
-                type: "POST",
-                url: "<?php echo base_url('authen/register') ?>",
-                data: $(this).serialize(),
-                success: function(data) {
-                    console.log(data);
+            var formData = $(this).serialize();
 
+            $.ajax({
+                url: '<?php echo base_url("authen/register"); ?>',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert('ลงทะเบียนสำเร็จ: ' + response.message);
+                        $('#registerForm')[0].reset();
+                        // อาจจะเพิ่มการเปลี่ยนแท็บไปยังหน้า login หรือแสดงข้อความเพิ่มเติม
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + error);
+                }
+            });
+        });
+
+        // เพิ่มการตรวจสอบความถูกต้องของข้อมูลก่อนส่งฟอร์ม
+        $('#registerForm input').on('blur', function() {
+            var field = $(this);
+            var fieldName = field.attr('name');
+            var fieldValue = field.val();
+
+            if (fieldValue.trim() === '') {
+                return; // ไม่ตรวจสอบถ้าฟิลด์ว่างเปล่า
+            }
+
+            $.ajax({
+                url: '<?php echo base_url("authen/checkField"); ?>',
+                type: 'POST',
+                data: {
+                    field: fieldName,
+                    value: fieldValue
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'error') {
+                        field.addClass('is-invalid');
+                        field.next('.invalid-feedback').remove();
+                        field.after('<div class="invalid-feedback">' + response.message + '</div>');
+                    } else {
+                        field.removeClass('is-invalid');
+                        field.next('.invalid-feedback').remove();
+                    }
                 }
             });
         });
