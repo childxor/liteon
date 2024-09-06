@@ -1,0 +1,99 @@
+<style>
+    .cookie-message {
+        font-family: "Century Gothic", CenturyGothic, Geneva, AppleGothic, sans-serif;
+        border-radius: 10px;
+        padding: 15px 0;
+        background: #f7f8fb;
+        border: 1px solid rgba(0, 0, 0, .15);
+        box-shadow: 0 0 16px 2px rgba(0, 0, 0, .05), 0 10px 10px 2px rgba(0, 0, 0, .05);
+        font-size: 12px;
+        line-height: 40px;
+        border-top: 1px solid #e4e4e4;
+        position: fixed;
+        z-index: 100;
+        bottom: 2%;
+        right: 1%;
+        margin: auto;
+        max-width: 540px;
+        display: -ms-flexbox;
+        display: flex;
+    }
+    
+    .cookie-message img {
+        height: 50px;
+        width: 50px;
+        margin: 0 15px;
+        -ms-flex-item-align: center;
+        -ms-grid-row-align: center;
+        align-self: center;
+    }
+    
+    .cookie-message span {
+        display: inline-block;
+        line-height: 1.5;
+        padding-right: 16px;
+        border-right: 1px solid rgba(0, 0, 0, .1);
+    }
+    
+    .cookie-message a.close {
+        -ms-flex: 1 1 auto;
+        flex: 1 1 auto;
+        border: none;
+        font-size: 24px;
+        padding: 0 20px 0 16px;
+        position: relative;
+        -ms-flex-item-align: center;
+        -ms-grid-row-align: center;
+        align-self: center;
+        text-align: center;
+        line-height: 1.2;
+        color: #919191;
+        transition: color 0.2s;
+    }
+    
+    .cookie-message a.close:hover {
+        color: #795548;
+    }
+    
+    .cookie-message a {
+        display: inline-block;
+        color: royalblue;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(0, 0, 0, .1);
+    }
+    
+    .policy:hover {
+        color: red;
+    }
+</style>
+<meta charset="UTF-8">
+
+<div id="cookies" class="cookie-message">
+    <img src="https://img.icons8.com/plasticine/100/000000/cookie.png">
+    <span>เว็บไซต์นี้มีการใช้งานคุกกี้ เพื่อให้การใช้งานเว็บไซต์เป็นไปอย่างราบรื่นและเป็นส่วนตัวมากขึ้น จึงขอให้ท่านรับรองว่าท่านได้อ่านและทำความเข้าใจนโยบายการใช้งานคุกกี้ ซึ่งเป็นส่วนหนึ่งของนโยบายการคุ้มครองข้อมูลส่วนบุคคล <a  href="#" class="policy">นโยบายความเป็นส่วนตัว</a>.</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+<script>
+    $(document).ready(function() {
+        if (undefined == $.cookie('cookies-tools') || 'null' == $.cookie('cookies-tools'))
+            $('#cookies').show();
+        else
+            $('#cookies').hide();
+    });
+    $('.cookies-button').click(function() {
+        // alert('asdf')
+        $.cookie(
+            'cookies-tools',
+            'ok', {
+                expires: 365,
+                path: '/'
+            }
+        );
+        $('#cookies').hide();
+    });
+    $('.policy').click(function() {
+        window.open("uploads/policy/policy_th.pdf", "_blank")
+    });
+</script>

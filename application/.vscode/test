@@ -1,0 +1,577 @@
+<?php /* var_dump($permission); */ ?>
+<?php (empty($permission) ? redirect(base_url('error404')) : ''); ?>
+<?php if (!empty($this->efs_lib->is_can($permission, 'view'))) { /* Can View */ ?>
+    <!-- ============================================================== -->
+    <!-- Start Page Content -->
+    <!-- ============================================================== -->
+    <style>
+        .dtp div.dtp-date,
+        .dtp div.dtp-time,
+        .dtp table.dtp-picker-days tr>td>a.selected,
+        .dtp>.dtp-content>.dtp-date-view>header.dtp-header {
+            background: #009efb !important;
+        }
+
+        /*
+        td.details-control {
+            background: url('<?php echo base_url(); ?>assets/images/add.png') no-repeat center center;
+            cursor: pointer;
+        }
+
+        tr.shown td.details-control {
+            background: url('<?php echo base_url(); ?>assets/images/minus.png') no-repeat center center;
+        }
+        */
+        .dropdown-toggle::after {
+            display: none;
+        }
+
+        b {
+            font-weight: 700;
+        }
+
+        .popover {
+            max-width: 500px;
+            /* Max Width of the popover (depending on the container!) */
+        }
+    </style>
+    <!-- This page plugin CSS -->
+    <link href="<?php echo base_url(); ?>assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/libs/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css">
+    <input type="hidden" id="checksum">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-left">
+                        <div class="card-body bg-light mb-3 pb-1">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <?php
+                                        $sql = "SELECT id, code, name , description, remark, is_active, created_username, created_at, updated_username, updated_at, record_status
+                                        FROM sto_material_type 
+                                        WHERE record_status ='N' AND is_active ='1'
+                                        ORDER BY code ASC ";
+                                        $sto_material_type = $this->db->query($sql)->result();
+                                        ?>
+                                        <select class="form-control select2" id="material_type_id" style="width:100%">
+                                            <option value=""><?php echo $lang_module->lbl_material_type; ?></option>
+                                            <?php
+                                            foreach ($sto_material_type as $material_type) {
+                                            ?>
+                                                <option value="<?php echo $material_type->id; ?>"><?php echo $material_type->code . ' ' . $material_type->name; ?></option>
+                                            <?php
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <?php
+                                        $sql = "SELECT DISTINCT sto_pr.sub_department 
+                                        FROM sto_pr 
+                                        LEFT OUTER JOIN mas_department_check_pr ON sto_pr.department_id = mas_department_check_pr.department_id 
+                                        WHERE sto_pr.record_status='N' AND (sto_pr.department_id = '" . $this->session->userdata("user_profile")->department_id . "') 
+                                        OR (mas_department_check_pr.user_id = '" . $this->session->userdata("user_profile")->id . "') order by sto_pr.sub_department asc";
+                                        $mas_sub_department = $this->db->query($sql)->result();
+                                        ?>
+                                        <select class="form-control select2" id="sub_department" style="width:100%">
+                                            <option value=""><?php echo $lang_module->lbl_sub_department; ?></option>
+                                            <?php
+                                            foreach ($mas_sub_department as $sub_department) {
+                                            ?>
+                                                <option value="<?php echo $sub_department->sub_department; ?>"><?php echo $sub_department->sub_department; ?></option>
+                                            <?php
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <?php
+                                        $sql = 'SELECT mas_supplier.* '
+                                            . 'FROM mas_supplier '
+                                            . "WHERE mas_supplier.record_status='N' "
+                                            . 'ORDER BY mas_supplier.name ASC ';
+                                        $mas_supplier = $this->db->query($sql)->result();
+                                        ?>
+                                        <select class="form-control select2" id="supplier_id" style="width:100%">
+                                            <option value=""><?php echo $lang_module->lbl_supplier; ?></option>
+                                            <?php
+                                            foreach ($mas_supplier as $supplier) {
+                                            ?>
+                                                <option value="<?php echo $supplier->id; ?>"><?php echo $supplier->name; ?></option>
+                                            <?php
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <input type="text" class="form-control" id="search_text" name="search_text" placeholder="<?php echo $lang_module->lbl_search; ?> <?php echo $lang_module->lbl_item; ?>, <?php echo $lang_module->lbl_pr_no; ?>, <?php echo $lang_module->lbl_po_no; ?>">
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class='form-group row'>
+                                        <div class="col-sm-12 col-md-3">
+                                            <label><input type="checkbox" id="all_show"> ALL SHOW</label>
+                                        </div>
+                                        <div class="col-sm-12 col-md-3">
+                                            <label class="control-label"><?php echo $lang_module->lbl_range_date; ?><span class="text-danger"></span></label>
+                                        </div>
+                                        <div class="col-sm-12 col-md-6">
+                                            <input type='text' id="daterange" name="daterange" class="form-control daterange" autocomplete="off" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-group row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-info btn-block" id="btnSearch"><i class="fas fa-search"></i> <?php echo $lang_module->lbl_search; ?></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-10">
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-success btn-block" id="btnExport"><i class="fas fa-file-excel"></i> Export</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive m-t-40">
+                        <div id="toggleColumns">
+                            Toggle column :
+                            <label for="col-1">
+                                <input type="checkbox" checked="checked" data-column="0" class="toggle-vis auto-save" id="col-1"> <?php echo $lang_module->lbl_order_date; ?>
+                            </label>
+                            <label for="col-2">
+                                <input type="checkbox" checked="checked" data-column="1" class="toggle-vis auto-save" id="col-2"> <?php echo $lang_module->lbl_pr_no; ?>
+                            </label>
+                            <label for="col-3">
+                                <input type="checkbox" checked="checked" data-column="2" class="toggle-vis auto-save" id="col-3"> <?php echo $lang_module->lbl_item; ?>
+                            </label>
+                            <label for="col-4">
+                                <input type="checkbox" checked="checked" data-column="3" class="toggle-vis auto-save" id="col-4"> <?php echo $lang_module->lbl_qty; ?>
+                            </label>
+                            <label for="col-5">
+                                <input type="checkbox" checked="checked" data-column="4" class="toggle-vis auto-save" id="col-5"> <?php echo $lang_module->lbl_price; ?>
+                            </label>
+                            <label for="col-6">
+                                <input type="checkbox" checked="checked" data-column="5" class="toggle-vis auto-save" id="col-6"> <?php echo $lang_module->lbl_amount; ?>
+                            </label>
+                            <label for="col-7">
+                                <input type="checkbox" checked="checked" data-column="6" class="toggle-vis auto-save" id="col-7"> <?php echo $lang_module->lbl_po_no; ?>
+                            </label>
+                            <label for="col-8">
+                                <input type="checkbox" checked="checked" data-column="7" class="toggle-vis auto-save" id="col-8"> <?php echo $lang_module->lbl_receipt_note; ?>
+                            </label>
+                            <label for="col-9">
+                                <input type="checkbox" checked="checked" data-column="8" class="toggle-vis auto-save" id="col-9"> <?php echo $lang_module->lbl_delivery_date; ?>
+                            </label>
+                            <label for="col-10">
+                                <input type="checkbox" checked="checked" data-column="9" class="toggle-vis auto-save" id="col-10"> <?php echo $lang_module->lbl_pr_author; ?>
+                            </label>
+                            <label for="col-11">
+                                <input type="checkbox" checked="checked" data-column="10" class="toggle-vis auto-save" id="col-11"> <?php echo $lang_module->lbl_sub_department; ?>
+                            </label>
+                        </div>
+                        <table id="mTable" class="table table-bordered table-striped table-hover" style="width:100%">
+                            <tbody class="pop"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- End Page Content -->
+    <!-- ============================================================== -->
+    <script src="<?php echo base_url(); ?>assets/libs/jquery/dist/jquery.min.js"></script>
+    <!-- ============================================================== -->
+    <!-- This page plugins -->
+    <!-- ============================================================== -->
+    <!-- This Page JS -->
+    <script src="<?php echo base_url(); ?>assets/extra-libs/jqbootstrapvalidation/validation.js"></script>
+    <script src="<?php echo base_url(); ?>assets/libs/bootstrap-switch/dist/js/bootstrap-switch.min.js"></script>
+
+    <!-- Datatable Page JS -->
+    <script src="<?php echo base_url(); ?>assets/libs/datatables/media/js/jquery.dataTables.min.js"></script>
+    <script src="<?php echo base_url(); ?>dist/js/pages/datatable/custom-datatable.js"></script>
+    <script src="<?php echo base_url(); ?>assets/libs/datatables/media/js/dataTables.rowReorder.min.js"></script>
+    <!-- moment -->
+    <script src="<?php echo base_url(); ?>assets/libs/moment/moment.js"></script>
+
+    <!-- This Page JS -->
+    <script src="<?php echo base_url(); ?>assets/libs/moment/moment.js"></script>
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/libs/bootstrap-material-datetimepicker/css/bootstrap-material-datetimepicker.css">
+    <script src="<?php echo base_url(); ?>assets/libs/bootstrap-material-datetimepicker/js/bootstrap-material-datetimepicker-custom.js"></script>
+
+    <!-- DataTables Buttons CSS -->
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/libs/button_datatable_ajax/buttons.dataTables.min.css">
+
+    <!-- DataTables Buttons JavaScript -->
+    <script type="text/javascript" charset="utf8" src="<?php echo base_url(); ?>assets/libs/button_datatable_ajax/dataTables.buttons.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="<?php echo base_url(); ?>assets/libs/button_datatable_ajax/jszip.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="<?php echo base_url(); ?>assets/libs/button_datatable_ajax/pdfmake.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="<?php echo base_url(); ?>assets/libs/button_datatable_ajax/vfs_fonts.js"></script>
+    <script type="text/javascript" charset="utf8" src="<?php echo base_url(); ?>assets/libs/button_datatable_ajax/buttons.html5.min.js"></script>
+
+    <!-- ============================================================== -->
+    <!-- This page plugins -->
+    <!-- ============================================================== -->
+    <!-- Datatable Page JS -->
+
+    <script type="text/javascript">
+        function numberWithCommas(x) {
+            if (x === null)
+                return '';
+            else
+                x = x.toFixed(2);
+            return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        $('.date').bootstrapMaterialDatePicker({
+            weekStart: 0,
+            clearButton: true,
+            time: false
+        });
+        /* Formatting function for row details - modify as you need */
+
+
+        var provTable;
+        ! function(window, document, $) {
+            "use strict";
+            provTable = $('#mTable').DataTable({
+                "lengthMenu": [
+                    [10, 25, 50, -1],
+                    [10, 25, 50, "All"]
+                ],
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'excel',
+                    {
+                        extend: 'pdfHtml5',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL'
+                    }
+                ],
+                // checkbox select column
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                "autoWidth": false,
+                "stateSave": false,
+                "processing": false,
+                "paging": true,
+                "pageLength": 100, // Set the number of rows per page here
+
+                // "bSort": true,
+                "language": {
+                    "url": "<?php echo base_url() ?>dist/js/pages/datatable/<?php echo $this->session->userdata('user_profile')->cng_lang; ?>.json",
+                    "headers": {
+                        "Access-Control-Allow-Origin": "*"
+                    },
+                    searchPlaceholder: "<?php echo $lang_sys->lbl_search; ?>",
+                },
+                "ajax": {
+                    url: "<?php echo base_url('sto/pr_department_order_list/ajax_pr_department_order_list'); ?>",
+                    type: "POST",
+                    data: function(data) {
+                        data.sub_department = $('#sub_department').val();
+                        data.material_type_id = $('#material_type_id').val();
+                        data.supplier_id = $('#supplier_id').val();
+                        data.daterange = $('#daterange').val();
+                        data.all_show = $('#all_show').is(':checked') ? 1 : 0;
+                        data.search_text = $('#search_text').val();
+                    },
+                    dataType: "json",
+                    // setTimeout: 100000,
+                },
+                "deferRender": false,
+                "columns": [{
+                        "data": {
+                            _: "date",
+                            sort: "date_datetime"
+                        },
+                        "width": "8%",
+                        "title": "<?php echo $lang_module->lbl_order_date; ?>",
+                    },
+                    {
+                        "data": {
+                            "pr_no": "pr_no",
+                            "pr_id": "pr_id"
+                        },
+                        "class": "text-left is-pr-no",
+                        "title": "<?php echo $lang_module->lbl_pr_no; ?>",
+                        "name": "pr_no",
+                        "width": "7%",
+                        render: function(data, type) {
+                            let btn = '<div class="text-left"><a href="<?php echo base_url(); ?>sto/pr_department_list/pdf/' + data.pr_id + '" target="_blank">' + data.pr_no + '</a></div>';
+                            return btn;
+                        }
+                    },
+                    {
+                        "data": "material_name",
+                        "title": "<?php echo $lang_module->lbl_item; ?>",
+                        "name": "material_name"
+                    },
+                    {
+                        "data": {
+                            "qty": "qty"
+                        },
+                        "title": "<?php echo $lang_module->lbl_qty; ?>",
+                        "name": "amount",
+                        render: function(data) {
+                            return '<div class="text-center">' + data.qty + '</div>';
+                        }
+                    },
+                    {
+                        "data": {
+                            "price_per_unit": "price_per_unit"
+                        },
+                        "title": "<?php echo $lang_module->lbl_price; ?>",
+                        "name": "price_per_unit",
+                        render: function(data) {
+                            return '<div class="text">' + (data.price_per_unit > 0 ? numberWithCommas(data.price_per_unit) : "") + '</div>';
+                        }
+                    },
+                    {
+                        "data": {
+                            "amount": "amount",
+                            "ref_no": "ref_no",
+                            "filename": "filename"
+                        },
+                        "title": "<?php echo $lang_module->lbl_amount; ?>",
+                        "name": "amount",
+                        render: function(data) {
+                            return '<div class="text">' + (data.amount > 0 ? numberWithCommas(data.amount) + " " + (data.ref_no !== null ? "<br><a target='_blank' class='btn btn-link btn-xs' href='<?php echo base_url(); ?>upload/quotation/" + data.pr_no + "/" + data.filename + "'>" + data.ref_no + "</a>" : "") : "") + '</div>';
+                        }
+                    },
+                    {
+                        "data": {
+                            "po_id": "po_id",
+                            "po_no": "po_no",
+                            "sent_mail": "sent_mail",
+                            "pr_status": "pr_status"
+                        },
+                        "title": "<?php echo $lang_module->lbl_po_no; ?>",
+                        "name": "po_no",
+                        render: function(data) {
+                            return (data.po_no == null || data.sent_mail == 0 ? '-' : '<a target="_blank" href="<?php echo base_url(); ?>pur/po_open_list/pdf' + (data.pr_status == 'CL' ? '_cancelled' : '') + '/' + data.po_id + '" title ="ดูใบสั่งซื้อ: ' + data.po_no + '"><i class="fas fa-file-pdf text-danger"></i> ' + data.po_no + '</a> ' + (data.sent_mail == 1 ? '<a href="javascript:void(0)" data-toggle="popover" data-trigger="hover" data-html="true" data-content="" class="sent_mail" data-id="' + data.po_no + '"><i class="fas fa-paper-plane text-xs text-success"></i></a>' : ''));
+                        }
+                    },
+                    {
+                        "data": {
+                            "receipt_note": "receipt_note"
+                        },
+                        "title": "<?php echo $lang_module->lbl_receipt_note; ?>",
+                        "name": "receipt_note",
+                        render: function(data) {
+                            return data.receipt_note
+                        }
+                    },
+                    {
+                        "data": {
+                            "receipt_note": "receipt_note",
+                            _: "delivery_date",
+                            sort: "delivery_datetime"
+                        },
+                        "title": "<?php echo $lang_module->lbl_delivery_date; ?>",
+                        "name": "delivery_date",
+                    },
+                    {
+                        "data": "user_id",
+                        "title": "<?php echo $lang_module->lbl_pr_author; ?>",
+                        "name": "user_id",
+                    },
+                    {
+                        "data": {
+                            "sub_department": "sub_department"
+                        },
+                        "title": "<?php echo $lang_module->lbl_sub_department; ?>",
+                        "name": "sub_department",
+                        render: function(data) {
+                            return '<div class="text-center">' + data.sub_department + '</div>';
+                        }
+                    },
+                ],
+                "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                    // console.log(aData);
+                    $(nRow).css('background', aData.status_color);
+                    if (aData.pr_status == 'CL') {
+                        $(nRow).css('text-decoration', 'line-through');
+                    }
+                    if (aData.qty == aData.qtyReceipt) {
+                        $(nRow).css('background', '#c3e6cb');
+                    } else if (aData.qtyReceipt > 0) {
+                        // orange
+                        $(nRow).css('background', '#ffc107');
+                    }
+                    $('td:eq(1)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(3)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(4)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(5)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(6)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(7)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(8)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(9)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(10)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                    $('td:eq(11)', nRow).css('font-family', 'arial, helvetica, sans-serif');
+                },
+
+            });
+        }(window, document, jQuery);
+
+        $(document).ready(function() {
+            $('input.toggle-vis').on('change', function(e) {
+                var column = provTable.column($(this).attr('data-column'));
+                if ($(this).is(':checked')) {
+                    provTable.column($(this).attr('data-column')).visible(true);
+                } else {
+                    provTable.column($(this).attr('data-column')).visible(false);
+                }
+                provTable.columns.adjust().draw(true);
+            });
+
+            var start = '<?php echo date('Y-m-d', mktime(0, 0, 0, date('m'), 1, date('Y'))); ?>';
+            var end = '<?php echo date('Y-m-d', mktime(0, 0, 0, date('m'), date('t'), date('Y'))); ?>';
+            $('#daterange').val(($('#all_show').is(':checked') ? '' : start + ' - ' + end));
+            /* อัพเดทตารางเรียลไทม์ */
+            $.ajax({
+                type: 'GET',
+                url: '<?php echo base_url('sto/pr_department_order_list/get_checksum'); ?>',
+                data: {},
+                dataType: 'json',
+                success: function(data) {
+                    $('#checksum').val(data.checksum);
+                }
+            });
+
+            setInterval(function() {
+                $.post("<?php echo base_url('sto/pr_department_order_list/checksum'); ?>", {
+                        checksum: $('#checksum').val()
+                    },
+                    function(data) {
+                        if (data.status == 1) {
+                            console.log('Updated Data');
+                            $('#checksum').val(data.checksum);
+                            reloadTable();
+                        }
+                    }, "json");
+            }, <?php echo $this->session->userdata('user_profile')->cng_alert_time; ?> * 1000);
+            /* อัพเดทตารางเรียลไทม์ */
+
+            $('#btnSearch').on('click', function() {
+                provTable.ajax.reload(null, false);
+            });
+
+            // window load then use func reloadTable
+            // reloadTable();
+
+            $('#checkModal').on('click', '.pr_detail_status_yes', function() {
+                if (this.checked == true) {
+                    $('#r' + $(this).data('id')).val('');
+                    $('#r' + $(this).data('id')).prop('required', false);
+                    $('.n' + $(this).data('id')).prop('required', false);
+                    $('.n' + $(this).data('id')).prop('checked', false);
+                    if ($('.pr_detail_status_no:checked').length !== $('.pr_detail_status_no').length) {
+                        $("#checkall_no").prop('checked', false);
+                    } else {
+                        $("#checkall_no").prop('checked', true);
+                        $('.y' + $(this).data('id')).prop('required', 'required');
+                    }
+                } else {
+                    $('.y' + $(this).data('id')).prop('required', 'required');
+                    $('.n' + $(this).data('id')).prop('required', 'required');
+                }
+            });
+            $('#checkModal').on('click', '.pr_detail_status_no', function() {
+                if (this.checked == true) {
+                    $('#r' + $(this).data('id')).val('');
+                    $('#r' + $(this).data('id')).prop('required', 'required');
+                    $('.y' + $(this).data('id')).prop('required', false);
+                    $('.y' + $(this).data('id')).prop('checked', false);
+                    if ($('.pr_detail_status_yes:checked').length !== $('.pr_detail_status_yes').length) {
+                        $("#checkall_yes").prop('checked', false);
+                    } else {
+                        $("#checkall_yes").prop('checked', true);
+                        $('.n' + $(this).data('id')).prop('required', 'required');
+                    }
+                } else {
+                    $('.y' + $(this).data('id')).prop('required', 'required');
+                    $('.n' + $(this).data('id')).prop('required', 'required');
+                    $('#r' + $(this).data('id')).val('');
+                    $('#r' + $(this).data('id')).prop('required', false);
+                }
+            });
+
+            $('#checkModal').on('mouseover', '.pop', function(e) {
+                $('[data-toggle="popover"]').popover();
+            });
+
+
+            $('.dtp-btn-cancel').removeClass('btn-inverse m-r-10').addClass('btn-default');
+
+
+            $('#mTable').on('mouseleave', '.popover-content', function(e) {
+                $(this).popover('hide');
+            });
+
+            $('#mTable').on('mouseover', '.sent_mail', function(e) {
+                let pop = $(this);
+                if (pop.attr('data-content') == '') {
+                    $.post("<?php echo base_url('sto/pr_department_order_list/ajax_sent_po_mail'); ?>", {
+                            po_no: $(this).data('id')
+                        },
+                        function(data) {
+                            pop.attr('data-content', data);
+                        }, "json");
+                }
+            });
+
+            $('#mTable').on('click', '.sent_mail', function(e) {
+                $(this).popover('show');
+            });
+
+            // ส่งออก Excel ไฟล์
+            $('#btnExport').on('click', function() {
+                $('<form action="<?php echo base_url('sto/pr_department_order_list/ajax_pr_department_order_export'); ?>" method="post">' +
+                    '<input type="hidden" name="sub_department" value="' + $('#sub_department').val() + '">' +
+                    '<input type="hidden" name="material_type_id" value="' + $('#material_type_id').val() + '">' +
+                    '<input type="hidden" name="supplier_id" value="' + $('#supplier_id').val() + '">' +
+                    '<input type="hidden" name="daterange" value="' + $('#daterange').val() + '">' +
+                    '<input type="hidden" name="all_show" value="' + ($('#all_show').is(':checked') ? '1' : 0) + '">' +
+                    '"</form>').appendTo('body').submit();
+            });
+        });
+
+        $('#all_show').on('click', function(e) {
+            if ($('#all_show').is(':checked')) {
+                $('#daterange').val('');
+            } else {
+                let start = '<?php echo date('Y-m-d', mktime(0, 0, 0, date('m'), 1, date('Y'))); ?>';
+                let end = '<?php echo date('Y-m-d', mktime(0, 0, 0, date('m'), date('t'), date('Y'))); ?>';
+                $('#daterange').val(($('#all_show').is(':checked') ? '' : start + ' - ' + end));
+            }
+        });
+
+        $(function() {
+            <?php if ($this->session->flashdata('msg')) { ?>
+                toastr.<?php echo $this->session->flashdata('type'); ?>('<?php echo $this->session->flashdata('type'); ?>', '<?php echo $this->session->flashdata('msg'); ?>', "top-right", "#ff6849", "5000");
+            <?php
+
+            } ?>
+        });
+    </script>
+<?php
+
+} /* Can View */ ?>

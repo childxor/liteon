@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\application",
+    "\\application\\controllers",
+    "\\application\\controllers\\sto",
+    "\\application\\views",
+    "\\application\\views\\main",
+    "\\application\\views\\main\\sto"
+  ],
+  "SelectedNode": "\\application\\views\\main\\sto\\check_stock.php",
+  "PreviewInSolutionExplorer": false
+}

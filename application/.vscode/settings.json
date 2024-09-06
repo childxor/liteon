@@ -1,0 +1,33 @@
+{
+    "php.version": "php7.3",
+    "intelephense.diagnostics.undefinedClassConstants": true,
+    "intelephense.diagnostics.undefinedConstants": false,
+    "intelephense.diagnostics.undefinedFunctions": false,
+    "intelephense.diagnostics.undefinedMethods": false,
+    "intelephense.diagnostics.undefinedProperties": false,
+    "intelephense.diagnostics.undefinedTypes": false,
+    "intelephense.diagnostics.undefinedVariables": false,
+    "intelephense.diagnostics.undefinedSymbols": false,
+    "javascript.suggest.includeAutomaticOptionalChainCompletions": false,
+    "typescript.suggest.includeAutomaticOptionalChainCompletions": false,
+    "intelephense.diagnostics.typeErrors": true,
+    "intelephense.compatibility.correctForBaseClassStaticUnionTypes": false,
+    "intelephense.completion.triggerParameterHints": false,
+    "intelephense.diagnostics.implementationErrors": true,
+    "intelephense.compatibility.correctForArrayAccessArrayAndTraversableArrayUnionTypes": false,
+    "intelephense.diagnostics.argumentCount": true,
+    "intelephense.diagnostics.deprecated": true,
+    "intelephense.diagnostics.duplicateSymbols": true,
+    "intelephense.diagnostics.enable": true,
+    "intelephense.diagnostics.embeddedLanguages": true,
+    "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+    "intelephense.phpdoc.functionTemplate": {
+
+        "summary": "$1",
+        "tags": [
+            "@param ${1:$SYMBOL_TYPE} $SYMBOL_NAME $2",
+            "@return ${1:$SYMBOL_TYPE} $2",
+            "@throws ${1:$SYMBOL_TYPE} $2"
+        ]
+    }
+}

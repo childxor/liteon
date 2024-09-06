@@ -1,0 +1,29 @@
+{
+    "liveServer.settings.multiRootWorkspaceName": "efins",
+    "liveServer.settings.port": 5501,
+    "[php]": {
+        "editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
+    },
+    "CodeGPT.apiKey": "Google AI Studio",
+    "sqltools.connections": [
+        {
+            "oracleOptions": {
+                "privilege": "Normal",
+                "thickMode": false,
+                "autoCommit": false,
+                "lowerCase": false,
+                "limitPrefetchRows": false
+            },
+            "previewLimit": 50,
+            "server": "SFC951",
+            "port": 1521,
+            "driver": "Oracle",
+            "database": "MES951",
+            "username": "sajet",
+            "password": "tech",
+            "name": "MES",
+            "group": "MES"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
