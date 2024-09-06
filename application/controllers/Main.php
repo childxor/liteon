@@ -338,7 +338,8 @@ class Main extends CI_Controller
 
     public function change_language()
     {
-        $lang = $this->uri->segment(3);
+        // $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
+        // $_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'en';
         $data = [
             'cng_lang' => $lang,
             'updated_username' => $this->session->userdata('user_profile')->username,

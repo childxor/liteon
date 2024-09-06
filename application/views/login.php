@@ -85,7 +85,23 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
     </style>
+    <!-- เพิ่ม select เปลี่ยนภาษา -->
+
 </head>
+
+<div class="container" style="margin-top: 20px; position: absolute; top: 0; right: 0;">
+    <div class="row justify-content-end">
+        <div class="col-md-2">
+            <div class="form-group">
+                <select class="form-control auto-save" id="lang" name="lang">
+                    <option value="en" href="<?php echo base_url("main/change_language/en"); ?>" data-id="en">English</option>
+                    <option value="th" href="<?php echo base_url("main/change_language/th"); ?>" data-id="th">ไทย</option>
+                    <option value="cn" href="<?php echo base_url("main/change_language/cn"); ?>" data-id="cn">中文</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
 
 <body>
     <div class="container">
@@ -137,55 +153,55 @@
                                 <form id="registerForm" action="#" method="post">
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="department_id">แผนก</label>
+                                            <label for="department_id"><?php echo $lang->sys_department; ?></label>
                                             <select class="form-control" id="department_id" name="department_id" required>
-                                                <option value="">เลือกแผนก</option>
+                                                <option value=""><?php echo $lang->sys_choose_department; ?></option>
                                                 <?php foreach ($department as $row) { ?>
                                                     <option value="<?php echo $row->id; ?>"><?php echo $row->name; ?></option>
                                                 <?php } ?>
                                             </select>
                                         </div>
                                         <div class="form-group col-md-6">
-                                            <label for="sub_department_id">แผนกย่อย</label>
+                                            <label for="sub_department_id"><?php echo $lang->system_sub_department; ?></label>
                                             <select class="form-control" id="sub_department_id" name="sub_department_id" disabled>
-                                                <!-- เพิ่มตัวเลือกแผนกย่อยโดยไดนามิก -->
+                                                <!-- Add dynamic sub department options here -->
                                             </select>
                                         </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="emp_code">รหัสพนักงาน</label>
+                                            <label for="emp_code"><?php echo $lang->system_emp_code; ?></label>
                                             <input type="text" class="form-control" id="emp_code" name="emp_code" required>
                                         </div>
                                         <div class="form-group col-md-6">
-                                            <label for="username">ชื่อผู้ใช้</label>
+                                            <label for="username"><?php echo $lang->system_username; ?></label>
                                             <input type="text" class="form-control" id="username" name="username" required>
                                         </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-4">
-                                            <label for="gender_id">เพศ</label>
+                                            <label for="gender_id"><?php echo $lang->system_gender; ?></label>
                                             <select class="form-control" id="gender_id" name="gender_id" required>
-                                                <option value="M">ชาย</option>
-                                                <option value="F">หญิง</option>
-                                                <option value="O">อื่นๆ</option>
+                                                <option value="M"><?php echo $lang->system_men; ?></option>
+                                                <option value="F"><?php echo $lang->system_girl; ?></option>
+                                                <option value="O"><?php echo $lang->system_other; ?></option>
                                             </select>
                                         </div>
                                         <div class="form-group col-md-4">
-                                            <label for="prefix_name">คำนำหน้าชื่อ</label>
+                                            <label for="prefix_name"><?php echo $lang->system_prefix_name; ?></label>
                                             <select class="form-control" id="prefix_name" name="prefix_name" required>
-                                                <option value="นาย">นาย</option>
-                                                <option value="นาง">นาง</option>
-                                                <option value="นางสาว">นางสาว</option>
+                                                <option value="นาย"><?php echo $lang->system_mister; ?></option>
+                                                <option value="นาง"><?php echo $lang->system_mrs; ?></option>
+                                                <option value="นางสาว"><?php echo $lang->system_miss; ?></option>
                                                 <option value="Mr.">Mr.</option>
                                                 <option value="Mrs.">Mrs.</option>
                                                 <option value="Miss">Miss</option>
                                             </select>
                                         </div>
                                         <div class="form-group col-md-4">
-                                            <label for="position_id">ตำแหน่ง</label>
+                                            <label for="position_id"><?php echo $lang->system_position; ?></label>
                                             <select class="form-control" id="position_id" name="position_id" required>
-                                                <option value="">เลือกตำแหน่ง</option>
+                                                <option value=""><?php echo $lang->system_choose_position; ?></option>
                                                 <?php foreach ($position as $row) { ?>
                                                     <option value="<?php echo $row->id; ?>"><?php echo $row->name; ?></option>
                                                 <?php } ?>
@@ -194,131 +210,132 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="first_name">ชื่อ</label>
+                                            <label for="first_name"><?php echo $lang->system_first_name; ?></label>
                                             <input type="text" class="form-control" id="first_name" name="first_name" required>
                                         </div>
                                         <div class="form-group col-md-6">
-                                            <label for="last_name">นามสกุล</label>
+                                            <label for="last_name"><?php echo $lang->system_last_name; ?></label>
                                             <input type="text" class="form-control" id="last_name" name="last_name" required>
                                         </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="tel">เบอร์โทรศัพท์</label>
+                                            <label for="tel"><?php echo $lang->system_tel; ?></label>
                                             <input type="tel" class="form-control" id="tel" name="tel" required>
                                         </div>
                                         <div class="form-group col-md-6">
-                                            <label for="email">อีเมล</label>
+                                            <label for="email"><?php echo $lang->system_email; ?></label>
                                             <input type="email" class="form-control" id="email" name="email" required>
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="card_number">หมายเลขบัตร</label>
+                                        <label for="card_number"><?php echo $lang->system_card_number; ?></label>
                                         <input type="text" class="form-control" id="card_number" name="card_number" required>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="default_module_id">โมดูลเริ่มต้น</label>
+                                            <label for="default_module_id"><?php echo $lang->system_default_module; ?></label>
                                             <select class="form-control" id="default_module_id" name="default_module_id" disabled>
-                                                <!-- เพิ่มตัวเลือกโมดูลโดยไดนามิก -->
+                                                <!-- Add dynamic default module options here -->
                                             </select>
                                         </div>
                                         <div class="form-group col-md-6">
-                                            <label for="cng_lang">ภาษาที่ต้องการ</label>
+                                            <label for="cng_lang"><?php echo $lang->system_cng_lang; ?></label>
                                             <select class="form-control" id="cng_lang" name="cng_lang" required>
-                                                <option value="EN">อังกฤษ</option>
-                                                <option value="TH">ไทย</option>
-                                                <option value="CN">จีน</option>
+                                                <option value="EN"><?php echo $lang->system_eng; ?></option>
+                                                <option value="TH"><?php echo $lang->system_thai; ?></option>
+                                                <option value="CN"><?php echo $lang->system_china; ?></option>
                                             </select>
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-primary">ลงทะเบียน</button>
+                                    <button type="submit" class="btn btn-primary"><?php echo $lang->system_register; ?></button>
                                 </form>
                             </div>
                             <div class="tab-pane fade" id="report" role="tabpanel">
                                 <form id="reportIssueForm" enctype="multipart/form-data">
                                     <div class="form-group">
-                                        <label for="issueType">ประเภทปัญหา</label>
+                                        <label for="issueType"><?php echo $lang->system_issue_type; ?></label>
                                         <select class="form-control" id="issueType" name="issueType" required>
-                                            <option value="">เลือกประเภทปัญหา</option>
-                                            <option value="login">ปัญหาการเข้าสู่ระบบ</option>
-                                            <option value="account">ปัญหาเกี่ยวกับบัญชีผู้ใช้</option>
-                                            <option value="system">ระบบทำงานผิดพลาด</option>
-                                            <option value="data">ข้อมูลไม่ถูกต้องหรือหาย</option>
-                                            <option value="permission">ปัญหาสิทธิ์การใช้งาน</option>
-                                            <option value="performance">ระบบทำงานช้า</option>
-                                            <option value="ui">ปัญหาการแสดงผลหน้าจอ</option>
-                                            <option value="report">รายงานไม่ถูกต้อง</option>
-                                            <option value="suggestion">ข้อเสนอแนะ/ความคิดเห็น</option>
-                                            <option value="other">อื่นๆ</option>
+                                            <option value=""><?php echo $lang->system_choose_issue_type; ?></option>
+                                            <option value="login"><?php echo $lang->system_login; ?></option>
+                                            <option value="account"><?php echo $lang->system_account; ?></option>
+                                            <option value="system"><?php echo $lang->system_system; ?></option>
+                                            <option value="data"><?php echo $lang->system_data; ?></option>
+                                            <option value="permission"><?php echo $lang->system_permission; ?></option>
+                                            <option value="performance"><?php echo $lang->system_performance; ?></option>
+                                            <option value="ui"><?php echo $lang->system_ui; ?></option>
+                                            <option value="report"><?php echo $lang->system_report; ?></option>
+                                            <option value="suggestion"><?php echo $lang->system_suggestion; ?></option>
+                                            <option value="other"><?php echo $lang->system_other; ?></option>
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="urgencyLevel">ระดับความเร่งด่วน</label>
+                                        <label for="urgencyLevel"><?php echo $lang->system_urgency_level; ?></label>
                                         <select class="form-control" id="urgencyLevel" name="urgencyLevel" required>
-                                            <option value="">เลือกระดับความเร่งด่วน</option>
-                                            <option value="low">ต่ำ - สามารถรอได้</option>
-                                            <option value="medium">ปานกลาง - ควรได้รับการแก้ไขเร็วๆนี้</option>
-                                            <option value="high">สูง - จำเป็นต้องได้รับการแก้ไขโดยเร็ว</option>
-                                            <option value="critical">วิกฤต - ต้องได้รับการแก้ไขทันที</option>
+                                            <option value=""><?php echo $lang->system_choose_urgency_level; ?></option>
+                                            <option value="low"><?php echo $lang->system_low; ?></option>
+                                            <option value="medium"><?php echo $lang->system_medium; ?></option>
+                                            <option value="high"><?php echo $lang->system_high; ?></option>
+                                            <option value="critical"><?php echo $lang->system_critical; ?></option>
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="affectedSystem">ระบบที่ได้รับผลกระทบ</label>
+                                        <label for="affectedSystem"><?php echo $lang->system_affected_system; ?></label>
                                         <select class="form-control" id="affectedSystem" name="affectedSystem" required>
-                                            <option value="">เลือกระบบที่ได้รับผลกระทบ</option>
-                                            <option value="hr">ระบบบุคลากร</option>
-                                            <option value="finance">ระบบการเงิน</option>
-                                            <option value="inventory">ระบบคลังสินค้า</option>
-                                            <option value="production">ระบบการผลิต</option>
-                                            <option value="sales">ระบบขาย</option>
-                                            <option value="crm">ระบบลูกค้าสัมพันธ์</option>
-                                            <option value="website">เว็บไซต์</option>
-                                            <option value="other">อื่นๆ</option>
+                                            <option value=""><?php echo $lang->system_choose_affected_system; ?></option>
+                                            <option value="hr"><?php echo $lang->system_hr; ?></option>
+                                            <option value="finance"><?php echo $lang->system_finance; ?></option>
+                                            <option value="inventory"><?php echo $lang->system_inventory; ?></option>
+                                            <option value="production"><?php echo $lang->system_production; ?></option>
+                                            <option value="sales"><?php echo $lang->system_sales; ?></option>
+                                            <option value="crm"><?php echo $lang->system_crm; ?></option>
+                                            <option value="website"><?php echo $lang->system_website; ?></option>
+                                            <option value="other"><?php echo $lang->system_other; ?></option>
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="issueDescription">รายละเอียดปัญหา</label>
+                                        <label for="issueDescription"><?php echo $lang->system_issue_description; ?></label>
                                         <textarea class="form-control" id="issueDescription" name="issueDescription" rows="4" required></textarea>
                                     </div>
                                     <div class="form-group">
-                                        <label for="expectedResult">ผลลัพธ์ที่คาดหวัง</label>
+                                        <label for="expectedResult"><?php echo $lang->system_expected_result; ?></label>
                                         <textarea class="form-control" id="expectedResult" name="expectedResult" rows="2"></textarea>
                                     </div>
                                     <div class="form-group">
-                                        <label for="contactName">ชื่อผู้แจ้งปัญหา</label>
+                                        <label for="contactName"><?php echo $lang->system_contact_name; ?></label>
                                         <input type="text" class="form-control" id="contactName" name="contactName" required>
                                     </div>
                                     <div class="form-group">
-                                        <label for="contactEmail">อีเมลติดต่อกลับ</label>
+                                        <label for="contactEmail"><?php echo $lang->system_contact_email; ?></label>
                                         <input type="email" class="form-control" id="contactEmail" name="contactEmail" required>
                                     </div>
                                     <div class="form-group">
-                                        <label for="contactPhone">เบอร์โทรศัพท์ (ไม่บังคับ)</label>
+                                        <label for="contactPhone"><?php echo $lang->system_contact_phone; ?></label>
                                         <input type="tel" class="form-control" id="contactPhone" name="contactPhone">
                                     </div>
                                     <div class="form-group">
-                                        <label for="attachFile">แนบไฟล์ (ไม่บังคับ)</label>
+                                        <label for="attachFile"><?php echo $lang->system_attach_file; ?></label>
                                         <input type="file" class="form-control-file" id="attachFile" name="attachFile">
-                                        <small class="form-text text-muted">อนุญาตไฟล์: gif, jpg, png, pdf, doc, docx, xls, xlsx, ppt, pptx (ขนาดไม่เกิน 5MB)</small>
+                                        <small class="form-text text-muted"><?php echo $lang->system_allow_file; ?></small>
                                     </div>
-                                    <button type="submit" class="btn btn-primary">ส่งรายงานปัญหา</button>
+                                    <button type="submit" class="btn btn-primary"><?php echo $lang->system_report_issue; ?></button>
                                 </form>
                             </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="queue-display">
-                    <h3 class="text-center mb-4">สถานะคิว</h3>
+                    <h3 class="text-center mb-4"><?php echo $lang->system_queue_status; ?></h3>
                     <div class="row mb-4">
                         <div class="col-6 text-center">
-                            <h5>คิวปัจจุบัน</h5>
+                            <h5><?php echo $lang->system_current_queue; ?></h5>
                             <div id="currentQueue" class="queue-number">-</div>
                         </div>
                         <div class="col-6 text-center">
-                            <h5>คิวถัดไป</h5>
+                            <h5><?php echo $lang->system_next_queue; ?></h5>
                             <div id="nextQueue" class="queue-number">-</div>
                         </div>
                     </div>
@@ -326,10 +343,10 @@
                         <table class="table table-sm queue-table">
                             <thead>
                                 <tr>
-                                    <th>คิว</th>
-                                    <th>ประเภท</th>
-                                    <th>ความเร่งด่วน</th>
-                                    <th>สถานะ</th>
+                                    <th><?php echo $lang->system_queue; ?></th>
+                                    <th><?php echo $lang->system_type; ?></th>
+                                    <th><?php echo $lang->system_urgency; ?></th>
+                                    <th><?php echo $lang->system_status; ?></th>
                                 </tr>
                             </thead>
                             <tbody id="queueTableBody">
@@ -341,16 +358,16 @@
             </div>
         </div>
     </div>
-
 </body>
 
 </html>
 
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-   
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10.16.3/dist/sweetalert2.all.min.js"></script>
+
 
 <script>
     // test git
@@ -364,6 +381,13 @@
     }
 
     $(document).ready(function() {
+        // lang
+        $('#lang').change(function() {
+            var lang = $(this).val();
+            var url = $(this).find('option:selected').attr('href');
+            // console.log(url);
+            window.location.href = url;
+        });
         $('#registerForm').submit(function(e) {
             e.preventDefault();
             var formData = $(this).serialize();
@@ -376,15 +400,33 @@
                 dataType: 'json',
                 success: function(response) {
                     if (response.status === 'success') {
-                        alert('ลงทะเบียนสำเร็จ: ' + response.message);
+                        // alert('ลงทะเบียนสำเร็จ: ' + response.message);
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'ลงทะเบียนสำเร็จ: ' + response.message,
+                            type: 'success',
+                            confirmButtonText: 'OK'
+                        });
                         $('#registerForm')[0].reset();
                         // อาจจะเพิ่มการเปลี่ยนแท็บไปยังหน้า login หรือแสดงข้อความเพิ่มเติม
                     } else {
-                        alert('เกิดข้อผิดพลาด: ' + response.message);
+                        // alert('เกิดข้อผิดพลาด: ' + response.message);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'เกิดข้อผิดพลาด: ' + response.message,
+                            type: 'error',
+                            confirmButtonText: 'OK'
+                        });
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + error);
+                    // alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'เกิดข้อผิดพลาดในการส่งข้อมูล: ' + error,
+                        type: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 }
             });
         });
@@ -397,7 +439,7 @@
             // ตรวจสอบ attribute ถ้าเป็นอันอื่นนอกจาก emp_code  username number email จะไม่ตรวจสอบ
             if (fieldName !== 'emp_code' && fieldName !== 'username' && fieldName !== 'tel' && fieldName !== 'email' && fieldName !== 'card_number') {
                 return;
-            } 
+            }
             console.log(fieldName);
 
             if (fieldValue.trim() === '') {

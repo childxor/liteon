@@ -27,110 +27,97 @@ class Authen extends CI_Controller
             // $this->print_r($this->data['department']);
             $this->data['position'] = $this->db->query("SELECT * FROM mas_position WHERE record_status = 'N' ORDER BY name")->result();
             // $this->print_r($this->data['position']);
-
+            // $this->print_r($this->session);
             $this->load->view("login", $this->data);
         }
     }
 
     public function login()
     {
-        /* System Language login */
         $lang = $this->efs_lib->language_login();
-
-        /* Clear Session */
         $this->session->unset_userdata(array('user_profile', 'user_permission', 'expired_passwd', 'token'));
+        $this->db = $this->load->database('EFINS', TRUE);
 
         $username = trim($this->input->post('username'));
         $passwd = trim($this->input->post('passwd'));
-        $sql = "SELECT sys_user.id, sys_user.position_id, mas_position.name AS position_name,sys_user.emp_code, sys_user.prefix_name, sys_user.username, sys_user.first_name, sys_user.last_name, sys_user.tel, sys_user.email, sys_user.is_active "
-            . ", sys_user.cng_per_page, sys_user.cng_font_size, sys_user.cng_table_font_size, sys_user.cng_lang, sys_user.cng_alert_time, sys_user.default_module_id "
-            . ", mas_department.id AS department_id, mas_department.name AS department_name, mas_sub_department.name AS sub_department_name, mas_department.description AS department_description, mas_department.color "
-            . "FROM sys_user INNER JOIN mas_department ON sys_user.department_id = mas_department.id "
-            . "LEFT JOIN mas_sub_department ON sys_user.sub_department_id = mas_sub_department.id "
-            . "INNER JOIN mas_position ON sys_user.position_id = mas_position.id "
-            . "WHERE sys_user.username = '" . $username . "' "
-            . "AND sys_user.record_status = 'N'";
-        $query = $this->db->query($sql);
-        if ($query) {
-            $nrows = $query->num_rows();
-            if ($nrows > 0) {
-                $user_profile = $query->row();
-                if ($user_profile->is_active == 1) {
-                    $query_passwd = $this->db->query("SELECT * FROM sys_user_passwd WHERE user_id = '" . $user_profile->id . "' AND record_status='N' ");
-                    $nrows_passwd = $query_passwd->num_rows();
-                    $query_role = $this->db->query("SELECT * FROM sys_role_user WHERE user_id = '" . $user_profile->id . "' AND record_status='N' ");
-                    $nrows_role = $query_role->num_rows();
 
-                    if ($nrows_role > 0) {
-                        if ($nrows_passwd > 0) {
-                            $item_passwd = $query_passwd->row();
-                            $chk = (bool) $this->efs_lib->paswd_decrypt($passwd, $item_passwd->hash);
-                            if ($chk == TRUE) {
-                                /* Get Expired Date of Current Password */
-                                $data['expired_passwd'] = $item_passwd->expired;
+        $sql = "SELECT su.id, su.position_id, mp.name AS position_name, su.emp_code, su.prefix_name, su.username, 
+                       su.first_name, su.last_name, su.tel, su.email, su.is_active, su.cng_per_page, 
+                       su.cng_font_size, su.cng_table_font_size, su.cng_lang, su.cng_alert_time, su.default_module_id,
+                       md.id AS department_id, md.name AS department_name, msd.name AS sub_department_name, 
+                       md.description AS department_description, md.color
+                FROM sys_user su
+                INNER JOIN mas_department md ON su.department_id = md.id
+                LEFT JOIN mas_sub_department msd ON su.sub_department_id = msd.id
+                INNER JOIN mas_position mp ON su.position_id = mp.id
+                WHERE su.username = ? AND su.record_status = 'N'";
 
-                                /* Get Default Module Let Srart */
-                                $sql_module1 = "SELECT module AS default_module "
-                                    . "FROM sys_module "
-                                    . "WHERE (id = '" . $user_profile->default_module_id . "')";
-                                $sql_module2 = "SELECT DISTINCT sys_module.module AS default_module "
-                                    . "FROM sys_role_user INNER JOIN sys_role ON sys_role_user.role_id = sys_role.id "
-                                    . "INNER JOIN sys_module ON sys_role.default_module_id = sys_module.id "
-                                    . "WHERE sys_role_user.record_status='N'   AND sys_role_user.user_id ='" . $user_profile->id . "' ";
-                                // print_r($sql_module2);
-                                $module = $this->db->query(!empty($user_profile->default_module_id) ? $sql_module1 : $sql_module2)->row();
-                                $data['default_module'] = $module->default_module;
+        $query = $this->db->query($sql, array($username));
 
-                                $data['user_profile'] = $user_profile;
-                                $data['user_profile']->name_sys = 'efs';
-                                $data['user_profile']->role = $this->get_role($user_profile->id);
-                                // $data['user_profile'] = $user_profile->emp_code;
+        if ($query && $query->num_rows() > 0) {
+            $user_profile = $query->row();
+            if ($user_profile->is_active == 1) {
+                $query_passwd = $this->db->query("SELECT * FROM sys_user_passwd WHERE user_id = ? AND record_status = 'N'", array($user_profile->id));
+                $query_role = $this->db->query("SELECT * FROM sys_role_user WHERE user_id = ? AND record_status = 'N'", array($user_profile->id));
 
-                                /* SET token For Session */
-                                $data['token'] = strtotime(date("Y-m-d H:i:s"));
-                                // echo '<pre>';
-                                // print_r($data);
-                                // echo '</pre>';
-                                // die();
+                if ($query_role->num_rows() > 0 && $query_passwd->num_rows() > 0) {
+                    $item_passwd = $query_passwd->row();
+                    if ($this->efs_lib->paswd_decrypt($passwd, $item_passwd->hash)) {
+                        $data['expired_passwd'] = $item_passwd->expired;
+                        $data['default_module'] = $this->get_default_module($user_profile);
+                        $data['user_profile'] = $this->prepare_user_profile($user_profile);
+                        $data['token'] = strtotime(date("Y-m-d H:i:s"));
 
-                                $this->session->set_userdata($data);
-                                $this->log_lib->write_log('Authen => ' . $lang->sys_login_submit);
-                                $this->Checkday($user_profile->id);
-                            } else {
-                                $this->session->set_flashdata('type', 'warning');
-                                $this->session->set_flashdata('msg', $lang->sys_login_username . ' <u>' . $username . '</u> ' . $lang->sys_login_incorrect);
-                                $this->log_lib->write_log('error-authen-incorrect=> ' . $this->session->flashdata('msg'));
-                            }
-                        } else {
-                            $this->session->set_flashdata('type', 'warning');
-                            $this->session->set_flashdata('msg', $lang->sys_login_username . ' <u>' . $username . '</u> ' . $lang->sys_login_without_password);
-                            $this->log_lib->write_log('error-authen-without-password=> ' . $this->session->flashdata('msg'));
-                        }
-                    } else {
-                        $this->session->set_flashdata('type', 'warning');
-                        $this->session->set_flashdata('msg',  $lang->sys_login_username . ' <u>' . $username . '</u> ' . $lang->sys_login_without_group);
-                        $this->log_lib->write_log('error-authen-without-group=> ' . $this->session->flashdata('msg'));
+                        $this->session->set_userdata($data);
+                        $this->log_lib->write_log('Authen => ' . $lang->sys_login_submit);
+                        $this->Checkday($user_profile->id);
+                        redirect(base_url());
+                        return;
                     }
-                } else {
-                    $this->session->set_flashdata('type', 'warning');
-                    $this->session->set_flashdata('msg',  $lang->sys_login_username . ' <u>' . $username . '</u> ' . $lang->sys_login_user_disabled);
-                    $this->log_lib->write_log('error-authen-user-disabled=> ' . $this->session->flashdata('msg'));
                 }
-            } else {
-                $this->session->set_flashdata('type', 'danger');
-                $this->session->set_flashdata('msg', $lang->sys_login_without_username . ' <u>' . $username . '</u>');
-                $this->log_lib->write_log('error-authen-no-username=> ' . $this->session->flashdata('msg'));
             }
+            // die('test');
+            $this->handle_login_error($username, $lang, 'incorrect');
         } else {
-            $this->session->set_flashdata('type', 'danger');
-            $this->session->set_flashdata('msg', $lang->sys_login_command_error);
-            $this->log_lib->write_log('error-authen-command-error=> ' . $this->session->flashdata('msg'));
+            $this->handle_login_error($username, $lang, 'no_user');
         }
-        if (!empty($this->session->userdata("user_profile")->id)) {
-            redirect(base_url());
-        } else {
-            redirect(base_url("authen"));
-        }
+        redirect(base_url("authen"));
+    }
+
+    private function get_default_module($user_profile)
+    {
+        $sql = $user_profile->default_module_id
+            ? "SELECT module AS default_module FROM sys_module WHERE id = ?"
+            : "SELECT DISTINCT sm.module AS default_module 
+               FROM sys_role_user sru 
+               INNER JOIN sys_role sr ON sru.role_id = sr.id 
+               INNER JOIN sys_module sm ON sr.default_module_id = sm.id 
+               WHERE sru.record_status = 'N' AND sru.user_id = ?";
+
+        $query = $this->db->query($sql, array($user_profile->default_module_id ?: $user_profile->id));
+        return $query->row()->default_module;
+    }
+
+    private function prepare_user_profile($user_profile)
+    {
+        $user_profile->name_sys = 'efs';
+        $user_profile->role = $this->get_role($user_profile->id);
+        return $user_profile;
+    }
+
+    private function handle_login_error($username, $lang, $error_type)
+    {
+        $messages = [
+            'incorrect' => $lang->sys_login_incorrect,
+            'no_password' => $lang->sys_login_without_password,
+            'no_group' => $lang->sys_login_without_group,
+            'disabled' => $lang->sys_login_user_disabled,
+            'no_user' => $lang->sys_login_without_username
+        ];
+
+        $this->session->set_flashdata('type', 'warning');
+        $this->session->set_flashdata('msg', $lang->sys_login_username . ' <u>' . $username . '</u> ' . $messages[$error_type]);
+        $this->log_lib->write_log('error-authen-' . $error_type . '=> ' . $this->session->flashdata('msg'));
     }
 
     public function user()
@@ -419,11 +406,11 @@ class Authen extends CI_Controller
             $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Register failed')));
             return;
         } else {
-            $hash = $this->efs_lib->paswd_encrypt($this->input->post('password'));
+            $hash = $this->efs_lib->paswd_encrypt($this->input->post('emp_code'));
             $data2 = array(
                 'user_id' => $this->db->insert_id(),
-                'default_passwd' => $this->input->post('password'),
-                'hash' => $this->efs_lib->paswd_encrypt($this->input->post('password')),
+                'default_passwd' => $this->input->post('emp_code'),
+                'hash' => $this->efs_lib->paswd_encrypt($this->input->post('emp_code')),
                 'expired' => date('Y-m-d', strtotime('+90 days')),
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
