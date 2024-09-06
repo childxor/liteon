@@ -393,64 +393,64 @@
 
         <?php if ($this->session->userdata('user_profile')->id == 463) { ?>
 
-            $(document).on('click', '.FirstTime', function(e) {
-                e.preventDefault();
-                dataRow = provTable.row($(this).closest('tr')).data();
-                // console.log(dataRow);
-                dataTime = dataRow.rDate + ' ' + dataRow.FirstTime;
-                $.ajax({
-                    url: '<?php echo base_url('emp/manager/setTimeKhem') ?>',
-                    type: 'POST',
-                    data: {
-                        time: dataTime,
-                        doorName: dataRow.DEVICENAME,
-                        firstTime: dataRow.FirstTime
-                    },
-                    dataType: 'json',
-                    success: function(data) {
-                        if (data.status == 'success') {
-                            provTable.ajax.reload();
-                        } else {
-                            swal.fire({
-                                'title': 'Error',
-                                'text': data.message,
-                                'type': 'error',
-                                'confirmButtonText': 'OK'
-                            });
-                        }
-                    }
-                });
+            // $(document).on('click', '.FirstTime', function(e) {
+            //     e.preventDefault();
+            //     dataRow = provTable.row($(this).closest('tr')).data();
+            //     // console.log(dataRow);
+            //     dataTime = dataRow.rDate + ' ' + dataRow.FirstTime;
+            //     $.ajax({
+            //         url: '<?php echo base_url('emp/manager/setTimeKhem') ?>',
+            //         type: 'POST',
+            //         data: {
+            //             time: dataTime,
+            //             doorName: dataRow.DEVICENAME,
+            //             firstTime: dataRow.FirstTime
+            //         },
+            //         dataType: 'json',
+            //         success: function(data) {
+            //             if (data.status == 'success') {
+            //                 provTable.ajax.reload();
+            //             } else {
+            //                 swal.fire({
+            //                     'title': 'Error',
+            //                     'text': data.message,
+            //                     'type': 'error',
+            //                     'confirmButtonText': 'OK'
+            //                 });
+            //             }
+            //         }
+            //     });
 
-                // swal.fire('Saved', '', 'success');
-            });
-            $(document).on('click', '.LastTime', function(e) {
-                e.preventDefault();
-                dataRow = provTable.row($(this).closest('tr')).data();
-                // console.log(dataRow);
-                dataTime = dataRow.rDate + ' ' + dataRow.LastTime;
-                $.ajax({
-                    url: '<?php echo base_url('emp/manager/editDataevning') ?>',
-                    type: 'POST',
-                    data: {
-                        time: dataTime,
-                        doorName: dataRow.DEVICENAME,
-                        lastTime: dataRow.LastTime
-                    },
-                    dataType: 'json',
-                    success: function(data) {
-                        if (data.status == 'success') {
-                            provTable.ajax.reload();
-                        } else {
-                            swal.fire({
-                                'title': 'Error',
-                                'text': data.message,
-                                'type': 'error',
-                                'confirmButtonText': 'OK'
-                            });
-                        }
-                    }
-                });
-            });
+            //     // swal.fire('Saved', '', 'success');
+            // });
+            // $(document).on('click', '.LastTime', function(e) {
+            //     e.preventDefault();
+            //     dataRow = provTable.row($(this).closest('tr')).data();
+            //     // console.log(dataRow);
+            //     dataTime = dataRow.rDate + ' ' + dataRow.LastTime;
+            //     $.ajax({
+            //         url: '<?php echo base_url('emp/manager/editDataevning') ?>',
+            //         type: 'POST',
+            //         data: {
+            //             time: dataTime,
+            //             doorName: dataRow.DEVICENAME,
+            //             lastTime: dataRow.LastTime
+            //         },
+            //         dataType: 'json',
+            //         success: function(data) {
+            //             if (data.status == 'success') {
+            //                 provTable.ajax.reload();
+            //             } else {
+            //                 swal.fire({
+            //                     'title': 'Error',
+            //                     'text': data.message,
+            //                     'type': 'error',
+            //                     'confirmButtonText': 'OK'
+            //                 });
+            //             }
+            //         }
+            //     });
+            // });
 
 
         <?php } ?>

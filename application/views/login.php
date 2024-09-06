@@ -342,22 +342,18 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+   
+
 <script>
     // test git
-    $(document).ready(function() {
-        $('#showPassword').change(function() {
-            $('#password').attr('type', $(this).prop('checked') ? 'text' : 'password');
-        });
-    });
-    $(".preloader").fadeOut();
-    $(':input:enabled:visible:first').focus();
-
     function myFunction() {
         var x = document.getElementById("myInput");
         if (x.type === "password") {
@@ -371,6 +367,7 @@
         $('#registerForm').submit(function(e) {
             e.preventDefault();
             var formData = $(this).serialize();
+            console.log(formData);
 
             $.ajax({
                 url: '<?php echo base_url("authen/register"); ?>',
@@ -397,6 +394,11 @@
             var field = $(this);
             var fieldName = field.attr('name');
             var fieldValue = field.val();
+            // ตรวจสอบ attribute ถ้าเป็นอันอื่นนอกจาก emp_code  username number email จะไม่ตรวจสอบ
+            if (fieldName !== 'emp_code' && fieldName !== 'username' && fieldName !== 'tel' && fieldName !== 'email' && fieldName !== 'card_number') {
+                return;
+            } 
+            console.log(fieldName);
 
             if (fieldValue.trim() === '') {
                 return; // ไม่ตรวจสอบถ้าฟิลด์ว่างเปล่า
@@ -461,6 +463,10 @@
                     }
                 }
             });
+        });
+
+        $('#showPassword').change(function() {
+            $('#password').attr('type', $(this).prop('checked') ? 'text' : 'password');
         });
     });
 </script>

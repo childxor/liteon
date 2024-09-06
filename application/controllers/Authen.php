@@ -12,6 +12,7 @@ class Authen extends CI_Controller
         $this->data['var'] = $this->efs_lib->get_var_sys();
         $this->load->library('cart');
         // $this->load->helper('cookie');
+        $this->hqms_db = $this->load->database('HQMS_IPS', TRUE);
     }
 
     public function index()
@@ -131,6 +132,7 @@ class Authen extends CI_Controller
             redirect(base_url("authen"));
         }
     }
+
     public function user()
     {
         $username = trim($this->input->post('username'));
@@ -368,6 +370,7 @@ class Authen extends CI_Controller
 
     public function register()
     {
+        // $this->print_r($this->input->post());
         // เช็คว่ามี username นี้ในระบบหรือไม่
         $this->db->where('username', $this->input->post('username'));
         $query = $this->db->get('sys_user');
@@ -383,14 +386,14 @@ class Authen extends CI_Controller
             return;
         }
         // เช็คว่ามี card นี้ในระบบหรือไม่
-        $this->db->where('card_number', $this->input->post('card'));
+        $this->db->where('card_number', $this->input->post('card_number'));
         $query = $this->db->get('sys_user');
         if ($query->num_rows() > 0) {
             $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Card already exists')));
             return;
         }
         // เช็คว่ามี employee นี้ในระบบหรือไม่
-        $this->db->where('emp_code', $this->input->post('employee'));
+        $this->db->where('emp_code', $this->input->post('emp_code'));
         $query = $this->db->get('sys_user');
         if ($query->num_rows() > 0) {
             $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Employee already exists')));
@@ -400,12 +403,12 @@ class Authen extends CI_Controller
 
         $data = array(
             'username' => $this->input->post('username'),
-            'prefix_name' => $this->input->post('prefix'),
-            'first_name' => $this->input->post('firstname'),
-            'last_name' => $this->input->post('lastname'),
-            'emp_code' => $this->input->post('employee'),
-            'card_number' => $this->input->post('card'),
-            'department_id' => $this->input->post('department'),
+            'prefix_name' => $this->input->post('prefix_name'),
+            'first_name' => $this->input->post('first_name'),
+            'last_name' => $this->input->post('last_name'),
+            'emp_code' => $this->input->post('emp_code'),
+            'card_number' => $this->input->post('card_number'),
+            'department_id' => $this->input->post('department_id'),
             'email' => $this->input->post('email'),
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
@@ -440,6 +443,13 @@ class Authen extends CI_Controller
     {
         $field = $this->input->post('field');
         $value = $this->input->post('value');
+        // SELECT DISTINCT cardNumber, name
+        // FROM            Person
+        // WHERE        (LEN(cardNumber) < 10)
+        // die('test');
+        // $asdf = $this->hqms_db->query("SELECT DISTINCT cardNumber, name FROM Person WHERE (cardNumber = '" . $value . "')")->result();
+        // $this->print_r($asdf);
+
 
         switch ($field) {
             case 'username':
@@ -460,7 +470,7 @@ class Authen extends CI_Controller
                 }
                 break;
 
-            case 'card':
+            case 'card_number':
                 $this->db->where('card_number', $value);
                 $query = $this->db->get('sys_user');
                 if ($query->num_rows() > 0) {
@@ -469,7 +479,7 @@ class Authen extends CI_Controller
                 }
                 break;
 
-            case 'employee':
+            case 'emp_code':
                 $this->db->where('emp_code', $value);
                 $query = $this->db->get('sys_user');
                 if ($query->num_rows() > 0) {
@@ -479,7 +489,7 @@ class Authen extends CI_Controller
                 break;
 
             default:
-                $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'error', 'message' => 'Invalid field')));
+                $this->output->set_content_type('application/json')->set_output(json_encode(array('status' => 'success', 'message' => 'Field is available')));
                 return;
         }
 
