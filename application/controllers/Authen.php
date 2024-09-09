@@ -11,76 +11,111 @@ class Authen extends CI_Controller
         parent::__construct();
         $this->data['var'] = $this->efs_lib->get_var_sys();
         $this->load->library('cart');
-        // $this->load->helper('cookie');
         $this->hqms_db = $this->load->database('HQMS_IPS', TRUE);
     }
 
     public function index()
     {
         if (!empty($this->session->userdata("user_profile")->id)) {
+            $this->print_r(base_url());
             redirect(base_url());
             exit();
         } else {
             /* System Language login */
             $this->data['lang'] = $this->efs_lib->language_login();
             $this->data['department'] = $this->db->query("SELECT * FROM mas_department WHERE record_status = 'N' ORDER BY name")->result();
-            // $this->print_r($this->data['department']);
             $this->data['position'] = $this->db->query("SELECT * FROM mas_position WHERE record_status = 'N' ORDER BY name")->result();
-            // $this->print_r($this->data['position']);
-            // $this->print_r($this->session);
+
+            $this->data['lang_choose'] = $this->session->userdata('lang');
             $this->load->view("login", $this->data);
         }
+    }
+
+    public function ch_lg_http()
+    {
+        $this->session->set_userdata('lang', $_POST['lang']);
+        // $this->print_r($this->session->userdata('lang'));
     }
 
     public function login()
     {
         $lang = $this->efs_lib->language_login();
-        $this->session->unset_userdata(array('user_profile', 'user_permission', 'expired_passwd', 'token'));
+        $this->session->unset_userdata(['user_profile', 'user_permission', 'expired_passwd', 'token']);
         $this->db = $this->load->database('EFINS', TRUE);
 
-        $username = trim($this->input->post('username'));
-        $passwd = trim($this->input->post('passwd'));
+        $username = $this->input->post('username', TRUE);
+        $passwd = $this->input->post('passwd', TRUE);
 
-        $sql = "SELECT su.id, su.position_id, mp.name AS position_name, su.emp_code, su.prefix_name, su.username, 
-                       su.first_name, su.last_name, su.tel, su.email, su.is_active, su.cng_per_page, 
-                       su.cng_font_size, su.cng_table_font_size, su.cng_lang, su.cng_alert_time, su.default_module_id,
-                       md.id AS department_id, md.name AS department_name, msd.name AS sub_department_name, 
-                       md.description AS department_description, md.color
-                FROM sys_user su
-                INNER JOIN mas_department md ON su.department_id = md.id
-                LEFT JOIN mas_sub_department msd ON su.sub_department_id = msd.id
-                INNER JOIN mas_position mp ON su.position_id = mp.id
-                WHERE su.username = ? AND su.record_status = 'N'";
-
-        $query = $this->db->query($sql, array($username));
-
-        if ($query && $query->num_rows() > 0) {
-            $user_profile = $query->row();
-            if ($user_profile->is_active == 1) {
-                $query_passwd = $this->db->query("SELECT * FROM sys_user_passwd WHERE user_id = ? AND record_status = 'N'", array($user_profile->id));
-                $query_role = $this->db->query("SELECT * FROM sys_role_user WHERE user_id = ? AND record_status = 'N'", array($user_profile->id));
-
-                if ($query_role->num_rows() > 0 && $query_passwd->num_rows() > 0) {
-                    $item_passwd = $query_passwd->row();
-                    if ($this->efs_lib->paswd_decrypt($passwd, $item_passwd->hash)) {
-                        $data['expired_passwd'] = $item_passwd->expired;
-                        $data['default_module'] = $this->get_default_module($user_profile);
-                        $data['user_profile'] = $this->prepare_user_profile($user_profile);
-                        $data['token'] = strtotime(date("Y-m-d H:i:s"));
-
-                        $this->session->set_userdata($data);
-                        $this->log_lib->write_log('Authen => ' . $lang->sys_login_submit);
-                        $this->Checkday($user_profile->id);
-                        redirect(base_url());
-                        return;
-                    }
-                }
-            }
-            // die('test');
-            $this->handle_login_error($username, $lang, 'incorrect');
-        } else {
-            $this->handle_login_error($username, $lang, 'no_user');
+        if (empty($username) || empty($passwd)) {
+            $this->session->set_flashdata('type', 'warning');
+            $this->session->set_flashdata('msg', $lang->sys_login_empty_fields);
+            redirect(base_url("authen"));
+            return;
         }
+
+        $this->db->select('su.id, su.position_id, mp.name AS position_name, su.emp_code, su.prefix_name, su.username, 
+                           su.first_name, su.last_name, su.tel, su.email, su.is_active, su.cng_per_page, 
+                           su.cng_font_size, su.cng_table_font_size, su.cng_lang, su.cng_alert_time, su.default_module_id,
+                           md.id AS department_id, md.name AS department_name, msd.name AS sub_department_name, 
+                           md.description AS department_description, md.color')
+            ->from('sys_user su')
+            ->join('mas_department md', 'su.department_id = md.id', 'inner')
+            ->join('mas_sub_department msd', 'su.sub_department_id = msd.id', 'left')
+            ->join('mas_position mp', 'su.position_id = mp.id', 'inner')
+            ->where('su.username', $username)
+            ->where('su.record_status', 'N');
+
+        $user_profile = $this->db->get()->row();
+
+        if (!$user_profile || $user_profile->is_active != 1) {
+            $this->session->set_flashdata('type', 'warning');
+            $this->session->set_flashdata('msg', $lang->sys_login_username . ' <u>' . $username . '</u> ' .
+                ($user_profile ? $lang->sys_login_user_disabled : $lang->sys_login_without_username));
+            redirect(base_url("authen"));
+            return;
+        }
+
+        $passwd_query = $this->db->where('user_id', $user_profile->id)
+            ->where('record_status', 'N')
+            ->get('sys_user_passwd');
+
+        $role_query = $this->db->where('user_id', $user_profile->id)
+            ->where('record_status', 'N')
+            ->get('sys_role_user');
+
+        if ($passwd_query->num_rows() > 0 && $role_query->num_rows() > 0) {
+            $item_passwd = $passwd_query->row();
+            if ($this->efs_lib->paswd_decrypt($passwd, $item_passwd->hash)) {
+                $user_profile->name_sys = 'efs';
+                $user_profile->role = $this->db->select('role_id')->where('user_id', $user_profile->id)->get('sys_role_user')->result();
+
+                $default_module = $user_profile->default_module_id
+                    ? $this->db->select('module')->where('id', $user_profile->default_module_id)->get('sys_module')->row()->module
+                    : $this->db->select('DISTINCT sm.module')
+                    ->from('sys_role_user sru')
+                    ->join('sys_role sr', 'sru.role_id = sr.id')
+                    ->join('sys_module sm', 'sr.default_module_id = sm.id')
+                    ->where('sru.record_status', 'N')
+                    ->where('sru.user_id', $user_profile->id)
+                    ->get()->row()->module;
+
+                $this->session->set_userdata([
+                    'expired_passwd' => $item_passwd->expired,
+                    'default_module' => $default_module,
+                    'user_profile' => $user_profile,
+                    'token' => time()
+                ]);
+
+                $this->log_lib->write_log('Authen => ' . $lang->sys_login_submit);
+                $this->Checkday($user_profile->id);
+                redirect(base_url());
+                return;
+            }
+        }
+
+        $this->session->set_flashdata('type', 'warning');
+        $this->session->set_flashdata('msg', $lang->sys_login_username . ' <u>' . $username . '</u> ' . $lang->sys_login_incorrect);
+        $this->log_lib->write_log('error-authen-incorrect=> ' . $this->session->flashdata('msg'));
         redirect(base_url("authen"));
     }
 

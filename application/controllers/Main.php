@@ -338,7 +338,7 @@ class Main extends CI_Controller
 
     public function change_language()
     {
-        // $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
+        $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
         // $_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'en';
         $data = [
             'cng_lang' => $lang,

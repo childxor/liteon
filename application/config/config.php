@@ -28,6 +28,7 @@ date_default_timezone_set('Asia/Bangkok');
 
 /* Set Auto base_url */
 $config['base_url'] = 'http://' . $_SERVER['HTTP_HOST'] . '/liteon/';
+// $config['base_url'] = 'http://liteon-ips.local/';
 
 
 /*

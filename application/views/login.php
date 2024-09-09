@@ -1,3 +1,6 @@
+<!-- $this->output->set_header('Referrer-Policy: no-referrer-when-downgrade'); -->
+
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -12,7 +15,7 @@
             background: linear-gradient(135deg, #1a237e, #283593);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            /* align-items: center; */
         }
 
         .card {
@@ -57,12 +60,19 @@
             padding: 0.5rem 2rem;
         }
 
-        .queue-display {
+        .queue-display,
+        .promotional-section {
             background: linear-gradient(135deg, #283593, #1a237e);
             color: white;
             border-radius: 1rem;
             padding: 1.5rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            margin-bottom: 2rem;
+        }
+
+        .promotional-section {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
         }
 
         .queue-number {
@@ -84,6 +94,36 @@
         .queue-table thead {
             background-color: rgba(255, 255, 255, 0.2);
         }
+
+        .promotional-image,
+        .promotional-video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .lang-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
     </style>
     <!-- เพิ่ม select เปลี่ยนภาษา -->
 
@@ -94,9 +134,9 @@
         <div class="col-md-2">
             <div class="form-group">
                 <select class="form-control auto-save" id="lang" name="lang">
-                    <option value="en" href="<?php echo base_url("main/change_language/en"); ?>" data-id="en">English</option>
-                    <option value="th" href="<?php echo base_url("main/change_language/th"); ?>" data-id="th">ไทย</option>
-                    <option value="cn" href="<?php echo base_url("main/change_language/cn"); ?>" data-id="cn">中文</option>
+                    <option value="en" href="<?php echo base_url("main/change_language/en"); ?>" data-id="en" <?php if ($lang_choose == 'en') echo 'selected'; ?>>English</option>
+                    <option value="th" href="<?php echo base_url("main/change_language/th"); ?>" data-id="th" <?php if ($lang_choose == 'th') echo 'selected'; ?>>ไทย</option>
+                    <option value="cn" href="<?php echo base_url("main/change_language/cn"); ?>" data-id="cn" <?php if ($lang_choose == 'cn') echo 'selected'; ?>>中文</option>
                 </select>
             </div>
         </div>
@@ -106,7 +146,7 @@
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-6 mb-4">
+            <div class="col-md-6 mt-4">
                 <div class="card">
                     <div class="card-header">
                         <img src="<?php echo base_url('assets/images/logo-text.png'); ?>" alt="<?php echo $var->project; ?>" class="logo">
@@ -326,7 +366,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 mt-4">
                 <div class="queue-display">
                     <h3 class="text-center mb-4"><?php echo $lang->system_queue_status; ?></h3>
                     <div class="row mb-4">
@@ -381,17 +421,26 @@
     }
 
     $(document).ready(function() {
-        // lang
-        $('#lang').change(function() {
+        // lang 
+        $('#lang').change(function(e) {
+            e.preventDefault();
             var lang = $(this).val();
-            var url = $(this).find('option:selected').attr('href');
-            // console.log(url);
-            window.location.href = url;
+            $.ajax({
+                url: '<?php echo base_url("Authen/ch_lg_http"); ?>',
+                type: 'POST',
+                data: {
+                    lang: lang
+                },
+                success: function(response) {
+                    window.location.reload();
+                }
+            });
         });
+
         $('#registerForm').submit(function(e) {
             e.preventDefault();
             var formData = $(this).serialize();
-            console.log(formData);
+            // console.log(formData);
 
             $.ajax({
                 url: '<?php echo base_url("authen/register"); ?>',
@@ -503,6 +552,50 @@
                             confirmButtonText: 'OK'
                         });
                     }
+                }
+            });
+        });
+
+        $('#reportIssueForm').submit(function(e) {
+            e.preventDefault(); // Prevent the default form submission
+            // Create a FormData object to handle file uploads
+            var formData = new FormData(this);
+            $.ajax({
+                url: '<?php echo base_url("authen/reportIssue"); ?>',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Your issue has been reported successfully. Queue number: ' + response.queueNumber,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                $('#reportIssueForm')[0].reset(); // Reset the form
+                                // Optionally, switch to another tab or perform any other action
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred: ' + response.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An error occurred while submitting the form: ' + error,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 }
             });
         });

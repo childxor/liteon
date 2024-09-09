@@ -151,7 +151,7 @@ class Efs_lib
         } else {
             $module = $modules[0] . '/' . $modules[1];
             $sql = "SELECT * FROM sys_module WHERE record_status = 'N' ";
-            $sql .= "AND module = '" . $module . "'"; 
+            $sql .= "AND module = '" . $module . "'";
             // $row = $this->CI->db->query($sql)->row();
             if ($this->CI->db->query($sql)->num_rows() > 0) {
                 return $this->CI->db->query($sql)->row();
@@ -357,10 +357,19 @@ class Efs_lib
 
     function language_login()
     {
-        $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
-        // die($_SERVER['HTTP_ACCEPT_LANGUAGE']);
-        // segment 
-        // die($this->CI->uri->segment(2));
+        // $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
+        // $this->session->set_userdata('lang', $_POST['lang']);
+        // $lang = $this->CI->session->userdata('lang');
+        $lang = (!empty($this->CI->session->userdata('lang')) ? $this->CI->session->userdata('lang') : 'th');
+        // die($lang);
+        $this->CI->session->set_userdata('lang', $lang);
+
+
+
+        // $this->print_r($_SERVER['HTTP_ACCEPT_LANGUAGE']);
+        // $this->print_r($this->CI->session->userdata('user_profile'));
+        // $this->print_r($this->CI->uri->segment(2));
+        // [HTTP_ACCEPT_LANGUAGE] => en-US,en;q=0.9
         $sql = "SELECT * "
             . "FROM sys_language "
             . "WHERE record_status = 'N' AND module_id = '0' ";
