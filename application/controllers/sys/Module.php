@@ -341,6 +341,7 @@ class Module extends CI_Controller
             'name_th' => $this->input->post('name_th'),
             'name_en' => $this->input->post('name_en'),
             'name_jp' => $pre_jp . $this->input->post('name_jp'),
+            'name_cn' => $pre_jp . $this->input->post('name_cn'),
             'module' => $this->input->post('module'),
             'icon' => $this->input->post('icon'),
             'parent_module_id' => $this->efs_lib->decrypt_segment($this->input->post('parent_module_id')),

@@ -17,7 +17,7 @@ class Authen extends CI_Controller
     public function index()
     {
         if (!empty($this->session->userdata("user_profile")->id)) {
-            $this->print_r(base_url());
+           // $this->print_r(base_url());
             redirect(base_url());
             exit();
         } else {
@@ -261,6 +261,24 @@ class Authen extends CI_Controller
         $prefix = date('Ymd');
         $result = $this->db->query("EXEC sp_get_next_queue_number ?", array($prefix))->row();
         return $result->next_queue_number;
+    }
+
+    public function getQueueStatus()
+    {
+        // ดึงข้อมูลคิวจาก stored procedure
+        $queueData = $this->db->query("EXEC sp_get_pending_issues @top = 20, @orderBy = 'priority, created_at'")->result_array();
+
+        // ดึงคิวปัจจุบันและคิวถัดไป (สมมติว่าคิวที่มี priority ต่ำสุดคือคิวปัจจุบัน)
+        $currentQueue = $queueData[0]['queue_number'] ?? '-';
+        $nextQueue = $queueData[1]['queue_number'] ?? '-';
+
+        $response = [
+            'queueData' => $queueData,
+            'currentQueue' => $currentQueue,
+            'nextQueue' => $nextQueue
+        ];
+
+        echo json_encode($response);
     }
 
     private function getPriorityFromUrgency($urgencyLevel)

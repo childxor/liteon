@@ -446,6 +446,7 @@ class Efs_lib
             . "WHERE (mas_announcement.record_status = 'N') AND (mas_announcement.is_active = '1') AND (sys_inbox.has_read = '" . $has_read . "')"
             . "AND sys_inbox.user_id = '" . $this->CI->session->userdata('user_profile')->id . "' "
             . "ORDER BY sort ASC, show DESC";
+            // die($sql);
         $data['nrow'] = $this->CI->db->query($sql)->num_rows();
         $data['result'] = $this->CI->db->query($sql)->result();
         return (object) $data;

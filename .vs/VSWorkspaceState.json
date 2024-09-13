@@ -3,11 +3,13 @@
     "",
     "\\application",
     "\\application\\controllers",
-    "\\application\\controllers\\sto",
+    "\\application\\controllers\\emp",
+    "\\application\\controllers\\it",
+    "\\application\\controllers\\sys",
     "\\application\\views",
     "\\application\\views\\main",
-    "\\application\\views\\main\\sto"
+    "\\application\\views\\main\\emp",
+    "\\application\\views\\main\\sys"
   ],
-  "SelectedNode": "\\application\\views\\main\\sto\\check_stock.php",
   "PreviewInSolutionExplorer": false
 }

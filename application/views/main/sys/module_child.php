@@ -76,6 +76,12 @@
                                 </div>
                             </div>
                             <div class="form-group">
+                                <label class="control-label">ภาษาจีน</label>
+                                <div class="controls">
+                                    <input type="text" class="form-control validated" name="name_cn" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="form-group">
                                 <label class="control-label"><?php echo $lang_module->lbl_link; ?><span class="text-danger">*</span></label>
                                 <div class="controls">
                                     <input type="text" class="form-control validated" name="module" required data-validation-required-message="<?php echo $lang_sys->msg_require; ?>" autocomplete="off">

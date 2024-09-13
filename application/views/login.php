@@ -149,7 +149,7 @@
             <div class="col-md-6 mt-4">
                 <div class="card">
                     <div class="card-header">
-                        <img src="<?php echo base_url('assets/images/logo-text.png'); ?>" alt="<?php echo $var->project; ?>" class="logo">
+                        <img src="<?php echo base_url('assets/images/logo-text.png'); ?>" alt="<?php echo $var->project; ?>" class="logo"> 
                         <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
                             <li class="nav-item">
                                 <a class="nav-link active" id="login-tab" data-toggle="tab" href="#login" role="tab"><?php echo $lang->sys_login_submit; ?></a>
@@ -603,5 +603,40 @@
         $('#showPassword').change(function() {
             $('#password').attr('type', $(this).prop('checked') ? 'text' : 'password');
         });
+
+        function updateQueueStatus() {
+            $.ajax({
+                url: '<?php echo base_url("authen/getQueueStatus"); ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#currentQueue').text(response.currentQueue.slice(-6));
+                    $('#nextQueue').text(response.nextQueue.slice(-6));
+
+                    var tableBody = $('#queueTableBody');
+                    tableBody.empty();
+                    $.each(response.queueData, function(index, queue) {
+                        tableBody.append(`
+                    <tr>
+                        <td>${queue.queue_number}</td>
+                        <td>${queue.issueType}</td>
+                        <td>${queue.urgencyLevel}</td>
+                        <td>${queue.status}</td>
+                    </tr>
+                `);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching queue data:", error);
+                }
+            });
+        }
+
+        // อัพเดทข้อมูลทุก 30 วินาที
+        $(document).ready(function() {
+            updateQueueStatus();
+            setInterval(updateQueueStatus, 30000);
+        });
+
     });
 </script>

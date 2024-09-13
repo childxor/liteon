@@ -262,7 +262,24 @@
                     "title": "<i class='mdi mdi-account'></i> <?php echo $lang_module->lbl_emp_name; ?>",
                     "data": "personName",
                     "render": function(data, type, row) {
-                        return data + ' (' + (row.shift == null ? 'ไม่เข้ากะ' : row.shift) + ')';
+                        var html = data + ' (' + (row.shift == null ? 'ไม่เข้ากะ' : row.shift) + ')';
+                        return html;
+                    }
+                },
+                {
+                    "data": "shift",
+                    "title": "<i class='mdi mdi-clock'></i>",
+                    "render": function(data, type, row) {
+                        var html = '';
+                        if (row.shift != null) {
+                            var isShiftA = row.shift == 'A';
+                            html += '<div class="custom-control custom-switch">' +
+                                '<input type="checkbox" class="shiftMent custom-control-input" ' + (isShiftA ? 'checked' : '') + ' id="' + row.cardNumber + 'Sh" data-personID="' + row.cardNumber + '-3">' +
+                                '<label class="custom-control-label" for="' + row.cardNumber + 'Sh"></label>' +
+                                '<span class="ml-2">' + (isShiftA ? 'A' : 'B') + '</span>' +
+                                '</div>';
+                        }
+                        return (html == '' ? 'ไม่เข้ากะ' : html);
                     }
                 },
                 {
@@ -339,14 +356,14 @@
                 var isAllDoors = doorID === 'all'
 
                 if (isHRAttendance) {
-                    provTable.column(4).visible(!isAllDoors);
                     provTable.column(5).visible(!isAllDoors);
-                    provTable.column(6).visible(false);
+                    provTable.column(6).visible(!isAllDoors);
+                    provTable.column(7).visible(false);
                     // provTable.column(7).visible(false);
                 } else {
-                    provTable.column(4).visible(false);
                     provTable.column(5).visible(false);
-                    provTable.column(6).visible(true);
+                    provTable.column(6).visible(false);
+                    provTable.column(7).visible(true);
                 }
             },
             "createdRow": function(row, data, dataIndex) {
@@ -389,6 +406,41 @@
             } else {
                 provTable.ajax.reload();
             }
+        });
+
+        $(document).on('change', '#mTable input.shiftMent', function() {
+            // var personID = this.id.replace('Sh', '');
+            var dataRow = provTable.row($(this).closest('tr')).data();
+            var personID = dataRow.personID;
+            var shift = this.checked ? 'A' : 'B';
+            $(this).closest('td').find('span').text(shift);
+            $.ajax({
+                url: '<?php echo base_url('sys/emp_all/updateShift'); ?>',
+                type: 'POST',
+                data: {
+                    personID: personID,
+                    shift: shift
+                },
+                success: function(data) {
+                    if (data.status == 'success') {
+                        swal.fire({
+                            title: 'Success',
+                            text: 'Data updated successfully',
+                            type: 'success',
+                            timer: 500,
+                        });
+                        // provTable.ajax.reload();
+                    } else {
+                        swal.fire({
+                            title: 'Error',
+                            text: 'An error occurred while updating data',
+                            type: 'error',
+                            timer: 1000,
+                        });
+                        provTable.ajax.reload();
+                    }
+                }
+            });
         });
 
         <?php if ($this->session->userdata('user_profile')->id == 463) { ?>

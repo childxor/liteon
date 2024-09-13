@@ -366,7 +366,7 @@ class Manager extends CI_Controller
         }
     }
 
-    private function process_data($event_data, $person_shift_data)
+    private function process_data($event_data, $person_shift_data) 
     {
         $result = [];
         foreach ($event_data as $event) {

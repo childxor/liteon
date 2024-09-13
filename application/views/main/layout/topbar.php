@@ -142,7 +142,7 @@
                                             echo '<pre>';
                                             print_r($this->db->query($sql_announcement)->result());
                                             echo '</pre>';
-                                            
+
                                             foreach ($this->db->query($sql_announcement)->result() as $announce) {
                                     ?>
                                                 <a href="javascript:void(0)" class="message-item d-flex align-items-center border-bottom px-3 py-2">
@@ -243,8 +243,7 @@
                     <div class="dropdown-menu dropdown-menu-right  animated bounceInDown" aria-labelledby="navbarDropdown2">
                         <a class="dropdown-item switch_language <?php echo ($this->session->userdata('user_profile')->cng_lang == 'th' ? 'active' : ''); ?>" href="<?php echo base_url("main/change_language/th"); ?>" data-id="th"><i class="flag-icon flag-icon-th"></i> ไทย</a>
                         <a class="dropdown-item switch_language <?php echo ($this->session->userdata('user_profile')->cng_lang == 'en' ? 'active' : ''); ?>" href="<?php echo base_url("main/change_language/en"); ?>" data-id="en"><i class="flag-icon flag-icon-gb"></i> English</a>
-                        <!-- <a class="dropdown-item switch_language <?php echo ($this->session->userdata('user_profile')->cng_lang == 'jp' ? 'active' : ''); ?>" href="<?php echo base_url("main/change_language/jp"); ?>" data-id="jp"><i class="flag-icon flag-icon-jp"></i> Japanese</a> -->
-                        <a class="dropdown-item switch_language <?php echo ($this->session->userdata('user_profile')->cng_lang == 'cn' ? 'active' : ''); ?>" href="<?php echo base_url("main/change_language/cn"); ?>" data-id="jp"><i class="flag-icon flag-icon-cn"></i> Chinese</a>
+                        <a class="dropdown-item switch_language <?php echo ($this->session->userdata('user_profile')->cng_lang == 'cn' ? 'active' : ''); ?>" href="<?php echo base_url("main/change_language/cn"); ?>" data-id="cn"><i class="flag-icon flag-icon-cn"></i> Chinese</a>
                     </div>
                 </li>
             </ul>

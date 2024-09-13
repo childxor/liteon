@@ -189,13 +189,13 @@ class Main extends CI_Controller
     function language_module_get() //add language footer
     {
         $url_name = explode('/', $this->input->post('url'));
-        // $url = $url_name[2] . (isset($url_name[3]) ? '/' . $url_name[3] : '') . (isset($url_name[4]) ? '/' . $url_name[4] : '');
         $url = (isset($url_name[2]) ? $url_name[2] : '') . (isset($url_name[3]) ? '/' . $url_name[3] : '') . (isset($url_name[4]) ? '/' . $url_name[4] : '');
         if ($url == '') {
             $url = '';
         }
-        // die($url);
-        $data = array();
+
+        $module_id = $this->db->query("SELECT id FROM sys_module WHERE module = '" . $url . "'")->row()->id;
+
 
         if ($url != '') {
             $this->db->select('sys_module.id as module_id, sys_language.th, sys_language.en, sys_language.jp,sys_language.cn,sys_language.keyword, sys_language.id');
@@ -220,10 +220,20 @@ class Main extends CI_Controller
         $this->db->order_by('sys_language.id', 'desc');
         $query = $this->db->get();
         $result = $query->result();
-        // die($this->db->last_query());
-        // $lastQuery = $this->db->last_query();
-        // die($lastQuery);
 
+        if ($query->num_rows() == 0) {
+            $data = array(
+                'module_id' => $module_id,
+                'th' => '',
+                'en' => '',
+                'jp' => '',
+                'cn' => '',
+                'keyword' => '',
+                'created_username' => $this->session->userdata('user_profile')->username,
+                'created_at' => date('Y-m-d H:i:s'),
+            );
+            $this->db->insert('sys_language', $data);
+        }
         return $this->output->set_content_type('application/json')->set_output(json_encode($result));
     }
 
@@ -338,38 +348,59 @@ class Main extends CI_Controller
 
     public function change_language()
     {
-        $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
-        // $_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'en';
+        // Determine the language
+        $lang = $this->uri->segment(3);
+        if (!in_array($lang, ['th', 'en', 'cn'])) {
+            $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
+            $lang = in_array($lang, ['th', 'en', 'cn']) ? $lang : 'en'; // Default to English if not supported
+        }
+
+        // Prepare data for update
         $data = [
             'cng_lang' => $lang,
             'updated_username' => $this->session->userdata('user_profile')->username,
             'updated_at' => date('Y-m-d H:i:s'),
         ];
+
+        // Update user language preference
         $this->db->where('id', $this->session->userdata('user_profile')->id);
-        if (!$this->db->update('sys_user', $data)) {
+        $update_success = $this->db->update('sys_user', $data);
+
+        if (!$update_success) {
             $this->session->set_flashdata('type', 'error');
             $this->session->set_flashdata('msg', $this->lang->sys_main_error_change_language);
-            /* Create Log Data  */
             $this->log_lib->write_log('error-main-change-language=> ' . $this->session->flashdata('msg'), json_encode($data));
         } else {
-            $sql = 'SELECT sys_user.id, sys_user.position_id, mas_position.name AS position_name, sys_user.prefix_name,sys_user.emp_code, sys_user.username, sys_user.first_name, sys_user.last_name, sys_user.tel, sys_user.email, sys_user.is_active '
-                . ', sys_user.cng_per_page, sys_user.cng_font_size, sys_user.cng_table_font_size, sys_user.cng_lang, sys_user.cng_alert_time, sys_user.default_module_id '
-                . ', mas_department.id AS department_id, mas_department.name AS department_name, mas_sub_department.name AS sub_department_name, mas_department.description AS department_description, mas_department.color '
-                . 'FROM sys_user INNER JOIN mas_department ON sys_user.department_id = mas_department.id '
-                . 'LEFT JOIN mas_sub_department ON sys_user.sub_department_id = mas_sub_department.id '
-                . 'INNER JOIN mas_position ON sys_user.position_id = mas_position.id '
-                . "WHERE sys_user.id = '" . $this->session->userdata('user_profile')->id . "' "
-                . "AND sys_user.record_status = 'N'";
-            $user_profile = $this->db->query($sql)->row();
-            $data['user_profile'] = $user_profile;
-            $data['user_profile']->name_sys = 'efs';
-            $data['user_profile']->role = $this->get_role($user_profile->id);
-            // $data['user_profile']->emp_code = $user_profile->emp_code;
-            $this->session->set_userdata($data);
-            $this->lang = $this->efs_lib->language_system();
-            $this->session->set_flashdata('type', 'success');
-            $this->session->set_flashdata('msg', $this->lang->sys_main_change_language_success);
-            $this->log_lib->write_log('Main Change Language => ' . $this->session->flashdata('msg'), json_encode($this->db->last_query()));
+            // Fetch updated user profile
+            $sql = "SELECT su.id, su.position_id, mp.name AS position_name, su.prefix_name, su.emp_code, 
+                           su.username, su.first_name, su.last_name, su.tel, su.email, su.is_active,
+                           su.cng_per_page, su.cng_font_size, su.cng_table_font_size, su.cng_lang, 
+                           su.cng_alert_time, su.default_module_id, md.id AS department_id, 
+                           md.name AS department_name, msd.name AS sub_department_name, 
+                           md.description AS department_description, md.color
+                    FROM sys_user su
+                    INNER JOIN mas_department md ON su.department_id = md.id
+                    LEFT JOIN mas_sub_department msd ON su.sub_department_id = msd.id
+                    INNER JOIN mas_position mp ON su.position_id = mp.id
+                    WHERE su.id = ? AND su.record_status = 'N'";
+
+            $user_profile = $this->db->query($sql, [$this->session->userdata('user_profile')->id])->row();
+
+            if ($user_profile) {
+                $user_profile->name_sys = 'efs';
+                $user_profile->role = $this->get_role($user_profile->id);
+
+                $this->session->set_userdata('user_profile', $user_profile);
+                $this->lang = $this->efs_lib->language_system();
+
+                $this->session->set_flashdata('type', 'success');
+                $this->session->set_flashdata('msg', $this->lang->sys_main_change_language_success);
+                $this->log_lib->write_log('Main Change Language => ' . $this->session->flashdata('msg'), $this->db->last_query());
+            } else {
+                $this->session->set_flashdata('type', 'error');
+                $this->session->set_flashdata('msg', $this->lang->sys_main_error_user_not_found);
+                $this->log_lib->write_log('error-main-change-language=> User not found', $this->db->last_query());
+            }
         }
         redirect($this->agent->referrer());
     }
