@@ -1,0 +1,455 @@
+@{
+    ViewData["Title"] = "Oracle Database Management Tool";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-database me-2"></i>
+                        Oracle Database Management Tool
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="oracleTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="query-tab" data-bs-toggle="tab" data-bs-target="#query" type="button" role="tab">
+                                <i class="fas fa-search me-2"></i>Query Builder
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                                <i class="fas fa-history me-2"></i>ประวัติการ Query
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="connection-tab" data-bs-toggle="tab" data-bs-target="#connection" type="button" role="tab">
+                                <i class="fas fa-plug me-2"></i>การเชื่อมต่อ
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-3" id="oracleTabContent">
+                        <!-- Query Builder Tab -->
+                        <div class="tab-pane fade show active" id="query" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0"><i class="fas fa-code me-2"></i>SQL Query Builder</h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- ตัวอย่าง Query Buttons -->
+                                    <div class="mb-3">
+                                        <label class="form-label">ตัวอย่าง Query:</label>
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <button type="button" class="btn btn-outline-success btn-sm example-query" data-query="SELECT 'Oracle Connection Success!' FROM DUAL">
+                                                <i class="fas fa-database me-1"></i>ทดสอบการเชื่อมต่อ
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info btn-sm example-query" data-query="SELECT SYSDATE as วันที่ปัจจุบัน, USER as ผู้ใช้, SESSIONTIMEZONE as เขตเวลา FROM DUAL">
+                                                <i class="fas fa-clock me-1"></i>ข้อมูลระบบ
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm example-query" data-query="SELECT TABLE_NAME as ชื่อตาราง, NUM_ROWS as จำนวนแถว FROM USER_TABLES WHERE ROWNUM <= 10 ORDER BY TABLE_NAME">
+                                                <i class="fas fa-table me-1"></i>รายชื่อตาราง
+                                            </button>
+                                            <button type="button" class="btn btn-outline-warning btn-sm example-query" data-query="SELECT COLUMN_NAME as ชื่อคอลัมน์, DATA_TYPE as ชนิดข้อมูล, NULLABLE as อนุญาตNull FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'DUAL'">
+                                                <i class="fas fa-columns me-1"></i>โครงสร้างตาราง
+                                            </button>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm example-query" data-query="SELECT TABLESPACE_NAME as เนื้อที่จัดเก็บ, STATUS as สถานะ FROM USER_TABLESPACES">
+                                                <i class="fas fa-hdd me-1"></i>Tablespace
+                                            </button>
+                                            <button type="button" class="btn btn-outline-dark btn-sm example-query" data-query="SELECT CONSTRAINT_NAME as ชื่อ, CONSTRAINT_TYPE as ประเภท, TABLE_NAME as ตาราง FROM USER_CONSTRAINTS WHERE ROWNUM <= 5">
+                                                <i class="fas fa-link me-1"></i>Constraints
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm example-query" data-query="SELECT COUNT(*) as จำนวนตารางทั้งหมด FROM USER_TABLES">
+                                                <i class="fas fa-calculator me-1"></i>นับตาราง
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="sqlQuery" class="form-label">
+                                            SQL Query: 
+                                            <small class="text-muted">(สามารถใช้ตัวอย่างด้านบนได้ หรือกด Ctrl+Enter เพื่อรัน)</small>
+                                        </label>
+                                        <textarea id="sqlQuery" class="form-control" rows="6" placeholder="ใส่ SQL Query ที่นี่...&#10;&#10;💡 เคล็ดลับ:&#10;• กดปุ่มตัวอย่างด้านบนเพื่อโหลด Query&#10;• กด Ctrl+Enter เพื่อรัน Query&#10;• ใช้ WHERE ROWNUM <= 10 เพื่อจำกัดผลลัพธ์&#10;• สามารถใช้ Alias เป็นภาษาไทยได้ เช่น SELECT SYSDATE as วันที่"></textarea>
+                                    </div>
+
+                                    <!-- คำแนะนำการใช้งาน -->
+                                    <div class="alert alert-info mb-3">
+                                        <div class="d-flex align-items-start">
+                                            <i class="fas fa-lightbulb me-2 mt-1"></i>
+                                            <div>
+                                                <strong>คำแนะนำการใช้งาน:</strong>
+                                                <ul class="mb-0 mt-2">
+                                                    <li>เริ่มต้นด้วยการกดปุ่ม <span class="badge bg-success">ทดสอบการเชื่อมต่อ</span> เพื่อตรวจสอบการเชื่อมต่อ Oracle</li>
+                                                    <li>ใช้ปุ่มตัวอย่าง Query สำหรับเริ่มต้นเรียนรู้</li>
+                                                    <li>ผลลัพธ์จะแสดงในตารางด้านล่าง พร้อมฟีเจอร์แก้ไข/ลบข้อมูล</li>
+                                                    <li>ดูประวัติการใช้งานได้ที่แท็บ "ประวัติการ Query"</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <button id="btnExecuteQuery" class="btn btn-success me-2">
+                                            <i class="fas fa-play me-2"></i>เรียกใช้ Query
+                                        </button>
+                                        <button id="btnClearQuery" class="btn btn-secondary me-2">
+                                            <i class="fas fa-eraser me-2"></i>ล้าง
+                                        </button>
+                                        <div class="btn-group me-2">
+                                            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="fas fa-plus me-1"></i>เพิ่มข้อมูล
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" id="btnInsertToCurrentTable">
+                                                    <i class="fas fa-plus-circle me-2"></i>เพิ่มในตารางปัจจุบัน
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="#" id="btnInsertToTable">
+                                                    <i class="fas fa-table me-2"></i>เพิ่มในตารางอื่น
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                        <button id="btnShowConnectionTest" class="btn btn-outline-info">
+                                            <i class="fas fa-plug me-2"></i>ทดสอบการเชื่อมต่อ
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- แสดงผลลัพธ์ -->
+                                    <div id="queryResult" class="mt-3"></div>
+                                </div>
+                            </div>
+
+                            <!-- Results Table -->
+                            <div id="dataTableContainer" class="mt-4" style="display: none;">
+                                <div class="card">
+                                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>ผลลัพธ์</h5>
+                                        <span id="recordCount" class="badge bg-light text-dark"></span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table id="oracleDataTable" class="table table-striped table-hover" style="width:100%">
+                                                <thead class="table-dark"></thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- History Tab -->
+                        <div class="tab-pane fade" id="history" role="tabpanel">
+                            <div class="row">
+                                <div class="col-12 mb-4">
+                                    <div class="card border-info">
+                                        <div class="card-header bg-info text-white">
+                                            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>สถิติการใช้งาน</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row" id="dashboardStats">
+                                                <div class="col-md-3 text-center">
+                                                    <div class="h3 text-primary mb-0" id="todayActivities">-</div>
+                                                    <small class="text-muted">วันนี้</small>
+                                                </div>
+                                                <div class="col-md-3 text-center">
+                                                    <div class="h3 text-success mb-0" id="weekActivities">-</div>
+                                                    <small class="text-muted">สัปดาห์นี้</small>
+                                                </div>
+                                                <div class="col-md-3 text-center">
+                                                    <div class="h3 text-warning mb-0" id="avgExecutionTime">-</div>
+                                                    <small class="text-muted">เวลาเฉลี่ย (ms)</small>
+                                                </div>
+                                                <div class="col-md-3 text-center">
+                                                    <div class="h3 text-danger mb-0" id="totalErrors">-</div>
+                                                    <small class="text-muted">ข้อผิดพลาด</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0"><i class="fas fa-history me-2"></i>ประวัติการ Query ล่าสุด</h5>
+                                            <button id="btnRefreshHistory" class="btn btn-light btn-sm">
+                                                <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                                            </button>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="historyContainer">
+                                                <div class="text-center py-4">
+                                                    <div class="spinner-border text-secondary" role="status">
+                                                        <span class="visually-hidden">กำลังโหลด...</span>
+                                                    </div>
+                                                    <p class="mt-2 text-muted">กำลังโหลดประวัติ...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connection Tab -->
+                        <div class="tab-pane fade" id="connection" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card border-info">
+                                        <div class="card-header bg-info text-white">
+                                            <h5 class="mb-0">ทดสอบการเชื่อมต่อ</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <button id="btnTestConnection" class="btn btn-success w-100">
+                                                <i class="fas fa-plug me-2"></i>ทดสอบการเชื่อมต่อ
+                                            </button>
+                                            <div id="connectionResult" class="mt-3"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="card border-warning">
+                                        <div class="card-header bg-warning text-dark">
+                                            <h5 class="mb-0">นับจำนวนข้อมูลในตาราง</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="input-group mb-3">
+                                                <input type="text" id="tableName" class="form-control" placeholder="ชื่อตาราง" value="DUAL">
+                                                <button id="btnGetData" class="btn btn-warning">
+                                                    <i class="fas fa-search me-2"></i>ดึงข้อมูล
+                                                </button>
+                                            </div>
+                                            <div id="dataResult" class="mt-3"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+    
+    <style>
+        .btn-xs { padding: 0.125rem 0.25rem; font-size: 0.75rem; border-radius: 0.125rem; }
+        .max-height-300 { max-height: 300px; overflow: auto; }
+        .text-break { word-break: break-all; }
+        .table th { position: sticky; top: 0; z-index: 10; }
+        .table-hover tbody tr:hover { background-color: rgba(0,123,255,.075); }
+        
+        /* Child row styling */
+        .child-row { background-color: #f8f9fa !important; }
+        .child-row:hover { background-color: #f8f9fa !important; }
+        .child-row td { border-top: none !important; padding: 0 !important; }
+        
+        /* Action buttons styling */
+        .btn-group-sm > .btn { margin: 0 1px; }
+        .copy-sql, .show-column-info { opacity: 0.7; transition: opacity 0.2s; }
+        .copy-sql:hover, .show-column-info:hover { opacity: 1; }
+        
+        /* SQL preview styling */
+        .sql-preview { font-family: 'Courier New', monospace; font-size: 0.9em; }
+        
+        /* Badge improvements */
+        .badge { font-weight: 500; }
+        .badge.bg-primary { background-color: #0d6efd !important; }
+        .badge.bg-success { background-color: #198754 !important; }
+        .badge.bg-danger { background-color: #dc3545 !important; }
+        .badge.bg-warning { background-color: #ffc107 !important; color: #000 !important; }
+        .badge.bg-info { background-color: #0dcaf0 !important; color: #000 !important; }
+        
+        /* DataTable improvements */
+        .dataTables_wrapper .dataTables_filter input { border-radius: 0.375rem; }
+        .dataTables_wrapper .dataTables_length select { border-radius: 0.375rem; }
+        
+        /* Modal improvements */
+        .modal-content { border-radius: 0.5rem; }
+        .modal-header { border-bottom: 2px solid #dee2e6; }
+        
+        /* Alert improvements */
+        .alert { border-radius: 0.5rem; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
+        
+        /* Card improvements */
+        .card { border-radius: 0.5rem; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
+        .card-header { border-radius: 0.5rem 0.5rem 0 0; }
+        
+        /* Textarea improvements */
+        #sqlQuery { font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.4; }
+        
+        /* Loading states */
+        .loading { position: relative; overflow: hidden; }
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Action buttons in DataTable */
+        .btn-group .btn { margin: 0 1px !important; }
+        .btn-sm { font-size: 0.775rem; padding: 0.25rem 0.4rem; }
+        
+        /* Edit Modal improvements */
+        #editForm .form-label { font-weight: 600; color: #495057; }
+        #editForm .form-control:focus { border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
+        
+        /* Delete Modal styling */
+        .modal-header.bg-danger { border-bottom: 1px solid #dc3545; }
+        .btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
+        
+        /* WHERE selection modal */
+        .form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
+        .form-check-label { cursor: pointer; }
+        
+        /* DataTable action column */
+        .dataTables_wrapper .dataTable .btn-group { white-space: nowrap; }
+        
+        /* Modal size improvements */
+        .modal-lg { max-width: 900px; }
+        .modal-dialog { margin: 1.75rem auto; }
+        
+        /* Form improvements */
+        .form-control, .form-select { border-radius: 0.375rem; }
+        .form-control:focus, .form-select:focus { 
+            border-color: #86b7fe; 
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); 
+        }
+        
+        /* DataTable buttons */
+        .dt-buttons { margin-bottom: 1rem; }
+        .dt-button { 
+            border-radius: 0.375rem !important; 
+            margin: 0 0.25rem 0.25rem 0 !important;
+            font-size: 0.875rem !important;
+        }
+        
+        /* Responsive table improvements */
+        .table-responsive { border-radius: 0.5rem; overflow: hidden; }
+        
+        /* WHERE preview styling */
+        #wherePreview { 
+            font-family: 'Courier New', monospace; 
+            font-size: 0.9em; 
+            background-color: #f8f9fa;
+        }
+        
+        /* Alert improvements in modals */
+        .modal-body .alert { margin-bottom: 1rem; border-radius: 0.375rem; }
+        
+        /* Checkbox list styling */
+        .form-check { padding: 0.5rem; margin: 0.25rem 0; border-radius: 0.375rem; }
+        .form-check:hover { background-color: #f8f9fa; }
+        
+        /* Example query buttons styling */
+        .example-query {
+            transition: all 0.2s ease;
+            border-radius: 0.5rem !important;
+        }
+        .example-query:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Query textarea improvements */
+        #sqlQuery {
+            border-radius: 0.5rem;
+            border: 2px solid #e9ecef;
+            transition: border-color 0.15s ease-in-out;
+        }
+        #sqlQuery:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Button improvements */
+        .btn {
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* Alert positioning improvements */
+        .oracle-alert {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 0.5rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Card hover effects */
+        .card {
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+        
+        /* Tab improvements */
+        .nav-tabs .nav-link {
+            border-radius: 0.5rem 0.5rem 0 0;
+            transition: all 0.2s ease;
+        }
+        .nav-tabs .nav-link:hover {
+            background-color: #f8f9fa;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #0d6efd;
+            color: white !important;
+            border-color: #0d6efd;
+        }
+        
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: 0.5rem;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+    
+    <script src="~/js/oracle-test.js"></script>
+    
+    <script>
+        $(document).ready(function () {
+            OracleTestApp.init();
+        });
+    </script>
+}
+ 

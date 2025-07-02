@@ -1,0 +1,3076 @@
+@model IEnumerable<dynamic>
+    @using IPS_TH.Models.Employee
+    @using Newtonsoft.Json;
+
+    @{
+    ViewBag.Title = "จัดการข้อมูลพนักงาน";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var departments = ViewBag.Departments;
+    var shifts = ViewBag.Shifts;
+
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+        bool canAdd = permissions?["CanAdd"] ?? false;
+        bool canEdit = permissions?["CanEdit"] ?? false;
+        bool canDelete = permissions?["CanDelete"] ?? false;
+        bool canView = permissions?["CanView"] ?? false;
+        }
+
+        <div class="container-fluid">
+            <!-- div สำหรับเก็บค่า filter -->
+            <div id="filter-storage" data-status="active" data-door="" data-department="" data-shift=""
+                style="display:none;"></div>
+
+            <div class="container-fluid px-4">
+                <!-- Header Section -->
+                <div class="row my-4">
+                    <div class="col">
+                        <div class="card shadow-lg border-0 bg-gradient-primary text-white">
+                            <div class="card-body d-flex align-items-center py-4">
+                                <div class="display-icon bg-white bg-opacity-25 rounded-circle p-3 me-4">
+                                    <i class="fas fa-users fa-2x text-white"></i>
+                                </div>
+                                <div>
+                                    <h2 class="mb-0 fw-bold">รายชื่อพนักงาน</h2>
+                                    <p class="mb-0 text-white-50">จัดการข้อมูลพนักงานและสิทธิ์การเข้าถึง</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Section -->
+                <div class="row mb-4">
+                    <div class="col">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-body p-0">
+                                <div class="bg-light p-3 rounded-top border-bottom">
+                                    <h5 class="mb-0"><i class="fas fa-tools me-2 text-primary"></i>การจัดการ</h5>
+                                </div>
+                                <div class="p-3">
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        <button type="button"
+                                            class="btn btn-danger btn-hover-translate rounded-pill shadow-sm"
+                                            id="removeResignedAccessButton">
+                                            <i class="fas fa-door-closed me-2"></i>ลบสิทธิ์ประตูพนักงานลาออก
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-primary btn-hover-translate rounded-pill shadow-sm"
+                                            id="checkAndAddBasicAccessButton">
+                                            <i class="fas fa-check-circle me-2"></i>ตรวจสอบและเพิ่มสิทธิ์พื้นฐาน
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-danger btn-hover-translate rounded-pill shadow-sm"
+                                            id="removeEmployeeButton">
+                                            <i class="fas fa-trash me-2"></i>ลบข้อมูลพนักงานลาออก
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-info text-white btn-hover-translate rounded-pill shadow-sm"
+                                            id="filterButton">
+                                            <i class="fas fa-filter me-2"></i>กรองข้อมูล
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Section -->
+                <div class="row">
+                    <div class="col">
+                        <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                            <div
+                                class="card-header bg-gradient-light py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>ข้อมูลพนักงาน</h5>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div id="current-filters" class="d-flex flex-wrap gap-2 me-2"></div>
+                                    <button class="btn btn-sm btn-success rounded-pill add-employee"><i
+                                            class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน</button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover table-modern" id="employeeTable"
+                                        style="width:100%"></table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Modal -->
+            <div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <form id="employeeForm" method="post" class="needs-validation" novalidate>
+                            <div class="modal-header bg-gradient-primary text-white">
+                                <h5 class="modal-title" id="employeeModalLabel">
+                                    <i class="fas fa-user-plus me-2"></i>เพิ่มข้อมูลพนักงาน
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="container-fluid">
+                                    <div class="row g-3">
+                                        <!-- ส่วนหัวของฟอร์ม -->
+                                        <div class="col-12 mb-3">
+                                            <div class="alert alert-info d-flex align-items-center" role="alert">
+                                                <i class="fas fa-info-circle fa-lg me-3"></i>
+                                                <div>
+                                                    กรุณากรอกข้อมูลให้ครบถ้วน ช่องที่มีเครื่องหมาย <span
+                                                        class="text-danger">*</span> เป็นข้อมูลที่จำเป็นต้องกรอก
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 1 -->
+                                        <div class="col-md-6">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control" name="cardNo" id="cardNo"
+                                                    required pattern="\d{1,8}" title="กรุณากรอกตัวเลขไม่เกิน 8 ตัว">
+                                                <label for="cardNo">
+                                                    <i class="fas fa-id-card me-1"></i>รหัสพนักงาน<span
+                                                        class="text-danger">*</span>
+                                                </label>
+                                                <div class="invalid-feedback">กรุณากรอกรหัสพนักงาน</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control" name="cardNumber"
+                                                    id="cardNumber">
+                                                <label for="cardNumber">
+                                                    <i class="fas fa-credit-card me-1"></i>เลขหลังบัตรพนักงาน<span
+                                                        class="text-danger">*</span>
+                                                </label>
+                                                <div class="invalid-feedback">กรุณากรอกเลขบัตร</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 2 -->
+                                        <div class="col-md-6">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control bg-light" name="personIDc"
+                                                    id="personIDc" readonly>
+                                                <label for="personIDc">บัตรพนักงาน</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control bg-light" name="personIDfp"
+                                                    id="personIDfp" readonly>
+                                                <label for="personIDfp">รหัสลายนิ้วมือ</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 3 -->
+                                        <div class="col-12">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control" name="name" id="name" required>
+                                                <label for="name">ชื่อ-นามสกุล<span class="text-danger">*</span></label>
+                                                <div class="invalid-feedback">กรุณากรอกชื่อ-นามสกุล</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 4 -->
+                                        <div class="col-12">
+                                            <div class="form-floating">
+                                                <select class="form-select" name="deptName" id="deptName" required>
+                                                    <option value="">เลือกแผนก</option>
+                                                    <option value="4070">Liteon Thailand IPS</option>
+                                                    <option value="S6211">MFG</option>
+                                                    <option value="S6212">QRA</option>
+                                                    <option value="S6213">CSC</option>
+                                                    <option value="S6214">OFFICE</option>
+                                                    <option value="S6215">WH</option>
+                                                    <option value="S6216">IE</option>
+                                                    <option value="S6217">PMC</option>
+                                                    <option value="S6218">รปภ.</option>
+                                                    <option value="S6219">CH</option>
+                                                    <option value="S6220">แม่บ้าน</option>
+                                                    <option value="S6221">ME</option>
+                                                    <option value="S6224">ITS</option>
+                                                    <option value="S6225">PE</option>
+                                                    <option value="S6226">BOI</option>
+                                                    <option value="S6227">PC</option>
+                                                </select>
+                                                <label for="deptName">แผนก<span class="text-danger">*</span></label>
+                                                <div class="invalid-feedback">กรุณาเลือกแผนก</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 5 -->
+                                        <div class="col-12">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control bg-light" name="deptID"
+                                                    id="deptID" readonly>
+                                                <label for="deptID">รหัสแผนก</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-secondary btn-hover-translate rounded-pill"
+                                    data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-2"></i>ยกเลิก
+                                </button>
+                                <button type="button" class="btn btn-primary btn-hover-translate rounded-pill"
+                                    id="saveButton">
+                                    <i class="fas fa-save me-2"></i>บันทึก
+                                </button>
+                            </div>
+                            @Html.AntiForgeryToken()
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Door Access Modal -->
+            <div class="modal fade" id="accessDoorModal" tabindex="-1" aria-labelledby="accessDoorModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-gradient-primary text-white">
+                            <h5 class="modal-title" id="accessDoorModalLabel">
+                                <i class="fas fa-door-open me-2"></i>สิทธิ์ประตู: <span id="employeeName"></span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <!-- ข้อมูลพนักงาน -->
+                            <div class="bg-light p-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-lg bg-primary text-white rounded-circle p-3 me-3">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1" id="employeeName"></h6>
+                                            <div class="d-flex gap-3">
+                                                <span class="badge bg-primary rounded-pill"><i
+                                                        class="fas fa-id-card me-1"></i><span
+                                                        id="employeeID"></span></span>
+                                                <span class="badge bg-secondary rounded-pill"><i
+                                                        class="fas fa-building me-1"></i><span
+                                                        id="employeeDept"></span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ข้อมูลสิทธิ์ประตู -->
+                            <div class="p-3">
+                                <div class="alert alert-info d-flex p-2 mb-3">
+                                    <div class="me-auto">
+                                        <small><i class="fas fa-info-circle me-1"></i> สถานะสิทธิ์ประตู:</small>
+                                    </div>
+                                    <div class="d-flex gap-3">
+                                        <small><span class="badge bg-success"><i
+                                                    class="fas fa-check-circle me-1"></i>มีสิทธิ์</span></small>
+                                        <small><span class="badge bg-danger"><i
+                                                    class="fas fa-times-circle me-1"></i>ไม่มีสิทธิ์</span></small>
+                                    </div>
+                                </div>
+                                <div class="table-responsive bg-white rounded-3 border shadow-sm">
+                                    <table id="doorAccessTable" class="table table-striped table-hover table-sm mb-0"
+                                        style="width:100%">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 50%;"><i
+                                                        class="fas fa-door-open me-1 text-primary"></i> ประตู</th>
+                                                <th style="width: 25%;" class="text-center"><i
+                                                        class="fas fa-id-card me-1 text-primary"></i> บัตร</th>
+                                                <th style="width: 25%;" class="text-center"><i
+                                                        class="fas fa-fingerprint me-1 text-primary"></i> ลายนิ้วมือ
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="doorAccessTableBody">
+                                            <!-- ข้อมูลจะถูกเพิ่มโดย JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <div class="btn-group shadow-sm" role="group">
+                                <button type="button" class="btn btn-primary btn-hover-translate" id="addAllAccess">
+                                    <i class="fas fa-door-open me-1"></i>เพิ่มสิทธิ์ทั้งหมด
+                                </button>
+                                <button type="button" class="btn btn-success btn-hover-translate" id="addSpecificDoors">
+                                    <i class="fas fa-building me-1"></i>เพิ่มเฉพาะประตูพื้นฐาน
+                                </button>
+                                <button type="button" class="btn btn-danger btn-hover-translate" id="removeAllAccess">
+                                    <i class="fas fa-times-circle me-1"></i>ลบสิทธิ์ทั้งหมด
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-hover-translate rounded-pill"
+                                data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>ปิด
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New row template for filter -->
+            <script type="text/template" id="filterRowTemplate">
+                <tr id="filter-row" class="bg-light">
+                    <td colspan="13">
+                        <div class="card shadow-sm border-0 rounded-3 my-3 fade-in">
+                            <div class="card-header bg-gradient-light py-3">
+                                <h5 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>ตัวกรองข้อมูล</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select filter-department">
+                                                <option value="">ทั้งหมด</option>
+                                                <option value="4070">Liteon Thailand IPS</option>
+                                                <option value="S6211">MFG</option>
+                                                <option value="S6212">QRA</option>
+                                                <option value="S6213">CSC</option>
+                                                <option value="S6214">OFFICE</option>
+                                                <option value="S6215">WH</option>
+                                                <option value="S6216">IE</option>
+                                                <option value="S6217">PMC</option>
+                                                <option value="S6218">รปภ.</option>
+                                                <option value="S6219">CH</option>
+                                                <option value="S6220">แม่บ้าน</option>
+                                                <option value="S6221">ME</option>
+                                                <option value="S6224">ITS</option>
+                                                <option value="S6225">PE</option>
+                                                <option value="S6226">BOI</option>
+                                                <option value="S6227">PC</option>
+                                            </select>
+                                            <label><i class="fas fa-building me-1"></i>แผนก</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select filter-shift">
+                                                <option value="">ทั้งหมด</option>
+                                                <option value="D01N01">กะเช้า (รายวัน) (D01N01)</option>
+                                                <option value="DT1NT1">กะเช้า (รายเดือน) (DT1NT1)</option>
+                                                <option value="OFFICE">กะออฟฟิศ (ไม่เข้ากะ) (OFFICE)</option>
+                                                <option value="DAYSHF">กะเช้า (รายวัน) (DAYSHF)</option>
+                                                <option value="DAYTCH">กะเช้า (รายเดือน) (DAYTCH)</option>
+                                                <option value="N01D01">กะดึก (รายวัน) (N01D01)</option>
+                                                <option value="NT1DT1">กะดึก (รายเดือน) (NT1DT1)</option>
+                                                <option value="OFFICE2">กะออฟฟิศ (ไม่เข้ากะ) (OFFICE2)</option>
+                                            </select>
+                                            <label><i class="fas fa-clock me-1"></i>กะการทำงาน</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select filter-status">
+                                                <option value="">ทั้งหมด</option>
+                                                <option value="active" selected>ยังไม่ลาออก</option>
+                                                <option value="resigned">ลาออก</option>
+                                                <option value="incomplete">ข้อมูลไม่ครบถ้วน</option>
+                                                <option value="ces941only">มีเฉพาะใน CES941</option>
+                                                <option value="sql944only">มีเฉพาะใน SQL944</option>
+                                            </select>
+                                            <label><i class="fas fa-toggle-on me-1"></i>สถานะ</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select filter-door">
+                                                <option value="">ทั้งหมด</option>
+                                                <option value="0001601">Build1 - Chemical room</option>
+                                                <option value="0001801">Build1 - Comsumables room</option>
+                                                <option value="0001101">Build1 - DCC room</option>
+                                                <option value="0001201">Build1 - DQE room</option>
+                                                <option value="0000101">Build1 - HR Attendance 01</option>
+                                                <option value="0000201">Build1 - HR Attendance 02</option>
+                                                <option value="0000301">Build1 - HR Attendance 03</option>
+                                                <option value="0000401">Build1 - HR Attendance 04</option>
+                                                <option value="0000501">Build1 - HR Attendance 05</option>
+                                                <option value="0000601">Build1 - HR Attendance 06</option>
+                                                <option value="0000701">Build1 - HR Attendance 07</option>
+                                                <option value="0000801">Build1 - HR Attendance 08</option>
+                                                <option value="0000901">Build1 - HR Attendance 09</option>
+                                                <option value="0001301">Build1 - IQC room</option>
+                                                <option value="0001701">Build1 - Jig room</option>
+                                                <option value="0001001">Build1 - MIS server room</option>
+                                                <option value="0002001">Build1 - Store electonic</option>
+                                                <option value="0001401">Build1 - Store Finish goods 01</option>
+                                                <option value="0001501">Build1 - Store Finish goods 02</option>
+                                                <option value="0001901">Build1 - Store raw material</option>
+                                            </select>
+                                            <label><i class="fas fa-door-open me-1"></i>ประตู</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select filter-fingerprint">
+                                                <option value="">ทั้งหมด</option>
+                                                <option value="has">มีลายนิ้วมือ</option>
+                                                <option value="none">ไม่มีลายนิ้วมือ</option>
+                                            </select>
+                                            <label><i class="fas fa-fingerprint me-1"></i>ลายนิ้วมือ</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill reset-filter">
+                                        <i class="fas fa-undo me-2"></i>รีเซ็ต
+                                    </button>
+                                    <button type="button" class="btn btn-primary rounded-pill apply-filter">
+                                        <i class="fas fa-check me-2"></i>ตกลง
+                                    </button>
+                                    <button type="button" class="btn btn-danger rounded-pill close-filter">
+                                        <i class="fas fa-times me-2"></i>ปิด
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </script>
+        </div>
+
+        @section Scripts {
+        <script>
+            $(document).ready(function() {
+                // ตั้งค่า filter เริ่มต้นจาก localStorage หรือค่าเริ่มต้นปกติ
+                const storedFilters = loadFiltersFromLocalStorage();
+                $('#filter-storage').data('status', storedFilters.status || 'active');
+                $('#filter-storage').data('door', storedFilters.door || '');
+                $('#filter-storage').data('department', storedFilters.department || '');
+                $('#filter-storage').data('shift', storedFilters.shift || '');
+                $('#filter-storage').data('fingerprint', storedFilters.fingerprint || '');
+                // เริ่มต้น DataTables
+                var table = $('#employeeTable').DataTable({
+                    processing: false,
+                    serverSide: false,
+                    paging: true,
+                    lengthChange: true,
+                    orderable: true,
+                    ordering: false,
+                    searching: true,
+                    pageLength: 50,
+                    lengthMenu: [50, 100, 200, 500],
+                    info: true,
+                    ajax: {
+                        url: '@Url.Action("GetEmployeesData", "Employee")',
+                        type: 'GET',
+                        data: function(d) {
+                            d.status = $('#filter-storage').data('status');
+                            d.door = $('#filter-storage').data('door');
+                            d.department = $('#filter-storage').data('department');
+                            d.shift = $('#filter-storage').data('shift');
+                            d.fingerprint = $('#filter-storage').data('fingerprint');
+                        }
+                    },
+                    columns: [{
+                            data: 'personID',
+                            title: '<i class="fas fa-plus"></i>',
+                            orderable: false,
+                            className: 'text-center',
+                            render: function(data) {
+                                return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-primary toggle-child-row" data-id="' +
+                                    data +
+                                    '" data-bs-toggle="tooltip" title="ดูข้อมูลเพิ่มเติม">' +
+                                    '<i class="fas fa-plus"></i></button>';
+                            }
+                        },
+                        {
+                            data: 'cardNumber',
+                            title: '<i class="fas fa-id-card me-1"></i> เลขบัตร',
+                            render: function(data, type, row) {
+                                var html = '<div><span class="badge bg-light text-dark">' +
+                                    data + '</span>';
+                                html += '<div class="mt-1">';
+                                if (row.hasCardData) {
+                                    html +=
+                                        '<span class="badge bg-success ms-1" data-bs-toggle="tooltip" title="มีข้อมูลบัตรใน SQL944"><i class="fas fa-id-card"></i></span>';
+                                }
+                                if (row.hasFingerprintData) {
+                                    html +=
+                                        '<span class="badge bg-success ms-1" data-bs-toggle="tooltip" title="มีข้อมูลลายนิ้วมือใน SQL944"><i class="fas fa-fingerprint"></i></span>';
+                                }
+                                html += '</div></div>';
+                                return html;
+                            }
+                        },
+                        {
+                            data: 'personID',
+                            title: '<i class="fas fa-user me-1"></i> รหัสพนักงาน',
+                            render: function(data) {
+                                return '<span class="badge bg-info text-white">' + data +
+                                    '</span>';
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-user-tag me-1"></i> ชื่อ-นามสกุล',
+                            render: function(data, type, row) {
+                                // กำหนดไอคอนเพศ
+                                var genderIcon = row.gender === 'M' ?
+                                    '<i class="fas fa-mars text-primary me-1"></i>' :
+                                    '<i class="fas fa-venus text-danger me-1"></i>';
+                                // ตรวจสอบอีเมล
+                                var email = row.email || 'ไม่ระบุอีเมล';
+                                // สร้าง HTML สำหรับแสดงข้อมูลพนักงาน
+                                return '<div class="d-flex align-items-center">' +
+                                    '<div class="avatar avatar-circle me-3 bg-soft-primary">' +
+                                    '</div>' +
+                                    '<div class="flex-grow-1">' +
+                                    '<div class="d-flex justify-content-between align-items-center">' +
+                                    '<span class="fw-medium">' + row.name + '</span>' +
+                                    '<span class="badge bg-light text-dark ms-2">' + row
+                                    .personID + '</span>' +
+                                    '</div>' +
+                                    '<div class="small text-muted">' + genderIcon + email +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-building me-1"></i> แผนก',
+                            render: function(data, type, row) {
+                                var deptName = row.department || 'ไม่ระบุแผนก';
+                                var deptID = row.deptID || '-';
+                                return '<div><span>' + deptName + '</span>' +
+                                    '<div class="small text-muted">' + deptID + '</div></div>';
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-door-open me-1"></i> จำนวนสิทธิ์',
+                            render: function(data, type, row) {
+                                var accessCount = row.accessCount || 0;
+                                var html = '<div class="d-flex align-items-center">' +
+                                    '<div class="me-2">' +
+                                    '<span class="badge bg-success" style="min-width: 30px;">' +
+                                    accessCount + '</span>' +
+                                    '</div>';
+                                if (row.hasFingerprint) {
+                                    html +=
+                                        '<div><span class="badge bg-info" data-bs-toggle="tooltip" title="มีข้อมูลลายนิ้วมือ">' +
+                                        '<i class="fas fa-fingerprint"></i>' +
+                                        '</span></div>';
+                                }
+                                html += '</div>';
+                                return html;
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-clock me-1"></i> กะการทำงาน',
+                            render: function(data, type, row) {
+                                let shiftName = '';
+                                let shift = row.shift || 'ไม่ระบุ';
+                                switch (shift) {
+                                    case 'D01N01':
+                                        shiftName = 'กะเช้า (รายวัน)';
+                                        break;
+                                    case 'DT1NT1':
+                                        shiftName = 'กะเช้า (รายเดือน)';
+                                        break;
+                                    case 'OFFICE':
+                                        shiftName = 'กะออฟฟิศ (ไม่เข้ากะ)';
+                                        break;
+                                    case 'DAYSHF':
+                                        shiftName = 'กะเช้า (รายวัน)';
+                                        break;
+                                    case 'DAYTCH':
+                                        shiftName = 'กะเช้า (รายเดือน)';
+                                        break;
+                                    case 'N01D01':
+                                        shiftName = 'กะดึก (รายวัน)';
+                                        break;
+                                    case 'NT1DT1':
+                                        shiftName = 'กะดึก (รายเดือน)';
+                                        break;
+                                    case 'OFFICE2':
+                                        shiftName = 'กะออฟฟิศ (ไม่เข้ากะ)';
+                                        break;
+                                    default:
+                                        shiftName = shift;
+                                        break;
+                                }
+                                return '<span class="badge bg-primary">' + shiftName +
+                                    '</span>' +
+                                    '<div class="small text-muted mt-1">' + shift + '</div>';
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-calendar-alt me-1"></i> วันเริ่มงาน',
+                            render: function(data, type, row) {
+                                if (!row.startDate) return '';
+                                var startDate = moment(row.startDate).format('DD/MM/YYYY');
+                                var html =
+                                    '<div><i class="fas fa-play-circle text-success me-1"></i>' +
+                                    startDate + '</div>';
+                                if (row.resignDate) {
+                                    var resignDate = moment(row.resignDate).format(
+                                        'DD/MM/YYYY');
+                                    html +=
+                                        '<div><i class="fas fa-stop-circle text-danger me-1"></i>' +
+                                        resignDate + '</div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: 'phone',
+                            title: '<i class="fas fa-phone me-1"></i> เบอร์โทร',
+                            render: function(data) {
+                                if (!data) return '';
+                                return '<div><a href="tel:' + data +
+                                    '" class="text-decoration-none">' +
+                                    '<i class="fas fa-phone-alt me-1 text-success"></i>' +
+                                    data +
+                                    '</a></div>';
+                            }
+                        },
+                        {
+                            data: 'personID',
+                            title: '<i class="fas fa-door-open me-1"></i> สิทธิ์ประตู',
+                            orderable: false,
+                            render: function(data) {
+                                return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info access-door" data-id="' +
+                                    data +
+                                    '" data-bs-toggle="tooltip" title="จัดการสิทธิ์ประตู">' +
+                                    '<i class="fas fa-door-open"></i>' +
+                                    '</button>';
+                            }
+                        },
+                        {
+                            data: 'resignDate',
+                            title: '<i class="fas fa-toggle-on me-1"></i> สถานะ',
+                            render: function(data, type, row) {
+                                // ตรวจสอบสถานะการทำงาน/การใช้งาน และแสดงให้เหมาะสม
+                                let html = '';
+                                // ถ้ามี resignDate แสดงว่าลาออกแล้ว
+                                if (data) {
+                                    html = '<span class="badge bg-danger">ลาออกแล้ว</span>';
+                                } else {
+                                    // ถ้าไม่มี resignDate ให้ตรวจสอบค่า isActive
+                                    if (row.isActive === 1) {
+                                        html =
+                                            '<span class="badge bg-success">เปิดใช้งาน</span>';
+                                    } else {
+                                        html =
+                                            '<span class="badge bg-warning">ปิดใช้งาน</span>';
+                                    }
+                                }
+                                // เพิ่มการแสดงสถานะข้อมูลใน SQL944
+                                if (!row.hasCardData && !row.hasFingerprintData) {
+                                    html +=
+                                        '<div class="small text-muted mt-1">ไม่มีข้อมูลใน SQL944</div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: 'personID',
+                            title: '<i class="fas fa-cogs me-1"></i> จัดการ',
+                            orderable: false,
+                            render: function(data) {
+                                return '<div class="d-flex gap-1">' +
+                                    '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info view-employee" data-id="' +
+                                    data + '" data-person-id="' + data +
+                                    '" data-bs-toggle="tooltip" title="ดูข้อมูล">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</button>' +
+                                    '<button class="btn btn-xs btn-icon btn-rounded btn-outline-warning edit-employee" data-id="' +
+                                    data + '" data-person-id="' + data +
+                                    '" data-bs-toggle="tooltip" title="แก้ไข">' +
+                                    '<i class="fas fa-edit"></i>' +
+                                    '</button>' +
+                                    '<button class="btn btn-xs btn-icon btn-rounded btn-outline-danger delete-employee" data-id="' +
+                                    data + '" data-person-id="' + data +
+                                    '" data-bs-toggle="tooltip" title="ลบ">' +
+                                    '<i class="fas fa-trash"></i>' +
+                                    '</button>' +
+                                    '</div>';
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-database me-1"></i> ฐานข้อมูล',
+                            render: function(data, type, row) {
+                                let html = '<div class="d-flex gap-1">';
+                                if (row.existsInCES941 && row.existsInSQL944) {
+                                    html +=
+                                        '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ครบ</span>';
+                                } else {
+                                    html +=
+                                        `<span class="badge ${row.existsInCES941 ? 'bg-primary' : 'bg-danger'}" data-bs-toggle="tooltip" title="${row.existsInCES941 ? 'มีข้อมูลใน CES941' : 'ไม่มีข้อมูลใน CES941'}"><i class="fas ${row.existsInCES941 ? 'fa-check' : 'fa-times'}"></i></span>
+                                            <span class="badge ${row.existsInSQL944 ? 'bg-info' : 'bg-warning'}" data-bs-toggle="tooltip" title="${row.existsInSQL944 ? 'มีข้อมูลใน SQL944' : 'ไม่มีข้อมูลใน SQL944'}"><i class="fas ${row.existsInSQL944 ? 'fa-check' : 'fa-times'}"></i></span>`;
+                                }
+                                html += '</div>';
+                                return html;
+                            }
+                        }
+                    ],
+                    initComplete: function() {
+                        // เพิ่ม tooltip ให้กับปุ่มต่างๆ
+                        $('[data-bs-toggle="tooltip"]').tooltip();
+                        // ลบโค้ดการสร้าง dropdown filter ที่หัวตาราง
+                        // โค้ดส่วนนี้ถูกลบออกไปแล้ว
+                    }
+                });
+                // อัพเดท UI แสดงตัวกรองที่ใช้อยู่
+                updateFilterBadges();
+            });
+            // จัดการกับส่วน Filter
+            $('#filterButton').on('click', function() {
+                // เช็คว่ามี filter row อยู่แล้วหรือไม่
+                if ($('#filter-row').length) {
+                    $('#filter-row').remove();
+                } else {
+                    // เพิ่ม row ใหม่สำหรับฟิลเตอร์เป็น row แรกของตาราง
+                    let filterContent = $('#filterRowTemplate').html();
+                    $('#employeeTable').find('tbody').prepend(filterContent);
+                    // กำหนดค่าที่เลือกไว้ก่อนหน้า
+                    $('.filter-department').val($('#filter-storage').data('department') || '');
+                    $('.filter-shift').val($('#filter-storage').data('shift') || '');
+                    $('.filter-status').val($('#filter-storage').data('status') || 'active');
+                    $('.filter-door').val($('#filter-storage').data('door') || '');
+                    // จัดการปุ่มรีเซ็ต
+                    $('.reset-filter').on('click', function() {
+                        $('.filter-department, .filter-shift, .filter-door, .filter-fingerprint').val(
+                            '');
+                        $('.filter-status').val('active');
+                    });
+                    // จัดการปุ่มตกลง
+                    $('.apply-filter').on('click', function() {
+                        let department = $('.filter-department').val();
+                        let shift = $('.filter-shift').val();
+                        let status = $('.filter-status').val();
+                        let door = $('.filter-door').val();
+                        let fingerprint = $('.filter-fingerprint').val();
+                        // เก็บค่าที่เลือก
+                        $('#filter-storage').data('department', department);
+                        $('#filter-storage').data('shift', shift);
+                        $('#filter-storage').data('status', status);
+                        $('#filter-storage').data('door', door);
+                        $('#filter-storage').data('fingerprint', fingerprint);
+                        // บันทึกลง localStorage
+                        saveFiltersToLocalStorage();
+                        // รีโหลดตาราง
+                        $('#employeeTable').DataTable().ajax.reload();
+                        // อัพเดท UI แสดงตัวกรอง
+                        updateFilterBadges();
+                        // ปิด filter row
+                        $('#filter-row').remove();
+                    });
+                    // จัดการปุ่มปิด
+                    $('.close-filter').on('click', function() {
+                        $('#filter-row').remove();
+                    });
+                }
+            });
+            // จัดการโมดัลเพิ่ม/แก้ไขพนักงาน
+            $('#employeeModal').on('shown.bs.modal', function() {
+                $(this).find('input:first').focus();
+            });
+            // เมื่อกดปุ่มเพิ่มพนักงาน
+            $('body').on('click', '.add-employee', function() {
+                resetEmployeeForm();
+                $('#employeeModalLabel').html('<i class="fas fa-user-plus me-2"></i>เพิ่มข้อมูลพนักงาน');
+                $('#employeeModal').modal('show');
+            });
+            // เมื่อกดปุ่มแก้ไขพนักงาน
+            $('body').on('click', '.edit-employee', function() {
+                let personId = $(this).data('person-id');
+                resetEmployeeForm();
+                // แสดง Loading
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล',
+                    html: '<div class="spinner-border text-primary" role="status"></div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+                // ดึงข้อมูลพนักงาน
+                $.ajax({
+                    url: '/Employee/GetEmployeeById',
+                    type: 'GET',
+                    data: {
+                        personID: personId
+                    },
+                    success: function(response) {
+                        Swal.close(); // ปิด loading
+                        if (response && response.success) {
+                            let data = response.data;
+                            $('#employeeModalLabel').html(
+                                '<i class="fas fa-user-edit me-2"></i>แก้ไขข้อมูล : ' + data
+                                .emp_person[0].name);
+                            // กรณีที่มีโครงสร้างข้อมูลแบบใหม่ (มี emp_person array)
+                            if (data.emp_person && Array.isArray(data.emp_person) && data.emp_person
+                                .length > 0) {
+                                // แยกข้อมูลแต่ละประเภท
+                                let personData = null;
+                                let cardData = null;
+                                let fingerprintData = null;
+                                // หาข้อมูลบัตรและลายนิ้วมือโดยดูจาก personID ที่ลงท้ายด้วย -1 (บัตร) และ -2 (ลายนิ้วมือ)
+                                data.emp_person.forEach(function(item) {
+                                    if (item.personID.endsWith('-1')) {
+                                        cardData = item;
+                                    } else if (item.personID.endsWith('-2')) {
+                                        fingerprintData = item;
+                                    } else {
+                                        personData = item;
+                                    }
+                                });
+                                // ถ้าไม่มีข้อมูลหลัก ใช้ข้อมูลบัตรเป็นหลัก
+                                if (!personData && cardData) {
+                                    personData = cardData;
+                                } else if (!personData && fingerprintData) {
+                                    personData = fingerprintData;
+                                } else if (!personData && data.emp_person.length > 0) {
+                                    personData = data.emp_person[0];
+                                }
+                                if (personData) {
+                                    // ใส่ข้อมูลพื้นฐานลงในฟอร์ม
+                                    $('#cardNo').val(personData.personID ? personData.personID
+                                        .split('-')[0] : '');
+                                    $('#cardNumber').val(personData.cardNumber || '');
+                                    $('#name').val(personData.name || '');
+                                    $('#shift').val(personData.shiftMent || '');
+                                    $('#deptName').val(personData.deptID || '');
+                                    $('#deptID').val(personData.deptID || '');
+                                    // ข้อมูลเพิ่มเติมสำหรับบัตรและลายนิ้วมือ
+                                    if (cardData) {
+                                        $('#personIDc').val(cardData.personID || '');
+                                    }
+                                    if (fingerprintData) {
+                                        $('#personIDfp').val(fingerprintData.personID || '');
+                                    }
+                                    // แสดงโมดัล
+                                    $('#employeeModal').modal('show');
+                                } else {
+                                    showErrorToast('ไม่พบข้อมูลพนักงาน');
+                                }
+                            } else {
+                                showErrorToast('ไม่พบข้อมูลพนักงาน');
+                            }
+                        } else {
+                            showErrorToast(response.message || 'ไม่พบข้อมูลพนักงาน');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close(); // ปิด loading
+                        showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error);
+                    }
+                });
+            });
+            // ล้างฟอร์ม
+            function resetEmployeeForm() { 
+                $('#employeeForm')[0].reset();
+                $('#employeeForm').removeClass('was-validated');
+            }
+            // บันทึกข้อมูลพนักงาน
+            $('#saveButton').on('click', function() {
+                let form = $('#employeeForm')[0];
+                if (form.checkValidity()) {
+                    // ตรวจสอบว่าเป็นการเพิ่มหรือแก้ไข
+                    let isNewEmployee = !$('#employeeModalLabel').html().includes('แก้ไข');
+                    let url = isNewEmployee ? '/Employee/AddEmployee' : '/Employee/UpdateEmployee';
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: {
+                            personID: $('#cardNo').val(),
+                            cardNumber: $('#cardNumber').val(),
+                            name: $('#name').val(),
+                            deptID: $('#deptID').val(),
+                            deptName: $('#deptName option:selected').text()
+                        },
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader("RequestVerificationToken",
+                                $('input:hidden[name="__RequestVerificationToken"]').val());
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $('#employeeModal').modal('hide');
+                                showSuccessToast(response.message || 'บันทึกข้อมูลสำเร็จ');
+                                $('#employeeTable').DataTable().ajax.reload();
+                            } else {
+                                showErrorToast(response.message ||
+                                    'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                            }
+                        },
+                        error: function() {
+                            showErrorToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                        }
+                    });
+                } else {
+                    form.classList.add('was-validated');
+                }
+            });
+            
+            // ลบพนักงาน
+            $('body').on('click', '.delete-employee', function() {
+                let personId = $(this).data('person-id');
+                Swal.fire({
+                    title: 'ยืนยันการลบ',
+                    text: 'คุณต้องการลบข้อมูลพนักงานนี้ใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Employee/DeleteEmployee',
+                            type: 'POST',
+                            data: {
+                                personId: personId
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    showSuccessToast('ลบข้อมูลสำเร็จ');
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'เกิดข้อผิดพลาดในการลบข้อมูล');
+                                }
+                            },
+                            error: function() {
+                                showErrorToast('เกิดข้อผิดพลาดในการลบข้อมูล');
+                            }
+                        });
+                    }
+                });
+            });
+            // แสดงโมดัลสิทธิ์ประตู
+            $('body').on('click', '.access-door', function() {
+                let personId = $(this).data('id');
+                // แสดง Loading
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล',
+                    html: '<div class="spinner-border text-primary" role="status"></div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+                // ดึงข้อมูลสิทธิ์ประตู
+                $.ajax({
+                    url: '/Employee/GetAccess',
+                    type: 'POST',
+                    data: {
+                        personId: personId
+                    },
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken",
+                            $('input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        // ปิด loading dialog
+                        Swal.close();
+                        if (response.success) {
+                            // กำหนดข้อมูลพนักงาน
+                            $('#employeeName').text(response.employeeName || personId);
+                            $('#employeeID').text(personId);
+                            $('#employeeDept').text(response.deptName || 'ไม่ระบุแผนก');
+                            $('#addAllAccess, #addSpecificDoors, #removeAllAccess').data(
+                                'person-id', personId);
+                            // เก็บข้อมูลประตูไว้ใช้ภายหลัง
+                            $('#doorAccessTable').data('doors', response.data);
+                            // สร้างตาราง
+                            let tableHtml = '';
+                            $.each(response.data, function(index, door) {
+                                // กำหนดสถานะสิทธิ์
+                                let cardAccessHtml = getAccessHtml(door.hasCardAccess,
+                                    'card', personId, door.doorID);
+                                let fingerAccessHtml = getAccessHtml(door
+                                    .hasFingerprintAccess, 'finger', personId, door
+                                    .doorID);
+                                // สร้างแถวข้อมูล
+                                tableHtml += '<tr>';
+                                tableHtml += '<td>' + door.doorName +
+                                    '<div class="small text-muted">' + door.doorID +
+                                    '</div></td>';
+                                tableHtml += '<td class="text-center">' + cardAccessHtml +
+                                    '</td>';
+                                tableHtml += '<td class="text-center">' + fingerAccessHtml +
+                                    '</td>';
+                                tableHtml += '</tr>';
+                            });
+                            // เพิ่มข้อมูลลงในตาราง
+                            $('#doorAccessTableBody').html(tableHtml);
+                            // เพิ่ม event listener สำหรับการเปลี่ยนสถานะสิทธิ์
+                            setupAccessToggleEvents();
+                            // แสดงโมดัล
+                            $('#accessDoorModal').modal('show');
+                        } else {
+                            // แสดงข้อความผิดพลาด
+                            showErrorToast(response.error || 'ไม่สามารถโหลดข้อมูลสิทธิ์ประตูได้');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // ปิด loading dialog
+                        Swal.close();
+                        showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error);
+                    }
+                });
+            });
+            // ฟังก์ชันสร้าง HTML สำหรับแสดงสถานะสิทธิ์
+            function getAccessHtml(hasAccess, accessType, personId, doorId) {
+                let checked = hasAccess ? 'checked' : '';
+                let suffix = accessType === 'card' ? '-1' : '-2';
+                let fullPersonId = personId + suffix;
+                return '<div class="form-check form-switch d-flex justify-content-center">' +
+                    '<input class="form-check-input toggle-access" type="checkbox" ' + checked + ' ' +
+                    'data-person-id="' + fullPersonId + '" ' +
+                    'data-door-id="' + doorId + '" ' +
+                    'data-access-type="' + accessType + '">' +
+                    '</div>';
+            }
+            // ฟังก์ชันเพิ่ม event listener สำหรับการเปลี่ยนสถานะสิทธิ์
+            function setupAccessToggleEvents() {
+                $('.toggle-access').on('change', function() {
+                    let personId = $(this).data('person-id');
+                    let doorId = $(this).data('door-id');
+                    let accessType = $(this).data('access-type');
+                    let state = $(this).prop('checked') ? 1 : 0;
+                    let dnfp = accessType === 'finger' ? 1 : 0;
+                    // เตรียมข้อมูล weekTimeID
+                    let weekTimeID = null;
+                    // ใช้ weekTimeID จากข้อมูลประตู (ถ้ามี)
+                    $.each($('#doorAccessTable').data('doors'), function(index, door) {
+                        if (door.doorID === doorId) {
+                            weekTimeID = door.weekTimeID;
+                            return false; // ออกจาก loop
+                        }
+                    });
+                    // อัพเดทสถานะสิทธิ์
+                    updateDoorAccess(personId, doorId, state, weekTimeID, dnfp);
+                });
+            }
+            // อัพเดทสิทธิ์การเข้าประตู
+            function updateDoorAccess(personId, doorId, state, weekTimeID, dnfp) {
+                $.ajax({
+                    url: '/Employee/UpdateAccess',
+                    type: 'POST',
+                    data: {
+                        personId: personId,
+                        doorId: doorId,
+                        state: state,
+                        weekTimeID: weekTimeID,
+                        dnfp: dnfp
+                    },
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken",
+                            $('input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            // ไม่ต้องแสดงข้อความเมื่อสำเร็จ
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถอัพเดทสิทธิ์ได้');
+                            // ย้อนกลับสถานะของสวิตช์
+                            let checkbox = $('[data-person-id="' + personId + '"][data-door-id="' + doorId +
+                                '"]');
+                            checkbox.prop('checked', !checkbox.prop('checked'));
+                        }
+                    },
+                    error: function() {
+                        showErrorToast('เกิดข้อผิดพลาดในการอัพเดทสิทธิ์');
+                        // ย้อนกลับสถานะของสวิตช์
+                        let checkbox = $('[data-person-id="' + personId + '"][data-door-id="' + doorId +
+                            '"]');
+                        checkbox.prop('checked', !checkbox.prop('checked'));
+                    }
+                });
+            }
+            // เพิ่มสิทธิ์ทั้งหมด
+            $('#addAllAccess').on('click', function() {
+                let personId = $(this).data('person-id');
+                // แสดง dialog ยืนยัน
+                Swal.fire({
+                    title: 'ยืนยันการเพิ่มสิทธิ์',
+                    text: 'คุณต้องการเพิ่มสิทธิ์ประตูทั้งหมดให้กับพนักงานนี้ใช่หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#3085d6',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        Swal.fire({
+                            title: 'กำลังเพิ่มสิทธิ์...',
+                            html: '<div class="spinner-border text-primary" role="status"></div>',
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        });
+                        $.ajax({
+                            url: '/Employee/AddAllAccess',
+                            type: 'POST',
+                            data: {
+                                personId: personId
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success || response.status === 'success') {
+                                    showSuccessToast('เพิ่มสิทธิ์ทั้งหมดสำเร็จ');
+                                    // รีโหลดตารางสิทธิ์
+                                    $('.access-door[data-id="' + personId + '"]').trigger(
+                                        'click');
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'ไม่สามารถเพิ่มสิทธิ์ทั้งหมดได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + error);
+                            }
+                        });
+                    }
+                });
+            });
+            // เพิ่มสิทธิ์พื้นฐาน
+            $('#addSpecificDoors').on('click', function() {
+                let personId = $(this).data('person-id');
+                // แสดง dialog ยืนยัน
+                Swal.fire({
+                    title: 'ยืนยันการเพิ่มสิทธิ์',
+                    text: 'คุณต้องการเพิ่มสิทธิ์ประตูพื้นฐานให้กับพนักงานนี้ใช่หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#28a745',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        Swal.fire({
+                            title: 'กำลังเพิ่มสิทธิ์...',
+                            html: '<div class="spinner-border text-primary" role="status"></div>',
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        });
+                        $.ajax({
+                            url: '/Employee/AddHRAccess',
+                            type: 'POST',
+                            data: {
+                                personId: personId
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success || response.status === 'success') {
+                                    showSuccessToast('เพิ่มสิทธิ์พื้นฐานสำเร็จ');
+                                    // รีโหลดตารางสิทธิ์
+                                    $('.access-door[data-id="' + personId + '"]').trigger(
+                                        'click');
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'ไม่สามารถเพิ่มสิทธิ์พื้นฐานได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + error);
+                            }
+                        });
+                    }
+                });
+            });
+            // ลบสิทธิ์ทั้งหมด
+            $('#removeAllAccess').on('click', function() {
+                let personId = $(this).data('person-id');
+                // แสดง dialog ยืนยัน
+                Swal.fire({
+                    title: 'ยืนยันการลบสิทธิ์',
+                    text: 'คุณต้องการลบสิทธิ์ประตูทั้งหมดของพนักงานนี้ใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        Swal.fire({
+                            title: 'กำลังลบสิทธิ์...',
+                            html: '<div class="spinner-border text-primary" role="status"></div>',
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        });
+                        $.ajax({
+                            url: '/Employee/RemoveAllAccess',
+                            type: 'POST',
+                            data: {
+                                personId: personId
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success || response.status === 'success') {
+                                    showSuccessToast('ลบสิทธิ์ทั้งหมดสำเร็จ');
+                                    // รีโหลดตารางสิทธิ์
+                                    $('.access-door[data-id="' + personId + '"]').trigger(
+                                        'click');
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'ไม่สามารถลบสิทธิ์ทั้งหมดได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                showErrorToast('เกิดข้อผิดพลาดในการลบสิทธิ์: ' + error);
+                            }
+                        });
+                    }
+                });
+            });
+            // ลบสิทธิ์พนักงานลาออก
+            $('#removeResignedAccessButton').on('click', function() {
+                Swal.fire({
+                    title: 'ยืนยันการลบสิทธิ์',
+                    text: 'คุณต้องการลบสิทธิ์ประตูของพนักงานลาออกทั้งหมดใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Employee/RemoveResignedAccess',
+                            type: 'POST',
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    showSuccessToast('ลบสิทธิ์พนักงานลาออกสำเร็จ');
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'ไม่สามารถลบสิทธิ์พนักงานลาออกได้');
+                                }
+                            },
+                            error: function() {
+                                showErrorToast('เกิดข้อผิดพลาดในการลบสิทธิ์');
+                            }
+                        });
+                    }
+                });
+            });
+            // เพิ่มสิทธิ์พื้นฐานให้พนักงานทุกคน
+            $('#checkAndAddBasicAccessButton').on('click', function() {
+                Swal.fire({
+                    title: 'ยืนยันการเพิ่มสิทธิ์',
+                    text: 'คุณต้องการตรวจสอบและเพิ่มสิทธิ์พื้นฐานให้พนักงานทุกคนใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#007bff',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Employee/CheckAndAddBasicAccess',
+                            type: 'POST',
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    showSuccessToast('เพิ่มสิทธิ์พื้นฐานสำเร็จ');
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'ไม่สามารถเพิ่มสิทธิ์พื้นฐานได้');
+                                }
+                            },
+                            error: function() {
+                                showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์');
+                            }
+                        });
+                    }
+                });
+            });
+            // ลบข้อมูลพนักงานลาออก
+            $('#removeEmployeeButton').on('click', function() {
+                Swal.fire({
+                    title: 'ยืนยันการลบข้อมูล',
+                    text: 'คุณต้องการลบข้อมูลพนักงานลาออกทั้งหมดใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Employee/RemoveAllResignedEmployees',
+                            type: 'POST',
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    showSuccessToast('ลบข้อมูลพนักงานลาออกสำเร็จ');
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'ไม่สามารถลบข้อมูลพนักงานลาออกได้');
+                                }
+                            },
+                            error: function() {
+                                showErrorToast('เกิดข้อผิดพลาดในการลบข้อมูล');
+                            }
+                        });
+                    }
+                });
+            });
+            // แสดง toast สำเร็จ
+            function showSuccessToast(message) {
+                toastr.success(message);
+            }
+            // แสดง toast ผิดพลาด
+            function showErrorToast(message) {
+                toastr.error(message);
+            }
+            // เมื่อเลือกแผนก อัพเดทรหัสแผนก
+            $('#deptName').on('change', function() {
+                $('#deptID').val($(this).val());
+            });
+            // แสดงรายละเอียดพนักงาน
+            $('body').on('click', '.toggle-child-row', function() {
+                let tr = $(this).closest('tr');
+                let row = $('#employeeTable').DataTable().row(tr);
+                if (row.child.isShown()) {
+                    // ปิดรายละเอียด
+                    row.child.hide();
+                    $(this).find('i').removeClass('fa-minus').addClass('fa-plus');
+                    $(this).removeClass('shown');
+                    tr.removeClass('shown-row');
+                } else {
+                    // เปิดรายละเอียด
+                    let personId = $(this).data('id');
+                    // แสดง Loading
+                    row.child(
+                        '<div class="text-center p-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">กำลังโหลดข้อมูล...</div></div>'
+                    ).show();
+                    $(this).find('i').removeClass('fa-plus').addClass('fa-minus');
+                    $(this).addClass('shown');
+                    tr.addClass('shown-row');
+                    // ดึงข้อมูลประวัติพนักงาน
+                    $.ajax({
+                        url: '/Employee/GetEmployeeHistory',
+                        type: 'GET',
+                        data: {
+                            personId: personId
+                        },
+                        success: function(response) {
+                            let historyHtml = '';
+                            let content = ''; // เพิ่มการประกาศตัวแปร content ที่จะใช้ในฟังก์ชัน
+                            if (response.success && response.data.length > 0) {
+                                // เก็บข้อมูลกะทั้งหมดไว้ในตัวแปร global
+                                window.employeeShifts = response.data;
+                                // เรียงข้อมูลตามวันที่จากเก่าสุดไปล่าสุด เพื่อแสดงแบบไทม์ไลน์
+                                const sortedData = [...response.data].sort((a, b) => new Date(a
+                                        .date) -
+                                    new Date(b.date));
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                // หากะปัจจุบัน (วันที่น้อยกว่าหรือเท่ากับวันนี้ และเป็นวันที่มากที่สุด)
+                                const currentShift = response.data.reduce((current, item) => {
+                                    const itemDate = new Date(item.date);
+                                    itemDate.setHours(0, 0, 0, 0);
+                                    if (itemDate <= today && (!current || new Date(current
+                                                .date) <
+                                            itemDate)) {
+                                        return item;
+                                    }
+                                    return current;
+                                }, null);
+                                // สร้าง HTML สำหรับส่วนหัวของประวัติการเปลี่ยนกะ
+                                content = '<div class="card shadow-sm mb-3">' +
+                                    '<div class="card-header bg-light d-flex justify-content-between align-items-center py-2">' +
+                                    '<div class="d-flex align-items-center">' +
+                                    '<i class="fas fa-history me-2 text-primary"></i>' +
+                                    '<span>ประวัติการเปลี่ยนกะ</span>';
+                                if (currentShift) {
+                                    content += '<span class="badge bg-success ms-2">กะปัจจุบัน: ' +
+                                        (
+                                            currentShift.shiftMent || '-') + '</span>';
+                                }
+                                content += '</div>' +
+                                    '<button type="button" class="btn btn-sm btn-primary add-shift-btn" data-person-id="' +
+                                    personId + '">' +
+                                    '<i class="fas fa-plus-circle me-1"></i>เพิ่มกะ' +
+                                    '</button>' +
+                                    '</div>' +
+                                    '<div class="card-body p-2">' +
+                                    '<div class="timeline-shift">';
+                                // สร้าง Timeline
+                                sortedData.forEach(function(item) {
+                                    const cardNumber = item.cardNumber;
+                                    const itemDate = new Date(item.date);
+                                    itemDate.setHours(0, 0, 0, 0);
+                                    // เช็คว่าเป็นกะปัจจุบันหรือไม่
+                                    const isCurrentShift = currentShift && currentShift
+                                        .id === item.id;
+                                    // กำหนดสถานะตามวันที่
+                                    let statusClass = '';
+                                    let statusText = '';
+                                    if (itemDate < today) {
+                                        statusClass = 'bg-secondary';
+                                        statusText = 'อดีต';
+                                    } else if (itemDate.getTime() === today.getTime()) {
+                                        statusClass = 'bg-success';
+                                        statusText = 'วันนี้';
+                                    } else {
+                                        statusClass = 'bg-info';
+                                        statusText = 'อนาคต';
+                                    }
+                                    const dateStr = item.date ? new Date(item.date)
+                                        .toLocaleDateString(
+                                            'th-TH', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            }) : '-';
+                                    const itemClass = isCurrentShift ? 'current' : '';
+                                    const iconClass = isCurrentShift ? 'text-success' :
+                                        'text-secondary';
+                                    const dateStr2 = item.date && item.date.split('T') ?
+                                        item.date
+                                        .split('T')[0] : '';
+                                    // เก็บข้อมูลกะในแบบ data-* เพื่อใช้ในการแก้ไข
+                                    content += '<div class="timeline-item ' + itemClass +
+                                        '">' +
+                                        '<div class="shift-card ' + itemClass + '">' +
+                                        '<div class="shift-header">' +
+                                        '<div class="shift-date">' +
+                                        '<i class="fas fa-calendar-day me-1 ' + iconClass +
+                                        '"></i> ' +
+                                        dateStr +
+                                        '<span class="badge ' + statusClass +
+                                        ' ms-1 badge-sm">' +
+                                        statusText + '</span>' +
+                                        '</div>' +
+                                        '<div class="shift-actions">' +
+                                        '<button type="button" class="btn btn-shift-action btn-outline-warning edit-shift-btn" ' +
+                                        'data-id="' + item.id + '" ' +
+                                        'data-shift="' + (item.shiftMent || '') + '" ' +
+                                        'data-date="' + dateStr2 + '" ' +
+                                        'data-name="' + (item.name || '') + '" ' +
+                                        'data-cardnumber="' + (item.cardNumber || '') +
+                                        '" ' +
+                                        'data-deptid="' + (item.deptID || '') + '" ' +
+                                        'data-personid="' + (personId) + '" ' +
+                                        'data-deptname="' + (item.deptName || '') + '" ' +
+                                        'data-deptcode="' + (item.deptCode || item.deptID ||
+                                            '') + '" ' +
+                                        'data-remark="' + (item.remark || '') + '" ' +
+                                        'data-timein="' + (item.timeIn || '') + '" ' +
+                                        'data-timeout="' + (item.timeOut || '') + '" ' +
+                                        'data-shiftment="' + (item.shiftMent || '') + '" ' +
+                                        'data-shiftname="' + (item.shiftName || '') + '" ' +
+                                        'data-shiftgroup="' + (item.shiftGroup || '') +
+                                        '" ' +
+                                        'data-shiftstart="' + (item.shiftStart || '') +
+                                        '" ' +
+                                        'data-shiftend="' + (item.shiftEnd || '') + '" ' +
+                                        'data-hascarddata="' + (item.hasCardData ? 'true' :
+                                            'false') + '" ' +
+                                        'data-hasfingerprintdata="' + (item
+                                            .hasFingerprintData ? 'true' : 'false') + '">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                        '</button>' +
+                                        '<button type="button" class="btn btn-shift-action btn-outline-danger delete-shift-btn" ' +
+                                        'data-id="' + item.id + '" ' +
+                                        'data-personid="' + (item.personId || '') + '" ' +
+                                        'data-name="' + (item.name || '') + '" ' +
+                                        'data-shiftment="' + (item.shiftMent || '') + '" ' +
+                                        'data-date="' + dateStr2 + '">' +
+                                        '<i class="fas fa-trash-alt"></i>' +
+                                        '</button>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '<div class="shift-body">' +
+                                        '<div class="shift-info">' +
+                                        '<span class="badge bg-primary shift-badge">' + (
+                                            item
+                                            .shiftMent || '-') + '</span>' +
+                                        '<span class="text-muted small">แผนก: ' + (item
+                                            .deptName ||
+                                            '-') + '</span>';
+                                    // แสดงหมายเหตุถ้ามี
+                                    if (item.remark) {
+                                        content +=
+                                            '<div class="small mt-1"><i class="fas fa-comment-alt text-muted me-1"></i>' +
+                                            item.remark + '</div>';
+                                    }
+                                    content += '</div>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>';
+                                });
+                                content += '</div></div></div>';
+                                historyHtml = content; // ใช้ content ที่สร้างไว้กับ historyHtml
+                            } else {
+                                // เคลียร์ข้อมูลกะเดิม
+                                window.employeeShifts = [];
+                                historyHtml = '<div class="card shadow-sm mb-3">' +
+                                    '<div class="card-header bg-light d-flex justify-content-between align-items-center py-2">' +
+                                    '<div>' +
+                                    '<i class="fas fa-history me-2 text-primary"></i>' +
+                                    '<span>ประวัติการเปลี่ยนกะ</span>' +
+                                    '</div>' +
+                                    '<button type="button" class="btn btn-sm btn-primary add-shift-btn" data-person-id="' +
+                                    personId + '">' +
+                                    '<i class="fas fa-plus-circle me-1"></i>เพิ่มกะ' +
+                                    '</button>' +
+                                    '</div>' +
+                                    '<div class="card-body">' +
+                                    '<div class="text-center text-muted py-2">' +
+                                    '<i class="fas fa-info-circle me-1"></i> ไม่พบประวัติการเปลี่ยนกะ' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                            // อัปเดต child row
+                            row.child(historyHtml).show();
+                        },
+                        error: function(error) {
+                            console.error("Error fetching employee history:", error);
+                            row.child(
+                                '<div class="p-3 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>เกิดข้อผิดพลาดในการโหลดข้อมูล</div>'
+                            ).show();
+                        }
+                    });
+                }
+            });
+            // ฟังก์ชันรีโหลดข้อมูลเมื่อมีการอัปเดต
+            function refreshOpenedChildRow() {
+                // หา child row ที่เปิดอยู่
+                let openedRow = $('.toggle-child-row.shown');
+                if (openedRow.length > 0) {
+                    // จำลองการคลิกเพื่อปิด
+                    openedRow.click();
+                    // จำลองการคลิกเพื่อเปิดใหม่
+                    setTimeout(function() {
+                        openedRow.click();
+                    }, 100);
+                }
+            }
+            // ฟังก์ชันสำหรับแสดงโมดอลเพิ่มกะการทำงาน
+            function showAddShiftModal(personId) {
+                // เริ่มต้นค่าฟอร์ม
+                $('#shiftModalTitle').text('เพิ่มกะการทำงาน');
+                $('#shiftForm')[0].reset();
+                $('#shiftId').val('');
+                $('#personId').val(personId);
+                $('#shiftDate').val(moment().format('YYYY-MM-DD'));
+                $('#actionType').val('add');
+                // แสดงโมดอล
+                $('#shiftModal').modal('show');
+            }
+            // ฟังก์ชันสำหรับแสดงโมดอลแก้ไขกะการทำงาน
+            function showEditShiftModal(id, personId, shift, date, timeIn, timeOut, cardNumber) {
+                // กำหนดค่าให้ฟอร์ม
+                $('#shiftModalTitle').text('แก้ไขกะการทำงาน');
+                $('#shiftId').val(id);
+                $('#personId').val(personId);
+                $('#shift').val(shift);
+                $('#shiftDate').val(date);
+                $('#timeIn').val(timeIn);
+                $('#timeOut').val(timeOut);
+                $('#actionType').val('edit');
+                $('#shiftCardNo').val(cardNumber || '');
+                $('#shiftCardNoDisplay').text(cardNumber || '');
+                // แสดงโมดอล
+                $('#shiftModal').modal('show');
+            }
+            // ลบกะการทำงาน
+            $('body').on('click', '.delete-shift-btn', function() {
+                let id = $(this).data('id');
+                confirmDeleteShift(id);
+            });
+            // ฟังก์ชันสำหรับยืนยันการลบกะการทำงาน
+            function confirmDeleteShift(id) {
+                Swal.fire({
+                    title: 'ยืนยันการลบ',
+                    text: 'คุณต้องการลบประวัติกะการทำงานนี้ใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteShift(id);
+                    }
+                });
+            }
+            // ฟังก์ชันสำหรับลบกะการทำงาน
+            function deleteShift(id) {
+                $.ajax({
+                    url: '/Employee/DeleteShiftHistory',
+                    type: 'POST',
+                    data: {
+                        id: id
+                    },
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken",
+                            $('input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccessToast(response.message);
+                            // รีโหลดข้อมูล child row ที่กำลังแสดงอยู่
+                            refreshOpenedChildRow();
+                        } else {
+                            showErrorToast(response.message);
+                        }
+                    },
+                    error: function() {
+                        showErrorToast('เกิดข้อผิดพลาดในการลบข้อมูล');
+                    }
+                });
+            }
+            // เมื่อกดปุ่มบันทึกในโมดอลกะการทำงาน
+            $('#saveShiftButton').on('click', function() {
+                if (!$('#shiftForm')[0].checkValidity()) {
+                    $('#shiftForm')[0].classList.add('was-validated');
+                    return;
+                }
+                let data = {
+                    Id: $('#shiftId').val() ? parseInt($('#shiftId').val()) : 0,
+                    PersonId: $('#personId').val(),
+                    ShiftMent: $('#shift').val(),
+                    Date: $('#shiftDate').val(),
+                    TimeIn: $('#timeIn').val() ? $('#shiftDate').val() + 'T' + $('#timeIn').val() : null,
+                    TimeOut: $('#timeOut').val() ? $('#shiftDate').val() + 'T' + $('#timeOut').val() : null
+                };
+                $.ajax({
+                    url: '/Employee/SaveShiftChange',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken",
+                            $('input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#shiftModal').modal('hide');
+                            showSuccessToast(response.message);
+                            // รีโหลดข้อมูล child row ที่กำลังแสดงอยู่
+                            refreshOpenedChildRow();
+                        } else {
+                            showErrorToast(response.message);
+                        }
+                    },
+                    error: function() {
+                        showErrorToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                    }
+                });
+            });
+            // ฟังก์ชันเพื่อโหลดข้อมูลประวัติการเปลี่ยนกะ
+            function loadEmployeeHistory(personId) {
+                return $.ajax({
+                    url: '/Employee/GetEmployeeHistory',
+                    type: 'GET',
+                    data: {
+                        personId: personId
+                    },
+                    success: function(response) {
+                        let historyHtml = '';
+                        let content = ''; // เพิ่มการประกาศตัวแปร content ที่จะใช้ในฟังก์ชัน
+                        if (response.success && response.data.length > 0) {
+                            // เก็บข้อมูลกะทั้งหมดไว้ในตัวแปร global
+                            window.employeeShifts = response.data;
+                            // เรียงข้อมูลตามวันที่จากเก่าสุดไปล่าสุด เพื่อแสดงแบบไทม์ไลน์
+                            const sortedData = [...response.data].sort((a, b) => new Date(a.date) -
+                                new Date(b.date));
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            // หากะปัจจุบัน (วันที่น้อยกว่าหรือเท่ากับวันนี้ และเป็นวันที่มากที่สุด)
+                            const currentShift = response.data.reduce((current, item) => {
+                                const itemDate = new Date(item.date);
+                                itemDate.setHours(0, 0, 0, 0);
+                                if (itemDate <= today && (!current || new Date(current.date) <
+                                        itemDate)) {
+                                    return item;
+                                }
+                                return current;
+                            }, null);
+                            // สร้าง HTML สำหรับส่วนหัวของประวัติการเปลี่ยนกะ
+                            content = '<div class="card shadow-sm mb-3">' +
+                                '<div class="card-header bg-light d-flex justify-content-between align-items-center py-2">' +
+                                '<div class="d-flex align-items-center">' +
+                                '<i class="fas fa-history me-2 text-primary"></i>' +
+                                '<span>ประวัติการเปลี่ยนกะ</span>';
+                            if (currentShift) {
+                                content += '<span class="badge bg-success ms-2">กะปัจจุบัน: ' + (
+                                    currentShift.shiftMent || '-') + '</span>';
+                            }
+                            content += '</div>' +
+                                '<button type="button" class="btn btn-sm btn-primary add-shift-btn" data-person-id="' +
+                                personId + '">' +
+                                '<i class="fas fa-plus-circle me-1"></i>เพิ่มกะ' +
+                                '</button>' +
+                                '</div>' +
+                                '<div class="card-body p-2">' +
+                                '<div class="timeline-shift">';
+                            // สร้าง Timeline
+                            sortedData.forEach(function(item) {
+                                const itemDate = new Date(item.date);
+                                itemDate.setHours(0, 0, 0, 0);
+                                // เช็คว่าเป็นกะปัจจุบันหรือไม่
+                                const isCurrentShift = currentShift && currentShift.id === item.id;
+                                // กำหนดสถานะตามวันที่
+                                let statusClass = '';
+                                let statusText = '';
+                                if (itemDate < today) {
+                                    statusClass = 'bg-secondary';
+                                    statusText = 'อดีต';
+                                } else if (itemDate.getTime() === today.getTime()) {
+                                    statusClass = 'bg-success';
+                                    statusText = 'วันนี้';
+                                } else {
+                                    statusClass = 'bg-info';
+                                    statusText = 'อนาคต';
+                                }
+                                const dateStr = item.date ? new Date(item.date).toLocaleDateString(
+                                    'th-TH', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                    }) : '-';
+                                const itemClass = isCurrentShift ? 'current' : '';
+                                const iconClass = isCurrentShift ? 'text-success' :
+                                    'text-secondary';
+                                const dateStr2 = item.date && item.date.split('T') ? item.date
+                                    .split('T')[0] : '';
+                                content += '<div class="timeline-item ' + itemClass + '">' +
+                                    '<div class="shift-card ' + itemClass + '">' +
+                                    '<div class="shift-header">' +
+                                    '<div class="shift-date">' +
+                                    '<i class="fas fa-calendar-day me-1 ' + iconClass + '"></i> ' +
+                                    dateStr +
+                                    '<span class="badge ' + statusClass + ' ms-1 badge-sm">' +
+                                    statusText + '</span>' +
+                                    '</div>' +
+                                    '<div class="shift-actions">' +
+                                    '<button type="button" class="btn btn-shift-action btn-outline-warning edit-shift-btn" ' +
+                                    'data-id="' + item.id + '" ' +
+                                    'data-shift="' + (item.shiftMent || '') + '" ' +
+                                    'data-date="' + dateStr2 + '" ' +
+                                    'data-name="' + (item.name || '') + '" ' +
+                                    'data-cardnumber="' + (item.cardNumber || '') + '" ' +
+                                    'data-deptid="' + (item.deptID || '') + '" ' +
+                                    'data-personid="' + (item.personId || '') + '" ' +
+                                    'data-deptname="' + (item.deptName || '') + '" ' +
+                                    'data-deptcode="' + (item.deptCode || item.deptID || '') +
+                                    '" ' +
+                                    'data-remark="' + (item.remark || '') + '" ' +
+                                    'data-timein="' + (item.timeIn || '') + '" ' +
+                                    'data-timeout="' + (item.timeOut || '') + '" ' +
+                                    'data-shiftment="' + (item.shiftMent || '') + '" ' +
+                                    'data-shiftname="' + (item.shiftName || '') + '" ' +
+                                    'data-shiftgroup="' + (item.shiftGroup || '') + '" ' +
+                                    'data-shiftstart="' + (item.shiftStart || '') + '" ' +
+                                    'data-shiftend="' + (item.shiftEnd || '') + '" ' +
+                                    'data-hascarddata="' + (item.hasCardData ? 'true' : 'false') +
+                                    '" ' +
+                                    'data-hasfingerprintdata="' + (item.hasFingerprintData ?
+                                        'true' : 'false') + '">' +
+                                    '<i class="fas fa-edit"></i>' +
+                                    '</button>' +
+                                    '<button type="button" class="btn btn-shift-action btn-outline-danger delete-shift-btn" ' +
+                                    'data-id="' + item.id + '" ' +
+                                    'data-personid="' + (item.personId || '') + '" ' +
+                                    'data-name="' + (item.name || '') + '" ' +
+                                    'data-shiftment="' + (item.shiftMent || '') + '" ' +
+                                    'data-date="' + dateStr2 + '">' +
+                                    '<i class="fas fa-trash-alt"></i>' +
+                                    '</button>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="shift-body">' +
+                                    '<div class="shift-info">' +
+                                    '<span class="badge bg-primary shift-badge">' + (item
+                                        .shiftMent || '-') + '</span>' +
+                                    '<span class="text-muted small">แผนก: ' + (item.deptName ||
+                                        '-') + '</span>';
+                                // แสดงหมายเหตุถ้ามี
+                                if (item.remark) {
+                                    content +=
+                                        '<div class="small mt-1"><i class="fas fa-comment-alt text-muted me-1"></i>' +
+                                        item.remark + '</div>';
+                                }
+                                content += '</div>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>';
+                            });
+                            content += '</div></div></div>';
+                            historyHtml = content; // ใช้ content ที่สร้างไว้กับ historyHtml
+                        } else {
+                            // เคลียร์ข้อมูลกะเดิม
+                            window.employeeShifts = [];
+                            historyHtml = '<div class="card shadow-sm mb-3">' +
+                                '<div class="card-header bg-light d-flex justify-content-between align-items-center py-2">' +
+                                '<div>' +
+                                '<i class="fas fa-history me-2 text-primary"></i>' +
+                                '<span>ประวัติการเปลี่ยนกะ</span>' +
+                                '</div>' +
+                                '<button type="button" class="btn btn-sm btn-primary add-shift-btn" data-person-id="' +
+                                personId + '">' +
+                                '<i class="fas fa-plus-circle me-1"></i>เพิ่มกะ' +
+                                '</button>' +
+                                '</div>' +
+                                '<div class="card-body">' +
+                                '<div class="text-center text-muted py-2">' +
+                                '<i class="fas fa-info-circle me-1"></i> ไม่พบประวัติการเปลี่ยนกะ' +
+                                '</div>' +
+                                '</div>' +
+                                '</div>';
+                        }
+                        return historyHtml;
+                    },
+                    error: function(error) {
+                        console.error("Error loading employee history:", error);
+                        return '<div class="alert alert-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+                    }
+                });
+            }
+            // เพิ่มกะการทำงาน
+            $('body').on('click', '.add-shift-btn', function() {
+                let personId = $(this).data('person-id');
+                resetShiftForm();
+                // ดึงข้อมูลพนักงานจากตาราง
+                let row = $('#employeeTable').DataTable().row($(this).closest('tr').prev()).data();
+                if (!row) {
+                    // กรณีคลิกจาก child row
+                    let parentRow = $(this).closest('.child').parent().prev();
+                    row = $('#employeeTable').DataTable().row(parentRow).data();
+                }
+                if (row) {
+                    // กำหนดค่าข้อมูลจากแถวของตาราง
+                    $('#shiftPersonId').val(personId);
+                    $('#shiftCardNo').val(row.cardNumber || '');
+                    $('#shiftPersonNameDisplay').text(row.name || '');
+                    $('#shiftCardNoDisplay').text('');
+                    $('#shiftDeptDisplay').text(row.department || '');
+                    $('#shiftDeptID').val(row.deptID || '');
+                    $('#shiftDeptIDDisplay').val(row.deptID || '');
+                    $('#shiftDeptCode').val(row.deptID || '');
+                    // ตั้งค่า select แผนกให้ตรงกับข้อมูลพนักงาน
+                    let deptName = row.deptName || row.department || '';
+                    $('#shiftDeptName').val(deptName);
+                    // ตรวจสอบและแสดงปุ่มเพิ่มข้อมูล SQL944
+                    if (!row.hasCardData) {
+                        $('#addToSQL944Btn').show();
+                    } else {
+                        $('#addToSQL944Btn').hide();
+                    }
+                } else {
+                    // กรณีไม่สามารถดึงข้อมูลจากตารางได้
+                    $.ajax({
+                        url: '/Employee/GetEmployeeBasicInfo',
+                        type: 'GET',
+                        data: {
+                            personId: personId
+                        },
+                        async: false,
+                        success: function(response) {
+                            if (response.success) {
+                                $('#shiftPersonId').val(personId);
+                                $('#shiftCardNo').val(response.data.cardNumber || '');
+                                $('#shiftPersonNameDisplay').text(response.data.name || '');
+                                $('#shiftCardNoDisplay').text(response.data.cardNumber || '');
+                                $('#shiftDeptDisplay').text(response.data.deptName || '');
+                                $('#shiftDeptID').val(response.data.deptID || '');
+                                $('#shiftDeptIDDisplay').val(response.data.deptID || '');
+                                $('#shiftDeptCode').val(response.data.deptCode || response.data
+                                    .deptID || '');
+                                $('#shiftDeptName').val(response.data.deptName || '');
+                                // ตรวจสอบและแสดงปุ่มเพิ่มข้อมูล SQL944
+                                if (!response.data.hasCardData) {
+                                    $('#addToSQL944Btn').show();
+                                } else {
+                                    $('#addToSQL944Btn').hide();
+                                }
+                            }
+                        }
+                    });
+                }
+                $('#shiftModalTitle').html('<i class="fas fa-plus-circle me-2"></i>เพิ่มกะการทำงาน');
+                $('#shiftModal').modal('show');
+            });
+            $(document).ready(function() {
+                $(document).on('change', '#shiftDeptName', function() {
+                    // ดึงค่า deptID จาก data attribute ของ option ที่เลือก
+                    let selectedOption = $(this).find('option:selected');
+                    let deptID = selectedOption.data('deptid') || '';
+                    let deptName = selectedOption.val();
+                    // กำหนดค่าให้กับ field ต่างๆ
+                    $('#shiftDeptID').val(deptID);
+                    $('#shiftDeptIDDisplay').val(deptID);
+                    $('#shiftDeptCode').val(deptID);
+                });
+            });
+            // แก้ไขกะการทำงาน
+            $('body').on('click', '.edit-shift-btn', function() {
+                resetShiftForm();
+                // ดึงข้อมูลจาก data attributes
+                let id = $(this).data('id');
+                let shift = $(this).data('shift');
+                let date = $(this).data('date');
+                let name = $(this).data('name');
+                let deptID = $(this).data('deptid');
+                let deptName = $(this).data('deptname');
+                let deptCode = $(this).data('deptcode');
+                let cardNumber = $(this).data('cardnumber');
+                let personId = $(this).data('personid');
+                console.log($(this).data());
+                // กำหนดค่าให้กับฟอร์ม
+                $('#shiftId').val(id);
+                $('#shiftPersonId').val(name); // ใช้ชื่อเต็มเป็น personId
+                $('#shiftPersonNameDisplay').text(name || '-');
+                $('#shiftDeptID').val(deptID || '');
+                $('#shiftDeptIDDisplay').val(deptID || '');
+                // ตั้งค่า select แผนกให้ตรงกับข้อมูล
+                $('#shiftDeptName').val(deptName || '');
+                $('#shiftDeptCode').val(deptCode || deptID || '');
+                $('#shiftName').val(shift || '');
+                $('#shiftDate').val(date || '');
+                $('#shiftCardNo').val(cardNumber || '');
+                $('#shiftCardNoDisplay').text(cardNumber || '-');
+                $('#shiftDeptDisplay').text(deptName || '-');
+                $('#shiftPersonId').val(personId || '');
+                $('#shiftModalTitle').html('<i class="fas fa-edit me-2"></i>แก้ไขกะการทำงาน');
+                $('#shiftModal').modal('show');
+            });
+            // บันทึกข้อมูลกะ
+            $('#saveShiftBtn').on('click', function() {
+                // สร้างข้อมูลสำหรับส่งไปยัง API
+                let formData = {
+                    Id: $('#shiftId').val() ? parseInt($('#shiftId').val()) : 0,
+                    PersonId: $('#shiftPersonId').val(),
+                    name: $('#shiftPersonNameDisplay').text(),
+                    deptID: $('#shiftDeptID').val(),
+                    deptName: $('#shiftDeptName').val(),
+                    deptCode: $('#shiftDeptCode').val(),
+                    ShiftMent: $('#shiftName').val(),
+                    Date: $('#shiftDate').val()
+                };
+                // ตรวจสอบข้อมูลที่จำเป็น
+                if (!formData.PersonId || !formData.ShiftMent || !formData.Date || !formData.deptID) {
+                    showErrorToast('กรุณากรอกข้อมูลให้ครบถ้วน');
+                    return;
+                }
+                // แสดง loading
+                Swal.fire({
+                    title: 'กำลังบันทึกข้อมูล',
+                    html: '<div class="spinner-border text-primary" role="status"></div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+                $.ajax({
+                    url: '/Employee/SaveShiftHistory',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken", $(
+                            'input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            $('#shiftModal').modal('hide');
+                            showSuccessToast(response.message || 'บันทึกข้อมูลสำเร็จ');
+                            refreshOpenedChildRow();
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถบันทึกข้อมูลได้');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        console.error('Error:', error);
+                        showErrorToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error);
+                    }
+                });
+            });
+            // รีเซ็ตฟอร์ม
+            function resetShiftForm() {
+                $('#shiftId').val(0);
+                $('#shiftForm')[0].reset();
+                $('#shiftForm').removeClass('was-validated');
+                $('#shiftPersonNameDisplay').text('-');
+                $('#shiftCardNoDisplay').text('-');
+                $('#shiftDeptDisplay').text('-');
+                $('#shiftDeptIDDisplay').val('');
+                $('#shiftDeptID').val('');
+                $('#shiftDeptCode').val('');
+                $('#shiftStartTimeDisplay').text('-');
+                $('#shiftEndTimeDisplay').text('-');
+                $('#addToSQL944Btn').hide();
+            }
+            // เพิ่มข้อมูลเข้า SQL944
+            $('#addToSQL944Btn').on('click', function() {
+                let personId = $('#shiftPersonId').val();
+                let cardNumber = $('#shiftCardNo').val();
+                let fullName = $('#shiftPersonNameDisplay').text();
+                let deptID = $('#shiftDeptID').val();
+                let deptName = $('#shiftDeptName').val();
+                let shiftGroup = $('#shiftName').val();
+                let date = $('#shiftDate').val();
+                if (!cardNumber || !fullName || !shiftGroup || !date) {
+                    showErrorToast('กรุณากรอกข้อมูลให้ครบถ้วน');
+                    return;
+                }
+                // จัดรูปแบบชื่อ
+                let formattedName = formatName(fullName);
+                // แสดง loading
+                Swal.fire({
+                    title: 'กำลังเพิ่มข้อมูล',
+                    html: '<div class="spinner-border text-primary" role="status"></div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+                $.ajax({
+                    url: '/Employee/CreateCardData',
+                    type: 'POST',
+                    data: {
+                        personId: personId,
+                        cardNumber: cardNumber,
+                        personName: formattedName,
+                        deptID: deptID,
+                        deptName: deptName,
+                        shift: shiftGroup,
+                        date: date
+                    },
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken", $(
+                            'input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            showSuccessToast('เพิ่มข้อมูล SQL944 สำเร็จ');
+                            $('#addToSQL944Btn').hide();
+                            // รีโหลดข้อมูลตาราง
+                            $('#employeeTable').DataTable().ajax.reload();
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถเพิ่มข้อมูล SQL944 ได้');
+                        }
+                    },
+                    error: function() {
+                        Swal.close();
+                        showErrorToast('เกิดข้อผิดพลาดในการเพิ่มข้อมูล SQL944');
+                    }
+                });
+            });
+            // ฟังก์ชันจัดรูปแบบชื่อ
+            function formatName(fullName) {
+                // ลบคำนำหน้าชื่อ
+                let name = fullName.replace(/^(Mr\.|Mrs\.|Miss|Ms\.|Dr\.|Prof\.)\s+/i, '');
+                // แยกชื่อและนามสกุล
+                let nameParts = name.split(' ');
+                if (nameParts.length >= 2) {
+                    // เอาเฉพาะตัวอักษรแรกของนามสกุล
+                    let lastName = nameParts[nameParts.length - 1];
+                    let lastNameInitial = lastName.charAt(0);
+                    // รวมชื่อและตัวอักษรแรกของนามสกุล
+                    return nameParts[0] + ' ' + lastNameInitial + '.';
+                }
+                return name;
+            }
+            // เพิ่ม event listener สำหรับ input เลขบัตร
+            $('#shiftCardNo').on('input', function() {
+                // อนุญาตให้กรอกได้เฉพาะตัวเลข
+                this.value = this.value.replace(/[^0-9]/g, '');
+                // จำกัดความยาวไม่เกิน 10 ตัว
+                if (this.value.length > 10) {
+                    this.value = this.value.slice(0, 10);
+                }
+                // อัพเดทการแสดงผล
+                $('#shiftCardNoDisplay').text(this.value || '-');
+            });
+            $('body').on('click', '.view-employee', function() {
+                let personId = $(this).data('person-id');
+                // แสดง Loading
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล',
+                    html: '<div class="spinner-border text-primary" role="status"></div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+                // ดึงข้อมูลพนักงาน
+                $.ajax({
+                    url: '/Employee/GetEmployeeById',
+                    type: 'GET',
+                    data: {
+                        personID: personId
+                    },
+                    success: function(response) {
+                        Swal.close(); // ปิด loading
+                        if (response && response.success && response.data) {
+                            let data = response.data;
+                            let modalContent = '';
+                            // กรณีที่มีโครงสร้างข้อมูลแบบใหม่ (มี Person array)
+                            if (data.Person && Array.isArray(data.Person) && data.Person.length >
+                                0) {
+                                // แยกข้อมูลแต่ละประเภท
+                                let personData = null;
+                                let cardData = null;
+                                let fingerprintData = null;
+                                data.Person.forEach(function(item) {
+                                    if (item.personID && item.personID.endsWith('-1')) {
+                                        cardData = item;
+                                    } else if (item.personID && item.personID.endsWith(
+                                            '-2')) {
+                                        fingerprintData = item;
+                                    } else {
+                                        personData = item;
+                                    }
+                                });
+                                // ถ้าไม่มีข้อมูลหลัก ใช้ข้อมูลบัตรเป็นหลัก
+                                if (!personData && cardData) {
+                                    personData = cardData;
+                                } else if (!personData && fingerprintData) {
+                                    personData = fingerprintData;
+                                } else if (!personData && data.Person.length > 0) {
+                                    personData = data.Person[0];
+                                }
+                                if (personData) {
+                                    // สร้าง HTML แสดงข้อมูลพนักงาน
+                                    modalContent = `
+                            <div class="card border-0 rounded-3 shadow-sm mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="avatar avatar-lg bg-primary text-white rounded-circle p-3 me-3">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-1">${personData.name || '-'}</h5>
+                                            <div class="d-flex gap-2">
+                                                <span class="badge bg-primary rounded-pill"><i class="fas fa-id-card me-1"></i>${personData.personID ? personData.personID.split('-')[0] : '-'}</span>
+                                                <span class="badge bg-secondary rounded-pill"><i class="fas fa-building me-1"></i>${personData.deptName || '-'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="card bg-light rounded-3 h-100">
+                                                <div class="card-header bg-gradient-light py-2">
+                                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลทั่วไป</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">รหัสพนักงาน:</span>
+                                                            <span class="fw-medium">${personData.personID ? personData.personID.split('-')[0] : '-'}</span>
+                                                        </li>
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">เลขบัตร:</span>
+                                                            <span class="fw-medium">${personData.cardNumber || '-'}</span>
+                                                        </li>
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">กะการทำงาน:</span>
+                                                            <span class="fw-medium">${personData.shiftMent || '-'}</span>
+                                                        </li>
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">แผนก:</span>
+                                                            <span class="fw-medium">${personData.deptName || '-'} (${personData.deptID || '-'})</span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="card bg-light rounded-3 h-100">
+                                                <div class="card-header bg-gradient-light py-2">
+                                                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>ข้อมูลการทำงาน</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">วันที่เริ่มทำงาน:</span>
+                                                            <span class="fw-medium">${personData.enableDate ? new Date(personData.enableDate).toLocaleDateString('th-TH') : '-'}</span>
+                                                        </li>
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">วันที่ลาออก:</span>
+                                                            <span class="fw-medium">${personData.leaveJobDate && personData.leaveJobDate !== '1999-12-31T00:00:00' ? new Date(personData.leaveJobDate).toLocaleDateString('th-TH') : '-'}</span>
+                                                        </li>
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">สถานะ:</span>
+                                                            <span class="badge ${personData.leaveJobDate && personData.leaveJobDate !== '1999-12-31T00:00:00' ? 'bg-danger' : 'bg-success'}">${personData.leaveJobDate && personData.leaveJobDate !== '1999-12-31T00:00:00' ? 'ลาออกแล้ว' : 'กำลังทำงาน'}</span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                                    // เพิ่มข้อมูลเกี่ยวกับบัตรและลายนิ้วมือ
+                                    let hasCardOrFingerprint = cardData || fingerprintData;
+                                    if (hasCardOrFingerprint) {
+                                        modalContent += `
+                                <div class="card border-0 rounded-3 shadow-sm">
+                                    <div class="card-header bg-gradient-light py-2">
+                                        <h6 class="mb-0"><i class="fas fa-key me-2 text-primary"></i>ข้อมูลการเข้าถึง</h6>
+                                    </div>
+                                    <div class="card-body pb-0">
+                                        <div class="row g-3">`;
+                                        if (cardData) {
+                                            modalContent += `
+                                    <div class="col-md-6">
+                                        <div class="card bg-light rounded-3">
+                                            <div class="card-header py-2 bg-primary bg-opacity-10">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <h6 class="mb-0 text-primary"><i class="fas fa-id-card me-2"></i>ข้อมูลบัตร</h6>
+                                                    <span class="badge bg-primary">${cardData.personID || '-'}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">เลขบัตร:</span>
+                                                        <span class="fw-medium">${cardData.cardNumber || '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">ประเภทบัตร:</span>
+                                                        <span class="fw-medium">${cardData.cardTypeDesc || '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">สถานะการใช้งาน:</span>
+                                                        <span class="badge ${cardData.isActive === 1 ? 'bg-success' : 'bg-warning'}">${cardData.isActive === 1 ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                                        }
+                                        if (fingerprintData) {
+                                            modalContent += `
+                                    <div class="col-md-6">
+                                        <div class="card bg-light rounded-3">
+                                            <div class="card-header py-2 bg-info bg-opacity-10">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <h6 class="mb-0 text-info"><i class="fas fa-fingerprint me-2"></i>ข้อมูลลายนิ้วมือ</h6>
+                                                    <span class="badge bg-info">${fingerprintData.personID || '-'}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">รหัสลายนิ้วมือ:</span>
+                                                        <span class="fw-medium">${fingerprintData.cardNumber || '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">อัพเดทล่าสุด:</span>
+                                                        <span class="fw-medium">${fingerprintData.modifyTime ? new Date(fingerprintData.modifyTime).toLocaleString('th-TH') : '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">สถานะการใช้งาน:</span>
+                                                        <span class="badge ${fingerprintData.isActive === 1 ? 'bg-success' : 'bg-warning'}">${fingerprintData.isActive === 1 ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                                        }
+                                        modalContent += `
+                                        </div>
+                                    </div>
+                                </div>`;
+                                    }
+                                    // แสดงข้อมูลในรูปแบบ Modal ด้วย SweetAlert2
+                                    Swal.fire({
+                                        title: 'ข้อมูลพนักงาน',
+                                        html: modalContent,
+                                        width: '800px',
+                                        showCloseButton: true,
+                                        showConfirmButton: false,
+                                        customClass: {
+                                            container: 'employee-detail-modal'
+                                        }
+                                    });
+                                } else {
+                                    showErrorToast('ไม่พบข้อมูลพนักงาน');
+                                }
+                            }
+                            // กรณีโครงสร้างข้อมูลแบบเดิม
+                            else if (data) {
+                                let employee = data;
+                                // สร้าง HTML แสดงข้อมูลพนักงาน
+                                modalContent = `
+                        <div class="card border-0 rounded-3 shadow-sm mb-4">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-lg bg-primary text-white rounded-circle p-3 me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1">${employee.name || '-'}</h5>
+                                        <div class="d-flex gap-2">
+                                            <span class="badge bg-primary rounded-pill"><i class="fas fa-id-card me-1"></i>${employee.personID || '-'}</span>
+                                            <span class="badge bg-secondary rounded-pill"><i class="fas fa-building me-1"></i>${employee.deptName || employee.department || '-'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card bg-light rounded-3">
+                                            <div class="card-header bg-gradient-light py-2">
+                                                <h6 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลทั่วไป</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">รหัสพนักงาน:</span>
+                                                        <span class="fw-medium">${employee.personID || '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">เลขบัตร:</span>
+                                                        <span class="fw-medium">${employee.cardNumber || '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">กะการทำงาน:</span>
+                                                        <span class="fw-medium">${employee.shift || employee.shiftMent || '-'}</span>
+                                                    </li>
+                                                    <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                        <span class="text-muted">แผนก:</span>
+                                                        <span class="fw-medium">${employee.deptName || employee.department || '-'} (${employee.deptID || '-'})</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                                // แสดงข้อมูลในรูปแบบ Modal ด้วย SweetAlert2
+                                Swal.fire({
+                                    title: 'ข้อมูลพนักงาน',
+                                    html: modalContent,
+                                    width: '800px',
+                                    showCloseButton: true,
+                                    showConfirmButton: false,
+                                    customClass: {
+                                        container: 'employee-detail-modal'
+                                    }
+                                });
+                            } else {
+                                showErrorToast('ไม่พบข้อมูลพนักงาน');
+                            }
+                        } else {
+                            showErrorToast(response.message || 'ไม่พบข้อมูลพนักงาน');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close(); // ปิด loading
+                        showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error);
+                    }
+                });
+            });
+            $('#cardNo').on('input', function() {
+                var cardNo = $(this).val();
+                $('#personIDc').val(cardNo + '-1');
+                $('#personIDfp').val(cardNo + '-2');
+            });
+            // ฟังก์ชันบันทึกค่าตัวกรองลง localStorage
+            function saveFiltersToLocalStorage() {
+                const filters = {
+                    status: $('#filter-storage').data('status') || 'active',
+                    door: $('#filter-storage').data('door') || '',
+                    department: $('#filter-storage').data('department') || '',
+                    shift: $('#filter-storage').data('shift') || '',
+                    fingerprint: $('#filter-storage').data('fingerprint') || ''
+                };
+                localStorage.setItem('employeeFilters', JSON.stringify(filters));
+            }
+            // ฟังก์ชันโหลดค่าตัวกรองจาก localStorage
+            function loadFiltersFromLocalStorage() {
+                const storedFilters = localStorage.getItem('employeeFilters');
+                return storedFilters ? JSON.parse(storedFilters) : {
+                    status: 'active',
+                    door: '',
+                    department: '',
+                    shift: '',
+                    fingerprint: ''
+                };
+            }
+            // อัพเดท UI แสดงตัวกรองที่ใช้อยู่
+            function updateFilterBadges() {
+                const filters = {
+                    status: $('#filter-storage').data('status') || 'active',
+                    door: $('#filter-storage').data('door') || '',
+                    department: $('#filter-storage').data('department') || '',
+                    shift: $('#filter-storage').data('shift') || '',
+                    fingerprint: $('#filter-storage').data('fingerprint') || ''
+                };
+                $('#current-filters').empty();
+                let hasFilter = false;
+                if (filters.department) {
+                    hasFilter = true;
+                    let deptName = $('.filter-department option[value="' + filters.department + '"]').text() || filters
+                        .department;
+                    $('#current-filters').append(`<span class="badge bg-info rounded-pill">
+                        <i class="fas fa-building me-1"></i>แผนก: ${deptName}
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="department"></button>
+                    </span>`);
+                }
+                if (filters.shift) {
+                    hasFilter = true;
+                    let shiftName = $('.filter-shift option[value="' + filters.shift + '"]').text() || filters.shift;
+                    $('#current-filters').append(`<span class="badge bg-info rounded-pill">
+                        <i class="fas fa-clock me-1"></i>กะ: ${shiftName}
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="shift"></button>
+                    </span>`);
+                }
+                if (filters.door) {
+                    hasFilter = true;
+                    let doorName = $('.filter-door option[value="' + filters.door + '"]').text() || filters.door;
+                    $('#current-filters').append(`<span class="badge bg-info rounded-pill">
+                        <i class="fas fa-door-open me-1"></i>ประตู: ${doorName}
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="door"></button>
+                    </span>`);
+                }
+                if (filters.fingerprint) {
+                    hasFilter = true;
+                    let fingerprintLabel = filters.fingerprint === 'has' ? 'มีลายนิ้วมือ' : 'ไม่มีลายนิ้วมือ';
+                    $('#current-filters').append(`<span class="badge bg-info rounded-pill">
+                        <i class="fas fa-fingerprint me-1"></i>ลายนิ้วมือ: ${fingerprintLabel}
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="fingerprint"></button>
+                    </span>`);
+                }
+                if (filters.status && filters.status !== 'active') {
+                    hasFilter = true;
+                    let statusLabel = filters.status === 'resigned' ? 'ลาออกแล้ว' : filters.status;
+                    $('#current-filters').append(`<span class="badge bg-danger rounded-pill">
+                        <i class="fas fa-toggle-on me-1"></i>สถานะ: ${statusLabel}
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="status"></button>
+                    </span>`);
+                }
+                if (hasFilter) {
+                    $('#current-filters').append(`<span class="badge bg-warning rounded-pill clear-all-filters" style="cursor: pointer;">
+                        <i class="fas fa-times-circle me-1"></i>ล้างตัวกรองทั้งหมด
+                    </span>`);
+                } else {
+                    $('#current-filters').append(`<span class="badge bg-secondary rounded-pill">
+                        <i class="fas fa-info-circle me-1"></i>ไม่มีตัวกรอง
+                    </span>`);
+                }
+                // เพิ่ม event listener สำหรับปุ่มลบตัวกรอง
+                $('.btn-close[data-filter]').on('click', function() {
+                    const filterType = $(this).data('filter');
+                    $('#filter-storage').data(filterType, '');
+                    // ถ้าเป็นสถานะ ให้กลับไปเป็น active
+                    if (filterType === 'status') {
+                        $('#filter-storage').data('status', 'active');
+                    }
+                    saveFiltersToLocalStorage();
+                    $('#employeeTable').DataTable().ajax.reload();
+                    updateFilterBadges();
+                });
+                // ล้างตัวกรองทั้งหมด
+                $('.clear-all-filters').on('click', function() {
+                    $('#filter-storage').data('department', '');
+                    $('#filter-storage').data('shift', '');
+                    $('#filter-storage').data('door', '');
+                    $('#filter-storage').data('status', 'active');
+                    $('#filter-storage').data('fingerprint', '');
+                    saveFiltersToLocalStorage();
+                    $('#employeeTable').DataTable().ajax.reload();
+                    updateFilterBadges();
+                });
+            }
+        </script>
+        }
+
+        <!-- Shift Modal -->
+        <div class="modal fade" id="shiftModal" tabindex="-1" aria-labelledby="shiftModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-gradient-primary text-white">
+                        <h5 class="modal-title" id="shiftModalTitle">
+                            <i class="fas fa-clock me-2"></i>เพิ่มกะการทำงาน
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="shiftForm">
+                            <input type="hidden" id="shiftId" name="Id" value="0">
+                            <input type="hidden" id="shiftPersonId" name="PersonId">
+                            <!-- ข้อมูลพนักงาน -->
+                            <div class="card bg-light rounded-3 mb-4 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3 text-center"
+                                            style="width: 60px; height: 60px;">
+                                            <i class="fas fa-user fs-4 text-primary"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 fw-bold" id="shiftPersonNameDisplay">-</h6>
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text bg-primary text-white">
+                                                        <i class="fas fa-id-card"></i>
+                                                    </span>
+                                                    <input type="text" class="form-control" id="shiftCardNo"
+                                                        name="CardNo" placeholder="กรอกเลขบัตร" maxlength="10"
+                                                        pattern="\d{1,10}" title="กรุณากรอกตัวเลขไม่เกิน 10 ตัว">
+                                                </div>
+                                                <span class="badge bg-secondary rounded-pill"
+                                                    id="shiftDeptDisplay">-</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-success rounded-pill shadow-sm"
+                                                id="addToSQL944Btn" style="display: none;">
+                                                <i class="fas fa-database me-1"></i>เพิ่มข้อมูล
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="shiftDeptName" name="deptName" required>
+                                            <option value="">เลือกแผนก</option>
+                                            @foreach (var dept in ViewBag.Dept)
+                                            {
+                                            <option value="@dept.name" data-deptid="@dept.deptID">@dept.name</option>
+                                            }
+                                        </select>
+                                        <label for="shiftDeptName">แผนก</label>
+                                        <div class="invalid-feedback">กรุณาเลือกแผนก</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control bg-light" id="shiftDeptIDDisplay"
+                                            disabled>
+                                        <label for="shiftDeptIDDisplay">รหัสแผนก</label>
+                                        <input type="hidden" id="shiftDeptID" name="deptID">
+                                        <input type="hidden" id="shiftDeptCode" name="deptCode">
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="shiftName" name="ShiftMent" required>
+                                            <option value="">เลือกกะ</option>
+                                            @foreach (var shift in ViewBag.Shiftdept)
+                                            {
+                                            <option value="@shift.shift_group" data-start="@shift.start_time"
+                                                data-end="@shift.end_time">
+                                                @shift.shift_name (@shift.shift_group) - @shift.start_time -
+                                                @shift.end_time
+                                            </option>
+                                            }
+                                        </select>
+                                        <label for="shiftName">กะการทำงาน</label>
+                                        <div class="invalid-feedback">กรุณาเลือกกะการทำงาน</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="row g-2 mb-0 mt-1" id="shiftTimeInfoContainer">
+                                        <div class="col-md-6">
+                                            <div
+                                                class="card border-0 rounded-3 h-100 bg-success bg-opacity-10 shadow-sm">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <label class="form-label small mb-0">
+                                                            <i
+                                                                class="fas fa-sign-in-alt me-1 text-success"></i>เวลาเข้างาน
+                                                        </label>
+                                                        <h5 class="mb-0 text-success badge bg-white"
+                                                            id="shiftStartTimeDisplay">-</h5>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div
+                                                class="card border-0 rounded-3 h-100 bg-danger bg-opacity-10 shadow-sm">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <label class="form-label small mb-0">
+                                                            <i
+                                                                class="fas fa-sign-out-alt me-1 text-danger"></i>เวลาออกงาน
+                                                        </label>
+                                                        <h5 class="mb-0 text-danger badge bg-white"
+                                                            id="shiftEndTimeDisplay">-</h5>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="shiftDate" name="Date" required
+                                            value="@DateTime.Now.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")">
+                                        <label for="shiftDate">วันที่</label>
+                                        <div class="invalid-feedback">กรุณาระบุวันที่</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>ยกเลิก
+                        </button>
+                        <button type="button" class="btn btn-primary rounded-pill" id="saveShiftBtn">
+                            <i class="fas fa-save me-1"></i>บันทึก
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SQL944 Modal -->
+        <div class="modal fade" id="sql944Modal" tabindex="-1" aria-labelledby="sql944ModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="sql944ModalLabel">
+                            <i class="fas fa-database me-2"></i>เพิ่มข้อมูล SQL944
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="sql944Form">
+                            <input type="hidden" id="sql944PersonId" name="PersonId">
+                            <!-- ข้อมูลพนักงาน -->
+                            <div class="card border-0 shadow-sm mb-3 bg-light">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                                            <i class="fas fa-user fs-4 text-success"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1" id="sql944PersonNameDisplay">-</h6>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="input-group input-group-sm" style="max-width: 200px;">
+                                                    <span class="input-group-text bg-success text-white">
+                                                        <i class="fas fa-id-card"></i>
+                                                    </span>
+                                                    <input type="text" class="form-control" id="sql944CardNo"
+                                                        name="CardNo" placeholder="กรอกเลขบัตร" maxlength="10"
+                                                        pattern="\d{1,10}" title="กรุณากรอกตัวเลขไม่เกิน 10 ตัว">
+                                                </div>
+                                                <small class="text-muted" id="sql944DeptDisplay">-</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="sql944DeptName" class="form-label">แผนก</label>
+                                    <select class="form-control" id="sql944DeptName" name="deptName" required>
+                                        <option value="">เลือกแผนก</option>
+                                        @foreach (var dept in ViewBag.Dept)
+                                        {
+                                        <option value="@dept.name" data-deptid="@dept.deptID">@dept.name</option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback">กรุณาเลือกแผนก</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="sql944DeptIDDisplay" class="form-label">รหัสแผนก</label>
+                                    <input type="text" class="form-control" id="sql944DeptIDDisplay" disabled>
+                                    <input type="hidden" id="sql944DeptID" name="deptID">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>ยกเลิก
+                        </button>
+                        <button type="button" class="btn btn-success" id="saveSQL944Btn">
+                            <i class="fas fa-save me-1"></i>บันทึก
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            /* Custom Styles */
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%) !important;
+            }
+
+            .bg-gradient-light {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+            }
+
+            .display-icon {
+                width: 70px;
+                height: 70px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-hover-translate {
+                transition: all 0.2s ease;
+            }
+
+            .btn-hover-translate:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .card {
+                transition: all 0.3s ease;
+                border: none;
+            }
+
+            .shadow-hover:hover {
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+            }
+
+            .fade-in {
+                animation: fadeIn 0.5s ease-in-out;
+            }
+
+            @@keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .form-floating>label {
+                padding-left: 1rem;
+            }
+
+            .form-floating>.form-control:focus~label,
+            .form-floating>.form-control:not(:placeholder-shown)~label {
+                padding-left: 0.75rem;
+            }
+
+            .table-modern {
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+
+            .table-modern thead th {
+                background-color: #f8f9fa;
+                border-top: none;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.75rem;
+                letter-spacing: 0.5px;
+            }
+
+            .avatar-circle {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-weight: bold;
+            }
+
+            .bg-soft-primary {
+                background-color: rgba(13, 110, 253, 0.15);
+                color: #0d6efd;
+            }
+
+            /* Timeline styles */
+            .timeline-shift {
+                position: relative;
+                padding: 10px 0;
+            }
+
+            .timeline-shift:before {
+                content: '';
+                position: absolute;
+                left: 10px;
+                top: 0;
+                height: 100%;
+                width: 2px;
+                background: #e9ecef;
+            }
+
+            .timeline-item {
+                position: relative;
+                padding-left: 35px;
+                margin-bottom: 15px;
+            }
+
+            .timeline-item:before {
+                content: '';
+                position: absolute;
+                left: 5px;
+                top: 12px;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #007bff;
+                border: 2px solid #fff;
+                box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+                z-index: 1;
+            }
+
+            .timeline-item.current:before {
+                background: #28a745;
+                width: 14px;
+                height: 14px;
+            }
+
+            .shift-card {
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                background: #fff;
+                transition: all 0.2s ease;
+                border-left: 3px solid #e9ecef;
+                overflow: hidden;
+            }
+
+            .shift-card:hover {
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+                transform: translateY(-2px);
+            }
+
+            .shift-card.current {
+                border-left: 3px solid #28a745;
+                background-color: rgba(40, 167, 69, 0.05);
+            }
+
+            .shift-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                font-size: 0.92rem;
+                background-color: rgba(0, 0, 0, 0.02);
+            }
+
+            .shift-header .shift-date {
+                font-weight: 500;
+            }
+
+            .shift-body {
+                padding: 10px 12px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .shift-info {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .shift-badge {
+                margin-right: 5px;
+                padding: 5px 10px;
+                font-weight: normal;
+            }
+
+            .shift-actions {
+                display: flex;
+                gap: 5px;
+            }
+
+            /* ปุ่มต่างๆ */
+            .btn-shift-action {
+                padding: 3px 10px;
+                font-size: 0.8rem;
+                border-radius: 4px;
+            }
+
+            /* Filter styles */
+            .filter-swal .swal2-html-container {
+                margin: 0;
+            }
+
+            /* Tooltip styles */
+            .tooltip {
+                font-size: 0.8rem;
+            }
+
+            /* Switches */
+            .form-switch .form-check-input {
+                width: 2.5em;
+                height: 1.25em;
+            }
+
+            .form-check-input:checked {
+                background-color: #198754;
+                border-color: #198754;
+            }
+
+            /* อนิเมชั่นสำหรับโหลดข้อมูล */
+            .spinning {
+                animation: spin 1s linear infinite;
+            }
+
+            @@keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            /* Badge styles */
+            .badge-sm {
+                font-size: 0.7em;
+                padding: 0.25em 0.5em;
+            }
+
+            /* Avatar styles */
+            .avatar-lg {
+                width: 60px;
+                height: 60px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* สไตล์เพิ่มเติมสำหรับหน้าแสดงรายละเอียดพนักงาน */
+            .employee-detail-modal .swal2-html-container {
+                margin: 0;
+                padding: 5px;
+                overflow-x: hidden;
+            }
+
+            .employee-detail-modal .list-group-item {
+                padding: 0.5rem 0;
+                border-color: rgba(0, 0, 0, 0.05);
+            }
+
+            .employee-detail-modal .card-header {
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
+            .employee-detail-modal h6 {
+                font-size: 0.9rem;
+                font-weight: 600;
+            }
+
+            .employee-detail-modal .text-muted {
+                font-size: 0.85rem;
+            }
+
+            .employee-detail-modal .fw-medium {
+                font-weight: 500;
+            }
+
+            .employee-detail-modal .badge {
+                font-weight: normal;
+                padding: 0.4em 0.6em;
+            }
+
+            /* Filter styles */
+            .filter-swal .swal2-html-container {
+                margin: 0;
+            }
+
+            #filter-row {
+                background-color: rgba(248, 249, 250, 0.6) !important;
+            }
+
+            #filter-row .card {
+                margin: 0;
+                animation: fadeIn 0.3s ease-in-out;
+            }
+
+            #filter-row td {
+                padding: 0.5rem 1rem;
+            }
+
+            .fade-in {
+                animation: fadeIn 0.3s ease-in-out;
+            }
+
+            @@keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Tooltip styles */
+        </style>

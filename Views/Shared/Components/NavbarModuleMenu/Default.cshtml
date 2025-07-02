@@ -1,0 +1,44 @@
+@model IEnumerable<dynamic>
+
+@{
+    // กรองโมดูลที่ซ้ำกันออก โดยใช้ Name และ Url เป็นตัวกำหนด
+    var distinctModules = Model.GroupBy(m => new { Name = (string)m.Name, Url = (string)m.Url })
+                               .Select(g => g.First())
+                               .ToList();
+}
+
+@foreach (var module in distinctModules)
+{
+    @if (module.Children != null && module.Children.Count > 0)
+    {
+        // กรองเมนูย่อยที่ซ้ำกันด้วย
+        var distinctChildren = ((IEnumerable<dynamic>)module.Children)
+                             .GroupBy(c => new { Name = (string)c.Name, Url = (string)c.Url })
+                             .Select(g => g.First())
+                             .ToList();
+        
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="@module.Icon"></i> @module.Name
+            </a>
+            <ul class="dropdown-menu">
+                @foreach (var child in distinctChildren)
+                {
+                    <li>
+                        <a class="dropdown-item" href="@child.Url">
+                            <i class="@child.Icon"></i> @child.Name 
+                        </a>
+                    </li>
+                }
+            </ul>
+        </li> 
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link" href="@module.Url">
+                <i class="@module.Icon"></i> @module.Name 
+            </a>
+        </li>
+    }
+} 

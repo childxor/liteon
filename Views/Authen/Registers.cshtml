@@ -1,0 +1,118 @@
+@model IPS_TH.Models.sys_user
+@{
+ViewData["Title"] = "Register";
+}
+
+<div class="register-container">
+    <h2 class="text-center">สมัครสมาชิก</h2>
+    <form id="registerForm" asp-action="Register" asp-controller="Authen" method="post">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label asp-for="Username" class="form-label">ชื่อผู้ใช้</label>
+                <input type="text" asp-for="Username" required class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Password" class="form-label">รหัสผ่าน</label>
+                <input type="password" asp-for="Password" required class="form-control" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label">อีเมล</label>
+                <input type="email" asp-for="Email" required class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="PhoneNumber" class="form-label">เบอร์โทรศัพท์</label>
+                <input type="text" asp-for="PhoneNumber" required class="form-control" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label asp-for="FirstName" class="form-label">ชื่อ</label>
+                <input type="text" asp-for="FirstName" required class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="LastName" class="form-label">นามสกุล</label>
+                <input type="text" asp-for="LastName" required class="form-control" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">สมัครสมาชิก</button>
+    </form>
+    <div id="registerError" style="color: red; display: none;"></div>
+</div>
+
+<style>
+    .register-container {
+        max-width: 600px;
+        margin: auto;
+        padding: 30px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        background-color: #f9f9f9;
+    }
+
+    h2 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .form-label {
+        font-weight: bold;
+        color: #333;
+        /* ปรับสีให้ชัดเจน */
+    }
+
+    #registerError {
+        margin-top: 10px;
+        text-align: center;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+<script>
+    document.getElementById('registerForm').onsubmit = function(event) {
+        event.preventDefault(); // ป้องกันการส่งฟอร์มแบบปกติ
+        var formData = new FormData(this);
+        fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    swal.fire({
+                        title: 'สำเร็จ!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000,
+                    }).then(() => {
+                        window.location.href = data.redirectUrl; // เปลี่ยนเส้นทางหลังจากคลิกตกลง
+                    });
+                } else {
+                    swal.fire({
+                        title: 'ผิดพลาด!',
+                        text: data.error,
+                        icon: 'error',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swal.fire({
+                    title: 'ผิดพลาด!',
+                    text: 'เกิดข้อผิดพลาดในการส่งข้อมูล',
+                    icon: 'error',
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+    };
+</script>

@@ -1,0 +1,185 @@
+@model IEnumerable<emp_wrkplan>
+@using IPS_TH.Models.Employee
+@using Newtonsoft.Json;
+
+@{
+    ViewData["Title"] = "จัดการตารางการทำงาน";
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row my-4">
+        <div class="col">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h2 class="text-primary mb-0">
+                    <i class="fas fa-calendar me-2"></i>จัดการตารางการทำงาน
+                </h2>
+                @if (canAdd)
+                {
+                    <button class="btn btn-primary d-flex align-items-center shadow-sm" onclick="openAddModal()">
+                        <i class="fas fa-plus me-2"></i>เพิ่มตารางการทำงาน
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">รายการตารางการทำงาน</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive rounded">
+                        <table class="table table-striped table-hover" id="workplanTable" style="width: 100%;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-hashtag"></i> รหัสแผนงาน</th>
+                                    <th><i class="fas fa-calendar"></i> วันที่</th>
+                                    <th><i class="fas fa-calendar-day"></i> ประเภทวัน</th>
+                                    <th><i class="fas fa-clock"></i> กะการทำงาน</th>
+                                    <th><i class="fas fa-sync"></i> วันในรอบ</th>
+                                    <th><i class="fas fa-cogs"></i> จัดการ</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var table;
+
+        $(document).ready(function() {
+            table = $('#workplanTable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetWorkplans", "Attendance")",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { 
+                        "data": "workplan_id",
+                        "title": "<i class='fas fa-hashtag'></i> รหัสแผนงาน",
+                        "width": "15%"
+                    },
+                    { 
+                        "data": "work_date",
+                        "title": "<i class='fas fa-calendar'></i> วันที่",
+                        "width": "20%",
+                        "render": function(data) {
+                            return moment(data).format('DD/MM/YYYY');
+                        }
+                    },
+                    { 
+                        "data": "day_type",
+                        "title": "<i class='fas fa-calendar-day'></i> ประเภทวัน",
+                        "width": "15%",
+                        "render": function(data) {
+                            switch(data) {
+                                case 'W': return 'วันทำงาน';
+                                case 'H': return 'วันหยุด';
+                                case 'L': return 'วันลา';
+                                default: return '-';
+                            }
+                        }
+                    },
+                    { 
+                        "data": "shift_code",
+                        "title": "<i class='fas fa-clock'></i> กะการทำงาน",
+                        "width": "20%"
+                    },
+                    { 
+                        "data": "cycle_day",
+                        "title": "<i class='fas fa-sync'></i> วันในรอบ",
+                        "width": "15%",
+                        "className": "text-center"
+                    },
+                    {
+                        "data": null,
+                        "title": "<i class='fas fa-cogs'></i> จัดการ",
+                        "width": "15%",
+                        "orderable": false,
+                        "className": "text-center",
+                        "render": function(data, type, row) {
+                            var buttons = '<div class="btn-group" role="group">';
+                            @if (canEdit)
+                            {
+                                <text>
+                                buttons += `<button class="btn btn-warning btn-sm" onclick="openEditModal(${row.id})" data-bs-toggle="tooltip" title="แก้ไข">
+                                    <i class="fas fa-edit"></i>
+                                </button>`;
+                                </text>
+                            }
+                            @if (canDelete)
+                            {
+                                <text>
+                                buttons += `<button class="btn btn-danger btn-sm" onclick="deleteWorkplan(${row.id})" data-bs-toggle="tooltip" title="ลบ">
+                                    <i class="fas fa-trash"></i>
+                                </button>`;
+                                </text>
+                            }
+                            buttons += '</div>';
+                            return buttons;
+                        }
+                    }
+                ],
+                "order": [[1, "desc"]],
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Thai.json"
+                }
+            });
+        });
+
+        function deleteWorkplan(id) {
+            Swal.fire({
+                title: 'ยืนยันการลบ?', 
+                text: "คุณต้องการลบตารางการทำงานนี้ใช่หรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ลบ',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteWorkplan", "Attendance")/' + id,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'ลบสำเร็จ',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    $('#workplanTable').DataTable().ajax.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'เกิดข้อผิดพลาด',
+                                    text: response.message
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

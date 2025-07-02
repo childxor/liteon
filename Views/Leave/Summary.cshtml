@@ -1,0 +1,1442 @@
+@using IPS_TH.Controllers.Leave
+@model LeaveController
+
+@{
+    ViewData["Title"] = "สรุปการลา";
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+    bool canReport = permissions?["CanReport"] ?? false;
+    bool canApprove = permissions?["CanApprove"] ?? false;
+}
+
+<!-- ย้าย template มาไว้ก่อน container-fluid -->
+<script type="text/template" id="leaveBalanceTemplate">
+    <div class="col-12 col-sm-6 col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 rounded-4 shadow-sm hover-lift h-100">
+            <div class="card-body p-2">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="rounded-4 bg-{color} bg-opacity-10 p-2">
+                        <i class="fas {icon} text-{color} fa-lg"></i>
+                    </div>
+                    <div class="ms-2">
+                        <h6 class="mb-0 text-muted small">{leaveType}</h6>
+                        <span class="badge bg-{color} bg-opacity-10 text-{color} rounded-pill small">
+                            {attenCode}
+                        </span>
+                    </div>
+                </div>
+                <div class="leave-stats">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small">รวมสิทธิ์</span>
+                        <span class="fw-bold text-primary small">{totalEntitled} วัน</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small">ใช้ไปแล้ว</span>
+                        <span class="fw-bold text-danger small">{thisYearTaken} วัน</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small fw-bold">คงเหลือ</span>
+                        <span class="fw-bold text-success small">{remainingDays} วัน</span>
+                    </div>
+                    <div class="progress mt-1" style="height: 3px;">
+                        <div class="progress-bar bg-{color}" role="progressbar" 
+                             style="width: {progressPercent}%" 
+                             aria-valuenow="{progressPercent}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<div class="container-fluid px-4 mt-5">
+    <!-- Modern Header with Glassmorphism Effect -->
+    <div class="bg-white bg-opacity-75 backdrop-blur rounded-4 p-4 mb-4 shadow-lg border border-light">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                    <i class="fas fa-calendar-alt text-primary fa-2x"></i>
+                </div>
+                <div>
+                    <h2 class="display-6 mb-0 fw-bold text-primary">สรุปการลา</h2>
+                    <p class="text-muted mb-0">จัดการข้อมูลการลาของพนักงาน</p>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                @if (canAdd)
+                {
+                    <button class="btn btn-primary btn-lg rounded-pill shadow-sm hover-lift add-leave-btn">
+                        <i class="fas fa-plus-circle me-2"></i>เพิ่มการลา
+                    </button>
+                }
+                @if (canApprove)
+                {
+                    <select class="form-select" id="filterSelect" style="width: 250px;">
+                        <option value="">เลือกพนักงาน</option>
+                        @foreach (var employee in ViewBag.Employees)
+                        {
+                            <option value="@employee.EmpNo">@employee.name</option>
+                        }
+                    </select>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 rounded-4 shadow-sm hover-lift">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-4 bg-primary bg-opacity-10 p-3">
+                            <i class="fas fa-calendar-check text-primary fa-2x"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-muted">การลาทั้งหมด</h6>
+                            <h3 class="mb-0 fw-bold" id="totalLeaves">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 rounded-4 shadow-sm hover-lift">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-4 bg-success bg-opacity-10 p-3">
+                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-muted">อนุมัติแล้ว</h6>
+                            <h3 class="mb-0 fw-bold" id="approvedLeaves">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 rounded-4 shadow-sm hover-lift">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-4 bg-warning bg-opacity-10 p-3">
+                            <i class="fas fa-clock text-warning fa-2x"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-muted">รออนุมัติ</h6>
+                            <h3 class="mb-0 fw-bold" id="pendingLeaves">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Balance Cards -->
+        <div class="col-12">
+            <div class="card border-0 rounded-4 shadow-sm">
+                <div class="card-header bg-light border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-primary">
+                            <i class="fas fa-calculator me-2"></i>
+                            ยอดวันลาคงเหลือ
+                        </h5>
+                        <button class="btn btn-link text-primary p-0 toggle-leave-balance">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" id="leaveBalanceWrapper">
+                    <div class="row g-4" id="leaveBalanceContainer">
+                        <!-- ข้อมูลจะถูกเพิ่มที่นี่โดย JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Table Section -->
+    <div class="card border-0 rounded-4 shadow mb-4">
+        <div class="card-header bg-white border-0 py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 text-primary">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    สถิติการลา
+                </h6>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <!-- กราฟแสดงจำนวนการลาต่อเดือน -->
+                <div class="col-xl-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-3">
+                            <h6 class="card-title text-primary mb-2 small">
+                                <i class="fas fa-chart-line me-1"></i>
+                                จำนวนการลาต่อเดือน
+                            </h6>
+                            <div style="height: 180px; position: relative;">
+                                <canvas id="leaveByMonthChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- กราฟแสดงประเภทการลาที่ใช้บ่อย -->
+                <div class="col-xl-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-3">
+                            <h6 class="card-title text-primary mb-2 small">
+                                <i class="fas fa-chart-pie me-1"></i>
+                                ประเภทการลาที่ใช้บ่อย
+                            </h6>
+                            <div style="height: 180px; position: relative;">
+                                <canvas id="leaveTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- กราฟแสดงสถานะการลา -->
+                <div class="col-xl-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-3">
+                            <h6 class="card-title text-primary mb-2 small">
+                                <i class="fas fa-chart-doughnut me-1"></i>
+                                สถานะการลา
+                            </h6>
+                            <div style="height: 180px; position: relative;">
+                                <canvas id="leaveStatusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- กราฟแสดงจำนวนวันลาต่อเดือน -->
+                <div class="col-xl-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-3">
+                            <h6 class="card-title text-primary mb-2 small">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                จำนวนวันลาต่อเดือน
+                            </h6>
+                            <div style="height: 180px; position: relative;">
+                                <canvas id="leaveDaysByMonthChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Table Section -->
+    <div class="card border-0 rounded-4 shadow-sm">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 text-primary fw-medium">
+                    <i class="fas fa-list-ul me-2"></i>
+                    รายการการลาทั้งหมด
+                </h6>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" disabled>
+                        <i class="fas fa-file-excel me-1"></i>
+                        ส่งออก Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <i class="fas fa-print me-1"></i>
+                        พิมพ์
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="leaveTable"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- เพิ่มส่วนนี้สำหรับแสดงชื่อพนักงานที่กำลังดูข้อมูล -->
+    <div id="currentViewEmployee" class="mb-3"></div>
+</div>
+
+@section Scripts {
+    <!-- เพิ่ม Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        $(document).ready(function () {
+            const leaveTypes = {
+                'AAL': { 
+                    name: 'ลาพักร้อนล่วงหน้า', 
+                    color: 'primary',
+                    icon: 'fa-umbrella-beach'
+                },
+                'ACL': { 
+                    name: 'ลาเนื่องจากอุบัติเหตุ', 
+                    color: 'danger',
+                    icon: 'fa-first-aid'
+                },
+                'AL': { 
+                    name: 'ลาพักร้อนประจำปี', 
+                    color: 'primary',
+                    icon: 'fa-umbrella-beach'
+                },
+                'ATR': { 
+                    name: 'อบรมภายนอก', 
+                    color: 'info',
+                    icon: 'fa-chalkboard-teacher'
+                },
+                'ATW': { 
+                    name: 'ทำงานนอกสถานที่', 
+                    color: 'info',
+                    icon: 'fa-building'
+                },
+                'BL': { 
+                    name: 'ลาเนื่องจากการเสียชีวิตของญาติ', 
+                    color: 'secondary',
+                    icon: 'fa-praying-hands'
+                },
+                'CPS': { 
+                    name: 'แลกวันลา', 
+                    color: 'info',
+                    icon: 'fa-exchange-alt'
+                },
+                'ML': { 
+                    name: 'ลารับราชการทหาร', 
+                    color: 'dark',
+                    icon: 'fa-shield-alt'
+                },
+                'MO': { 
+                    name: 'ลาอุปสมบท (มีเงินเดือน)', 
+                    color: 'warning',
+                    icon: 'fa-pray'
+                },
+                'MO1': { 
+                    name: 'ลาอุปสมบท (ไม่มีเงินเดือน)', 
+                    color: 'warning',
+                    icon: 'fa-pray'
+                },
+                'MT': { 
+                    name: 'ลาคลอดบุตร (มีเงินเดือน)', 
+                    color: 'success',
+                    icon: 'fa-baby'
+                },
+                'MT0': { 
+                    name: 'ลาคลอดบุตร (ไม่มีเงินเดือน)', 
+                    color: 'success',
+                    icon: 'fa-baby'
+                },
+                'MT1': { 
+                    name: 'ลาคลอดบุตร (ไม่มีเงินเดือน)', 
+                    color: 'success',
+                    icon: 'fa-baby'
+                },
+                'PL': { 
+                    name: 'ลากิจ', 
+                    color: 'success',
+                    icon: 'fa-user-clock'
+                },
+                'PT': { 
+                    name: 'ลาเพื่อการดูแลบุตร', 
+                    color: 'success',
+                    icon: 'fa-baby-carriage'
+                },
+                'SD': { 
+                    name: 'ลาปิดโรงงาน (มีเงินเดือน)', 
+                    color: 'warning',
+                    icon: 'fa-industry'
+                },
+                'SD1': { 
+                    name: 'ลาปิดโรงงาน (ครึ่งวัน)', 
+                    color: 'warning',
+                    icon: 'fa-industry'
+                },
+                'SL': { 
+                    name: 'ลาป่วย (มีเงินเดือน)', 
+                    color: 'warning',
+                    icon: 'fa-thermometer-half'
+                },
+                'SL1': { 
+                    name: 'ลาป่วย (ไม่มีเงินเดือน)', 
+                    color: 'warning',
+                    icon: 'fa-thermometer-half'
+                },
+                'SP': { 
+                    name: 'พักงาน', 
+                    color: 'danger',
+                    icon: 'fa-user-slash'
+                },
+                'ST': { 
+                    name: 'ลาทำหมัน', 
+                    color: 'info',
+                    icon: 'fa-user-md'
+                },
+                'UL': { 
+                    name: 'ลากิจพิเศษ (ไม่มีเงินเดือน)', 
+                    color: 'secondary',
+                    icon: 'fa-user-clock'
+                },
+                'UL2': { 
+                    name: 'ลากิจพิเศษ (ไม่มีเงินเดือน)', 
+                    color: 'secondary',
+                    icon: 'fa-user-clock'
+                },
+                'VOT': { 
+                    name: 'ลาไปใช้สิทธิ์เลือกตั้ง', 
+                    color: 'info',
+                    icon: 'fa-vote-yea'
+                },
+                'WL': { 
+                    name: 'ลาแต่งงาน', 
+                    color: 'success',
+                    icon: 'fa-heart'
+                },
+                'WN': { 
+                    name: 'จดหมายเตือน', 
+                    color: 'danger',
+                    icon: 'fa-exclamation-triangle'
+                }
+            };
+
+            const empName = $('#filterSelect').val();
+            const table = $('#leaveTable').DataTable({
+                processing: true,
+                serverSide: false,
+                lengthChange: false,
+                searching: false,
+                paging: true,
+                info: true,
+                ordering: false,
+                pageLength: 100,
+                language: {
+                    search: "",
+                    searchPlaceholder: "ค้นหา...",
+                    info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                    infoEmpty: "ไม่พบข้อมูล",
+                    infoFiltered: "(กรองจากทั้งหมด _MAX_ รายการ)",
+                    paginate: {
+                        first: "หน้าแรก",
+                        last: "หน้าสุดท้าย",
+                        next: "ถัดไป",
+                        previous: "ก่อนหน้า"
+                    },
+                    emptyTable: `<div class="text-center text-muted p-4">
+                        <i class="fas fa-inbox fa-3x mb-3 text-primary opacity-50"></i>
+                        <p class="h5">ไม่พบข้อมูลการลา</p>
+                        <p class="text-muted">เพิ่มข้อมูลการลาโดยคลิกที่ปุ่ม "เพิ่มการลา"</p>
+                    </div>`
+                },
+                ajax: {
+                    url: '@Url.Action("GetLeaveSummary", "Leave")',
+                    type: 'GET',
+                    data: function(d) {
+                        return {
+                            empNo: $('#filterSelect').val(),
+                            empName: empName
+                        };
+                    },
+                    dataSrc: function (response) {
+                        if (!response || !response.data) {
+                            console.warn('Invalid response format:', response);
+                            $('#totalLeaves').text('0');
+                            $('#approvedLeaves').text('0');
+                            $('#pendingLeaves').text('0');
+                            return [];
+                        }
+
+                        $('#totalLeaves').text(response.data.length);
+                        const approved = response.data.filter(item => item.ApprStatus === 'Approve').length;
+                        const pending = response.data.filter(item => item.ApprStatus !== 'Approve').length;
+                        $('#approvedLeaves').text(approved);
+                        $('#pendingLeaves').text(pending);
+
+                        if ($('#filterSelect').val()) {
+                            $('#currentViewEmployee').text(`กำลังดูข้อมูลของ: ${response.empName}`);
+                        } else {
+                            $('#currentViewEmployee').text('');
+                        }
+
+                        return response.data.map(item => ({
+                            EmpNo: item.EmpNo,
+                            EmpName: item.EmpName,
+                            Name: item.CreateBy,
+                            LeaveType: item.LeaveType,
+                            StartDate: moment(item.DteTmeIn).format('DD/MM/YYYY HH:mm'),
+                            EndDate: moment(item.DteTmeOut).format('DD/MM/YYYY HH:mm'),
+                            ApprStatus: item.ApprStatus,
+                            LeaveReqNo: item.LeaveReqNo,
+                            AttenCode: item.AttenCode,
+                            SecDsc: item.SecDsc,
+                            CreateDate: item.CreateDate
+                        }));
+                    }
+                },
+                columns: [
+                    { 
+                        data: 'EmpNo', 
+                        className: 'text-center py-2',
+                        title: '<i class="fas fa-hashtag me-1"></i>ลำดับ',
+                        render: function(data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        data: 'EmpName',
+                        className: 'py-2',
+                        title: '<i class="fas fa-user me-1"></i>ชื่อพนักงาน',
+                        render: function (data, type, row) {
+                            return `<div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-1 me-2">
+                                    <i class="fas fa-user text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-medium">${data}</div>
+                                    <div class="small text-muted">${row.EmpNo}</div>
+                                </div>
+                            </div>`;
+                        }
+                    },
+                    {
+                        data: 'AttenCode',
+                        className: 'py-2',
+                        title: '<i class="fas fa-calendar-check me-1"></i>ประเภทการลา',
+                        render: function (data, type, row) {
+                            const leaveType = leaveTypes[data] || { color: 'secondary', name: data };
+                            return `<div class="d-inline-block bg-${leaveType.color} bg-opacity-10 px-2 py-1 rounded-pill">
+                                <span class="fw-medium text-${leaveType.color}">${leaveType.name}</span>
+                                <span class="ms-1 small text-muted">(${data})</span>
+                            </div>`;
+                        }
+                    },
+                    {
+                        data: 'StartDate',
+                        className: 'py-2',
+                        title: '<i class="fas fa-clock me-1"></i>ช่วงเวลา',
+                        render: function (data, type, row) {
+                            const startDate = moment(data, 'DD/MM/YYYY HH:mm', true);
+                            const endDate = moment(row.EndDate, 'DD/MM/YYYY HH:mm', true);
+
+                            if (!startDate.isValid() || !endDate.isValid()) {
+                                return `<div class="text-nowrap">
+                                    <i class="far fa-calendar-alt text-primary me-1"></i>
+                                    <span class="text-muted">Invalid date</span>
+                                </div>`;
+                            }
+
+                            const formattedStartDate = startDate.format('DD/MM/YYYY HH:mm');
+                            const formattedEndDate = endDate.format('DD/MM/YYYY HH:mm');
+                            let durationInMinutes = endDate.diff(startDate, 'minutes');
+
+                            if (startDate.hour() < 12 && endDate.hour() >= 13) {
+                                durationInMinutes -= 60;
+                            }
+
+                            const hours = Math.floor(durationInMinutes / 60);
+                            const minutes = durationInMinutes % 60;
+                            let duration = hours > 0 ? 
+                                (minutes > 0 ? `${hours} ชม. ${minutes} นาที` : `${hours} ชม.`) : 
+                                `${minutes} นาที`;
+
+                            return `<div class="text-nowrap">
+                                <div class="d-flex align-items-center">
+                                    <i class="far fa-calendar-alt text-primary me-1"></i>
+                                    <div>
+                                        <div class="small text-muted">${formattedStartDate}</div>
+                                        <div class="small text-muted">${formattedEndDate}</div>
+                                        <div class="small text-primary">
+                                            <i class="fas fa-clock me-1"></i>${duration}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        }
+                    },
+                    {
+                        data: 'SecDsc',
+                        className: 'py-2',
+                        title: '<i class="fas fa-building me-1"></i>แผนก',
+                        render: function (data) {
+                            return `<div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-info bg-opacity-10 p-1 me-2">
+                                    <i class="fas fa-building text-info"></i>
+                                </div>
+                                <span class="small">${data}</span>
+                            </div>`;
+                        }
+                    },
+                    {
+                        data: 'CreateBy',
+                        className: 'py-2',
+                        title: '<i class="fas fa-user-edit me-1"></i>ผู้สร้างรายการ',
+                        render: function (data, type, row) {
+                            const createDate = moment(row.CreateDate).format('DD/MM/YYYY HH:mm');
+                            return `<div>
+                                <div class="small fw-medium">${data || '-'}</div>
+                                <div class="small text-muted">${createDate || '-'}</div>
+                            </div>`;
+                        }
+                    },
+                    {
+                        data: 'ApprStatus',
+                        className: 'py-2',
+                        title: '<i class="fas fa-check-circle me-1"></i>สถานะ',
+                        render: function (data, type, row) {
+                            let statusConfig = {
+                                'Approve': {
+                                    bg: 'bg-success',
+                                    icon: 'fas fa-check-circle',
+                                    text: 'text-success',
+                                    label: 'อนุมัติแล้ว'
+                                },
+                                'On Approve': {
+                                    bg: 'bg-warning',
+                                    icon: 'fas fa-clock',
+                                    text: 'text-warning',
+                                    label: 'รออนุมัติ'
+                                }
+                            };
+
+                            let config = statusConfig[data] || {
+                                bg: 'bg-secondary',
+                                icon: 'fas fa-question-circle',
+                                text: 'text-secondary',
+                                label: data
+                            };
+
+                            return `<div class="d-inline-block ${config.bg} bg-opacity-10 px-2 py-1 rounded-pill">
+                                <i class="${config.icon} ${config.text} me-1"></i>
+                                <span class="${config.text} fw-medium">${config.label}</span>
+                            </div>`;
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                drawCallback: function() {
+                    // เพิ่ม hover effect ให้กับแถว
+                    $('.table tbody tr').hover(
+                        function() { $(this).addClass('bg-light'); },
+                        function() { $(this).removeClass('bg-light'); }
+                    );
+                }
+            });
+
+            // Event handlers
+            $('#leaveTable').on('click', '.edit-leave', function () {
+                const id = $(this).data('id');
+                // โค้ดสำหรับ edit
+            });
+
+            $('#leaveTable').on('click', '.delete-leave', function () {
+                const id = $(this).data('id');
+                // โค้ดสำหรับ delete
+            });
+
+            $('.add-leave-btn').click(function () {
+                Swal.fire({
+                    title: "ยืนยันการเปิดเว็บไซต์",
+                    text: "คุณต้องการเพิ่มการลาหรือไม่?",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "ตกลง",
+                    cancelButtonText: "ยกเลิก",
+                    dangerMode: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.open('http://icm942/bpm', '_blank');
+                    }
+                });
+            });
+
+            // Load leave balance
+            loadLeaveBalance();
+
+            $('#filterSelect').on('change', function() {
+                console.log('Filter changed:', $(this).val()); // เพิ่ม log
+                table.ajax.reload();
+                loadLeaveBalance();
+            });
+
+            function loadLeaveBalance() {
+                const empNo = $('#filterSelect').val();
+                const template = $('#leaveBalanceTemplate').html();
+                const container = $('#leaveBalanceContainer');
+                container.empty();
+
+                $.get('@Url.Action("GetLeaveBalance", "Leave")', { empNo: empNo })
+                    .done(function (response) {
+                        if (response && response.data && Array.isArray(response.data)) {
+                            response.data.forEach(item => {
+                                if (item && item.AttenCode && leaveTypes[item.AttenCode]) {
+                                    const leaveType = leaveTypes[item.AttenCode];
+                                    const totalEntitled = item.TotalEntitled || 0;
+                                    const remainingDays = item.RemainingDays || 0;
+                                    const progressPercent = totalEntitled > 0 ? 
+                                        Math.min((remainingDays / totalEntitled) * 100, 100) : 0;
+                                    
+                                    let html = template
+                                        .replace(/{color}/g, leaveType.color)
+                                        .replace(/{icon}/g, leaveType.icon)
+                                        .replace(/{leaveType}/g, leaveType.name)
+                                        .replace(/{attenCode}/g, item.AttenCode)
+                                        .replace(/{carryFrLastYear}/g, item.CarryFrLastYear)
+                                        .replace(/{availLastYear}/g, item.AvailLastYear)
+                                        .replace(/{thisYearCurrentQty}/g, item.ThisYearCurrentQty)
+                                        .replace(/{totalEntitled}/g, item.TotalEntitled)
+                                        .replace(/{thisYearTaken}/g, item.ThisYearTaken)
+                                        .replace(/{remainingDays}/g, item.RemainingDays)
+                                        .replace(/{progressPercent}/g, progressPercent);
+
+                                    container.append(html);
+                                } else {
+                                    console.warn('ไม่พบข้อมูลประเภทการลา:', item?.AttenCode);
+                                }
+                            });
+                        }
+                    });
+            }
+
+            $('#filterSelect').select2({
+                placeholder: 'เลือกพนักงาน',
+                width: '250px',
+                allowClear: true,
+                language: {
+                    noResults: () => "ไม่พบข้อมูลพนักงาน"
+                }
+            });
+
+            // ลบ CSS ที่ไม่จำเป็นออก
+            const style = document.createElement('style');
+            style.textContent = `
+                .select2-container {
+                    margin-top: 0 !important;
+                }
+
+                .select2-container--default .select2-selection--single {
+                    height: 40px;
+                    padding: 5px;
+                    border: 1px solid #ced4da;
+                    border-radius: 8px;
+                }
+
+                .select2-container--default .select2-selection--single .select2-selection__rendered {
+                    line-height: 28px;
+                }
+
+                .select2-container--default .select2-selection--single .select2-selection__arrow {
+                    height: 38px;
+                }
+
+                .select2-dropdown {
+                    border: 1px solid #ced4da;
+                    border-radius: 8px;
+                }
+
+                .select2-search--dropdown .select2-search__field {
+                    padding: 8px;
+                    border: 1px solid #ced4da;
+                }
+
+                .select2-container--default .select2-results__option--highlighted[aria-selected] {
+                    background-color: #e9ecef;
+                    color: #000;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // จัดการการย่อ/ขยาย Leave Balance
+            $('.toggle-leave-balance').click(function() {
+                const $icon = $(this).find('i');
+                const $wrapper = $('#leaveBalanceWrapper');
+                
+                $wrapper.slideToggle(300, function() {
+                    // สลับ icon หลังจากอนิเมชั่นเสร็จสิ้น
+                    $icon.toggleClass('fa-chevron-up fa-chevron-down');
+                });
+
+                // บันทึกสถานะไว้ใน localStorage
+                localStorage.setItem('leaveBalanceVisible', $wrapper.is(':visible'));
+            });
+
+            // ตรวจสอบสถานะที่บันทึกไว้เมื่อโหลดหน้า
+            const leaveBalanceVisible = localStorage.getItem('leaveBalanceVisible');
+            if (leaveBalanceVisible === 'false') {
+                $('#leaveBalanceWrapper').hide();
+                $('.toggle-leave-balance i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            } else {
+                // ถ้าไม่มีค่าใน localStorage ให้ย่อไว้เป็นค่าเริ่มต้น
+                $('#leaveBalanceWrapper').hide();
+                $('.toggle-leave-balance i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                localStorage.setItem('leaveBalanceVisible', 'false');
+            }
+
+            // เพิ่มฟังก์ชันสำหรับสร้างกราฟ
+            function createCharts(data) {
+                // ลบกราฟเก่าก่อนสร้างใหม่
+                ['leaveByMonthChart', 'leaveTypeChart', 'leaveStatusChart', 'leaveDaysByMonthChart'].forEach(id => {
+                    const chart = Chart.getChart(id);
+                    if (chart) {
+                        chart.destroy();
+                    }
+                });
+
+                // จัดกลุ่มข้อมูลตามเดือน
+                const monthlyData = {};
+                const leaveTypeData = {};
+                const leaveStatusData = {};
+                const leaveDaysData = {};
+
+                data.forEach(item => {
+                    const date = moment(item.DteTmeIn);
+                    const monthYear = date.format('MMM YYYY');
+                    const leaveType = leaveTypes[item.AttenCode]?.name || item.AttenCode;
+                    const status = item.ApprStatus;
+                    const days = parseFloat(item.LeaveQty) || 0;
+
+                    // ข้อมูลต่อเดือน
+                    if (!monthlyData[monthYear]) {
+                        monthlyData[monthYear] = 0;
+                    }
+                    monthlyData[monthYear]++;
+
+                    // ข้อมูลประเภทการลา
+                    if (!leaveTypeData[leaveType]) {
+                        leaveTypeData[leaveType] = 0;
+                    }
+                    leaveTypeData[leaveType]++;
+
+                    // ข้อมูลสถานะ
+                    if (!leaveStatusData[status]) {
+                        leaveStatusData[status] = 0;
+                    }
+                    leaveStatusData[status]++;
+
+                    // ข้อมูลจำนวนวันลา
+                    if (!leaveDaysData[monthYear]) {
+                        leaveDaysData[monthYear] = 0;
+                    }
+                    leaveDaysData[monthYear] += days;
+                });
+
+                // เรียงข้อมูลตามเดือน
+                const sortedMonths = Object.keys(monthlyData).sort((a, b) => moment(a, 'MMM YYYY').diff(moment(b, 'MMM YYYY')));
+
+                // สร้างกราฟจำนวนการลาต่อเดือน
+                new Chart(document.getElementById('leaveByMonthChart'), {
+                    type: 'line',
+                    data: {
+                        labels: sortedMonths,
+                        datasets: [{
+                            label: 'จำนวนการลา',
+                            data: sortedMonths.map(month => monthlyData[month]),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2,
+                            pointRadius: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    font: {
+                                        size: 10
+                                    },
+                                    maxTicksLimit: 5
+                                },
+                                grid: {
+                                    display: true,
+                                    drawBorder: false
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 10
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // สร้างกราฟประเภทการลา
+                new Chart(document.getElementById('leaveTypeChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(leaveTypeData),
+                        datasets: [{
+                            data: Object.values(leaveTypeData),
+                            backgroundColor: [
+                                '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
+                                '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                align: 'center',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 8,
+                                    font: {
+                                        size: 10
+                                    },
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        if (data.labels.length && data.datasets.length) {
+                                            return data.labels.map(function(label, i) {
+                                                return {
+                                                    text: label,
+                                                    fillStyle: data.datasets[0].backgroundColor[i],
+                                                    hidden: false,
+                                                    lineCap: 'butt',
+                                                    lineDash: [],
+                                                    lineDashOffset: 0,
+                                                    lineJoin: 'miter',
+                                                    lineWidth: 1,
+                                                    strokeStyle: '#fff',
+                                                    pointStyle: 'circle',
+                                                    rotation: 0
+                                                };
+                                            });
+                                        }
+                                        return [];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // สร้างกราฟสถานะการลา
+                new Chart(document.getElementById('leaveStatusChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(leaveStatusData).map(status => 
+                            status === 'Approve' ? 'อนุมัติแล้ว' : 'รออนุมัติ'
+                        ),
+                        datasets: [{
+                            data: Object.values(leaveStatusData),
+                            backgroundColor: ['#10b981', '#f59e0b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                align: 'center',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 8,
+                                    font: {
+                                        size: 10
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // สร้างกราฟจำนวนวันลาต่อเดือน
+                new Chart(document.getElementById('leaveDaysByMonthChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: sortedMonths,
+                        datasets: [{
+                            label: 'จำนวนวันลา',
+                            data: sortedMonths.map(month => leaveDaysData[month]),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    font: {
+                                        size: 10
+                                    },
+                                    maxTicksLimit: 5
+                                },
+                                grid: {
+                                    display: true,
+                                    drawBorder: false
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 10
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // อัพเดทการโหลดข้อมูล
+            table.on('xhr.dt', function(e, settings, json, xhr) {
+                if (json && json.data) {
+                    createCharts(json.data);
+                }
+            });
+
+            function displayLeaveTimeSlotChart(data) {
+                if (!data || !Array.isArray(data)) {
+                    console.warn('Invalid leave time slots data:', data);
+                    return;
+                }
+
+                console.log('Leave Time Slots Data:', data); // เพิ่ม logging
+                
+                const ctx = document.getElementById('leaveTimeSlotChart').getContext('2d');
+                
+                // ลบกราฟเก่าถ้ามี
+                if (window.leaveTimeSlotChart) {
+                    window.leaveTimeSlotChart.destroy();
+                }
+                
+                window.leaveTimeSlotChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['เช้า', 'บ่าย', 'เต็มวัน'],
+                        datasets: [{
+                            data: data,
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                align: 'center',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 8,
+                                    font: { size: 10 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                        return `${label}: ${value} ครั้ง (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        :root {
+            --primary-soft: #e7effd;
+            --warning-soft: #fff4e6;
+            --success-soft: #e7f6e9;
+            --danger-soft: #ffe9e9;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .card-header {
+            background-color: #f8fafc !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+
+        .hover-lift {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* ปรับสีพื้นหลังของ badge ต่างๆ */
+        .bg-primary.bg-opacity-10 {
+            background-color: var(--primary-soft) !important;
+        }
+
+        .bg-warning.bg-opacity-10 {
+            background-color: var(--warning-soft) !important;
+        }
+
+        .bg-success.bg-opacity-10 {
+            background-color: var(--success-soft) !important;
+        }
+
+        .bg-danger.bg-opacity-10 {
+            background-color: var(--danger-soft) !important;
+        }
+
+        /* ปรับสีพื้นหลังของตาราง */
+        .table> :not(caption)>*>* {
+            background-color: transparent;
+            box-shadow: none;
+        }
+
+        .table>thead {
+            background-color: #f8fafc !important;
+        }
+
+        .table>tbody>tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* ปรับสีของ Leave Balance Cards */
+        #leaveBalanceContainer .card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+
+        #leaveBalanceContainer .card:hover {
+            background-color: #f8fafc;
+        }
+
+        /* ปรับสีของ header cards */
+        .bg-light {
+            background-color: #f8fafc !important;
+        }
+
+        .backdrop-blur {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* ปรับสีของ input search */
+        .input-group-text,
+        .form-control {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* ปรับขนาดฟอนต์และ padding ให้เล็กลง */
+        #leaveBalanceContainer .card-body {
+            padding: 1rem;
+        }
+
+        #leaveBalanceContainer h6 {
+            font-size: 0.9rem;
+        }
+
+        #leaveBalanceContainer .text-muted {
+            font-size: 0.8rem;
+        }
+
+        #leaveBalanceContainer .fw-bold {
+            font-size: 0.9rem;
+        }
+
+        #leaveBalanceContainer .rounded-4 {
+            padding: 0.5rem !important;
+        }
+
+        #leaveBalanceContainer .fa-2x {
+            font-size: 1.5em;
+        }
+
+        /* ปรับแต่ง progress bar */
+        .progress {
+            background-color: #f1f5f9;
+            height: 4px !important;
+            border-radius: 2px;
+        }
+
+        .progress-bar {
+            border-radius: 2px;
+        }
+
+        /* ปรับแต่ง badge */
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.25em 0.6em;
+            font-weight: 500;
+        }
+
+        /* ปรับแต่ง select2 */
+        .select2-container--default .select2-selection--single {
+            height: 40px;
+            padding: 5px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #f8fafc;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px;
+            color: #1e293b;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 38px;
+        }
+
+        .select2-dropdown {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .select2-search--dropdown .select2-search__field {
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        /* ปรับแต่งปุ่ม */
+        .btn {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+            border-color: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        /* ปรับแต่ง header */
+        .display-6 {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .text-primary {
+            color: #3b82f6 !important;
+        }
+
+        /* ปรับแต่ง stats cards */
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        /* DataTable Styles */
+        .dataTables_wrapper .dataTables_info {
+            padding: 0.5rem 1rem;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate {
+            padding: 0.5rem 1rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.25rem 0.5rem;
+            margin: 0 0.125rem;
+            border-radius: 0.25rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #64748b !important;
+            font-size: 0.875rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f8fafc !important;
+            border-color: #cbd5e1;
+            color: #1e293b !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #3b82f6 !important;
+            border-color: #3b82f6;
+            color: white !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            color: #cbd5e1 !important;
+            cursor: not-allowed;
+        }
+
+        .table > :not(caption) > * > * {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .table thead th {
+            font-weight: 600;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+        }
+
+        .table tbody td {
+            color: #475569;
+            font-size: 0.875rem;
+        }
+
+        .table .badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.5em;
+        }
+
+        .table .rounded-pill {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .table .text-muted {
+            color: #64748b !important;
+            font-size: 0.75rem;
+        }
+
+        .table .text-primary {
+            color: #3b82f6 !important;
+        }
+
+        .table .text-success {
+            color: #22c55e !important;
+        }
+
+        .table .text-warning {
+            color: #f59e0b !important;
+        }
+
+        .table .text-danger {
+            color: #ef4444 !important;
+        }
+
+        /* ปรับขนาดไอคอนและรูปภาพ */
+        .table .fa-user {
+            font-size: 0.875rem;
+        }
+
+        .table .rounded-circle {
+            width: 28px;
+            height: 28px;
+            padding: 0.5rem !important;
+        }
+
+        /* ปรับขนาด input search */
+        .input-group-sm .form-control {
+            height: 31px;
+            font-size: 0.875rem;
+        }
+
+        .input-group-sm .input-group-text {
+            height: 31px;
+            font-size: 0.875rem;
+        }
+
+        /* ปรับขนาด card header */
+        .card-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .card-header h6 {
+            font-size: 0.875rem;
+            margin-bottom: 0;
+        }
+    </style>
+}

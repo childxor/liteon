@@ -1,0 +1,523 @@
+@model IPS_TH.Models.sys_user
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = null; // ใช้ layout แยกเพื่อให้ควบคุมได้เต็มที่
+}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ระบบจัดการข้อมูลพนักงาน</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .login-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            max-width: 220px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+
+        .login-subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        .form-floating {
+            margin-bottom: 20px;
+        }
+
+        .form-floating > .form-control {
+            padding: 1rem 1rem;
+            height: calc(3.5rem + 2px);
+            line-height: 1.25;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .form-floating > label {
+            padding: 1rem;
+        }
+
+        .form-control:focus {
+            border-color: #1e293b;
+            box-shadow: 0 0 0 0.25rem rgba(30, 41, 59, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            border-radius: 12px;
+            background: #1e293b;
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 41, 59, 0.2);
+            background: #334155;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .user-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .user-info i {
+            color: #1e293b;
+            margin-right: 8px;
+        }
+
+        .animated {
+            -webkit-animation: fadeInUp 0.5s ease-out;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @@-webkit-keyframes fadeInUp {
+            from {
+                opacity: 0;
+                -webkit-transform: translateY(20px);
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                -webkit-transform: translateY(0);
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1e293b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .form-select {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-select:focus {
+            border-color: #1e293b;
+            box-shadow: 0 0 0 0.25rem rgba(30, 41, 59, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container animated">
+        <div class="text-center">
+            <img src="~/image/logo-text.png" alt="LITEON Logo" class="logo" />
+            <h1 class="login-title">ยินดีต้อนรับ</h1>
+            <p class="login-subtitle">เข้าสู่ระบบด้วย Domain Account ของคุณ</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-floating mb-4">
+                <input type="text" class="form-control" id="rawUsername" 
+                       @* placeholder="Username" value="@ViewBag.CurrentWindowsUser"> *@
+                       placeholder="Username" value="">
+                <label for="rawUsername">ชื่อผู้ใช้</label>
+                <input type="hidden" name="username" id="fullUsername" />
+            </div>
+
+            <div class="form-floating mb-4 position-relative">
+                <input type="password" class="form-control" id="password" 
+                       name="password" placeholder="Password">
+                <label for="password">รหัสผ่าน</label>
+                <button type="button" class="password-toggle" id="togglePassword">
+                    <i class="far fa-eye"></i>
+                </button>
+            </div>
+
+            <button type="submit" class="btn btn-login">
+                <i class="fas fa-sign-in-alt me-2"></i>เข้าสู่ระบบ
+            </button>
+
+            <div class="user-info mt-4">
+                <i class="fas fa-user-circle"></i>
+                <span id="displayUsername" class="text-muted">
+                    LITEON\@ViewBag.CurrentWindowsUser
+                </span>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal fade" id="profileUpdateModal" tabindex="-1" aria-labelledby="profileUpdateModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileUpdateModalLabel">กรุณากรอกข้อมูลเพิ่มเติม</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" disabled></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profileUpdateForm">
+                        <input type="hidden" id="updateUserId" />
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            ระบบตรวจพบว่าไม่มีข้อมูลแผนกของคุณ กรุณากรอกข้อมูลให้ครบถ้วนเพื่อเข้าใช้ระบบ
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="empNo" class="form-label">รหัสพนักงาน <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="empNo" placeholder="กรุณากรอกรหัสพนักงาน" required>
+                            <div class="form-text">รหัสพนักงานต้องตรงกับข้อมูลใน Active Directory</div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="department" class="form-label">แผนก <span class="text-danger">*</span></label>
+                            <select class="form-select" id="department" required>
+                                <option value="">กรุณาเลือกแผนก</option>
+                            </select>
+                            <div class="form-text">เลือกแผนกที่คุณสังกัด</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100" onclick="submitProfileUpdate()">
+                        <i class="fas fa-save me-2"></i>บันทึกและเข้าสู่ระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function() {
+            // อัพเดท username
+            function updateUsername() {
+                const rawUsername = $('#rawUsername').val().trim();
+                const fullUsername = 'LITEON\\' + rawUsername;
+                $('#fullUsername').val(fullUsername);
+                $('#displayUsername').text(fullUsername);
+            }
+
+            $('#rawUsername').on('input', updateUsername);
+            updateUsername(); // เซ็ตค่าเริ่มต้น
+
+            // Toggle password
+            $('#togglePassword').click(function() {
+                const passwordInput = $('#password');
+                const icon = $(this).find('i');
+                
+                if (passwordInput.attr('type') === 'password') {
+                    passwordInput.attr('type', 'text');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    passwordInput.attr('type', 'password');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+
+            // Handle form submission
+            $('#loginForm').submit(function(e) {
+                e.preventDefault();
+                
+                const username = $('#fullUsername').val();
+                const password = $('#password').val();
+
+                if (!username || !password) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'กรุณากรอกข้อมูล',
+                        text: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#005bea'
+                    });
+                    return;
+                }
+
+                // Custom loading animation
+                const loadingHtml = `
+                    <div class="loading-overlay">
+                        <div class="loading-spinner"></div>
+                    </div>`;
+                $('body').append(loadingHtml);
+
+                $.ajax({
+                    url: '@Url.Action("Login", "Authen")',
+                    type: 'POST',
+                    data: { username, password },
+                    success: function(response) {
+                        handleLoginResponse(response);
+                    },
+                    error: function() {
+                        $('.loading-overlay').remove();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ไม่สามารถเชื่อมต่อได้',
+                            text: 'กรุณาลองใหม่อีกครั้ง',
+                            confirmButtonText: 'ตกลง',
+                            confirmButtonColor: '#005bea'
+                        });
+                    }
+                });
+            });
+        });
+
+        function handleLoginResponse(response) {
+            // ลบ loading overlay ก่อน
+            $('.loading-overlay').remove();
+            
+            if (response.success) {
+                if (response.needsProfileUpdate) {
+                    $('#updateUserId').val(response.userId);
+                    // โหลดข้อมูลแผนกก่อนแสดง modal
+                    loadDepartments().then(() => {
+                        var myModal = new bootstrap.Modal(document.getElementById('profileUpdateModal'), {
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+                        myModal.show();
+                    });
+                } else {
+                    window.location.href = response.redirectUrl;
+                }
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: response.error || 'ไม่สามารถเข้าสู่ระบบได้',
+                    confirmButtonText: 'ลองใหม่',
+                    confirmButtonColor: '#005bea'
+                });
+            }
+        }
+
+        // ฟังก์ชันสำหรับโหลดข้อมูลแผนก
+        async function loadDepartments() {
+            try {
+                const response = await $.ajax({
+                    url: '@Url.Action("GetDepartments", "Authen")',
+                    type: 'GET'
+                });
+
+                if (response.success) {
+                    const departmentSelect = $('#department');
+                    departmentSelect.empty();
+                    departmentSelect.append('<option value="">กรุณาเลือกแผนก</option>');
+                    
+                    response.data.forEach(dept => {
+                        departmentSelect.append(`<option value="${dept.name}">${dept.name}</option>`);
+                    });
+                } else {
+                    console.error('Failed to load departments:', response.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถโหลดข้อมูลแผนกได้',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#005bea'
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading departments:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#005bea'
+                });
+            }
+        }
+
+        function submitProfileUpdate() {
+            var empNo = $('#empNo').val().trim();
+            var department = $('#department option:selected').text();
+            var departmentValue = $('#department').val();
+
+            if (!empNo) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณากรอกรหัสพนักงาน',
+                    text: 'จำเป็นต้องกรอกรหัสพนักงานเพื่อเข้าใช้ระบบ',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#005bea'
+                });
+                $('#empNo').focus();
+                return;
+            }
+
+            if (!departmentValue || !department) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกแผนก',
+                    text: 'จำเป็นต้องเลือกแผนกที่คุณสังกัด',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#005bea'
+                });
+                $('#department').focus();
+                return;
+            }
+
+            // เพิ่ม loading overlay
+            $('body').append(`
+                <div class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                </div>
+            `);
+
+            var userId = $('#updateUserId').val();
+
+            $.ajax({
+                url: '@Url.Action("UpdateUserProfile", "Authen")',
+                type: 'POST',
+                data: {
+                    userId: userId,
+                    empNo: empNo,
+                    department: department
+                },
+                success: function(response) {
+                    $('.loading-overlay').remove();
+                    if (response.success) {
+                        var myModal = bootstrap.Modal.getInstance(document.getElementById('profileUpdateModal'));
+                        if (myModal) {
+                            myModal.hide();
+                        }
+                        window.location.href = '@Url.Action("Index", "Home")';
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: response.error || 'ไม่สามารถบันทึกข้อมูลได้',
+                            confirmButtonText: 'ตกลง',
+                            confirmButtonColor: '#005bea'
+                        });
+                    }
+                },
+                error: function() {
+                    $('.loading-overlay').remove();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#005bea'
+                    });
+                }
+            });
+        }
+
+        // เพิ่มโค้ดเพื่อเคลียร์ localStorage และ sessionStorage
+        @if (TempData["ClearClientStorage"] != null && (bool)TempData["ClearClientStorage"] == true)
+        {
+            <text>
+            // เคลียร์ localStorage และ sessionStorage
+            localStorage.clear();
+            sessionStorage.clear();
+            console.log("ล้างข้อมูล localStorage และ sessionStorage เรียบร้อยแล้ว");
+            </text>
+        }
+    </script>
+</body>
+</html>

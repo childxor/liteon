@@ -1,0 +1,1051 @@
+@model IEnumerable<dynamic>
+@using IPS_TH.Models.Employee
+@using Newtonsoft.Json;
+
+@{
+    ViewData["Title"] = "ระบบจัดการทรัพย์สิน IT";
+    
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+}
+
+<div class="container-fluid mt-4">
+    <!-- สถิติทรัพย์สิน -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">ทรัพย์สินทั้งหมด</h6>
+                            <h2 class="mb-0 mt-2" id="totalAssets">0</h2>
+                        </div>
+                        <i class="fas fa-laptop fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">ใช้งานได้</h6>
+                            <h2 class="mb-0 mt-2" id="activeAssets">0</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">กำลังซ่อม</h6>
+                            <h2 class="mb-0 mt-2" id="repairAssets">0</h2>
+                        </div>
+                        <i class="fas fa-tools fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">ชำรุด</h6>
+                            <h2 class="mb-0 mt-2" id="damagedAssets">0</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ฟิลเตอร์และปุ่มจัดการ -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-2 mb-md-0">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-laptop me-2"></i>รายการทรัพย์สิน IT
+                    </h5>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex gap-2 justify-content-md-end">
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-search text-primary"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="searchInput" placeholder="ค้นหาทรัพย์สิน...">
+                        </div>
+                        @if (canAdd)
+                        {
+                            <button type="button" class="btn btn-primary" id="btnAddAsset">
+                                <i class="fas fa-plus-circle me-1"></i>เพิ่มทรัพย์สิน
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="assetTable" class="table table-hover align-middle mb-0 bg-white">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-barcode me-2 text-primary"></i>รหัสทรัพย์สิน
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-laptop me-2 text-primary"></i>ชื่อทรัพย์สิน
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-tag me-2 text-primary"></i>ประเภท
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-user me-2 text-primary"></i>ผู้รับผิดชอบ
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-building me-2 text-primary"></i>แผนก
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2 text-primary"></i>สถานะ
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>วันที่รับ
+                                </div>
+                            </th>
+                            <th class="border-0 text-nowrap px-4 py-3 text-center">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>การจัดการ
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- ข้อมูลจะถูกเพิ่มผ่าน DataTable -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal เพิ่ม/แก้ไขทรัพย์สิน -->
+<div class="modal fade" id="assetModal" tabindex="-1" aria-labelledby="assetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="assetModalLabel"><i class="fas fa-plus-circle me-2"></i>เพิ่มทรัพย์สิน IT</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assetForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="assetId" name="Id" />
+                    
+                    <!-- ข้อมูลพื้นฐาน -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>ข้อมูลพื้นฐาน</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="assetCode" class="form-label"><i class="fas fa-barcode me-1"></i>รหัสทรัพย์สิน <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                        <input type="text" class="form-control" id="assetCode" name="Code" required placeholder="ระบุรหัสทรัพย์สิน">
+                                        <div class="invalid-feedback">
+                                            กรุณาระบุรหัสทรัพย์สิน
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="assetName" class="form-label"><i class="fas fa-laptop me-1"></i>ชื่อทรัพย์สิน <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                        <input type="text" class="form-control" id="assetName" name="Name" required placeholder="ระบุชื่อทรัพย์สิน">
+                                        <div class="invalid-feedback">
+                                            กรุณาระบุชื่อทรัพย์สิน
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="assetType" class="form-label"><i class="fas fa-tags me-1"></i>ประเภททรัพย์สิน <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-list"></i></span>
+                                        <select class="form-select" id="assetType" name="Type" required>
+                                            <option value="">-- เลือกประเภท --</option>
+                                            <option value="1">คอมพิวเตอร์</option>
+                                            <option value="2">โน๊ตบุ๊ค</option>
+                                            <option value="3">แท็บเล็ต</option>
+                                            <option value="4">โทรศัพท์</option>
+                                            <option value="5">เครื่องพิมพ์</option>
+                                            <option value="6">อุปกรณ์เครือข่าย</option>
+                                            <option value="7">อื่นๆ</option>
+                                        </select>
+                                        <div class="invalid-feedback">
+                                            กรุณาเลือกประเภททรัพย์สิน
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="assetStatus" class="form-label"><i class="fas fa-info-circle me-1"></i>สถานะ <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-toggle-on"></i></span>
+                                        <select class="form-select" id="assetStatus" name="Status" required>
+                                            <option value="1">ใช้งานได้</option>
+                                            <option value="2">กำลังซ่อม</option>
+                                            <option value="3">ชำรุด</option>
+                                            <option value="4">จำหน่าย</option>
+                                        </select>
+                                        <div class="invalid-feedback">
+                                            กรุณาเลือกสถานะ
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ข้อมูลการใช้งาน -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user-cog me-2"></i>ข้อมูลการใช้งาน</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label for="assetOwner" class="form-label"><i class="fas fa-user me-1"></i>ผู้รับผิดชอบ</label>
+                                    <select class="form-select select2" id="assetOwner" name="Owner">
+                                        <option value="">-- เลือกพนักงาน --</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label for="assetDepartment" class="form-label"><i class="fas fa-building me-1"></i>แผนก</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
+                                        <select class="form-select" id="assetDepartment" name="Department">
+                                            <option value="">-- เลือกแผนก --</option>
+                                            <option value="1">IT</option>
+                                            <option value="2">HR</option>
+                                            <option value="3">Finance</option>
+                                            <option value="4">Marketing</option>
+                                            <option value="5">Sales</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="assetPurchaseDate" class="form-label"><i class="fas fa-calendar-alt me-1"></i>วันที่รับ</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                        <input type="date" class="form-control" id="assetPurchaseDate" name="PurchaseDate">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="assetWarranty" class="form-label"><i class="fas fa-shield-alt me-1"></i>ประกัน</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
+                                        <input type="date" class="form-control" id="assetWarranty" name="Warranty">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="assetLocation" class="form-label"><i class="fas fa-map-marker-alt me-1"></i>สถานที่จัดเก็บ <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
+                                        <select class="form-select" id="assetLocation" name="Location" required>
+                                            <option value="">-- เลือกสถานที่ --</option>
+                                            <optgroup label="พื้นที่ผลิต">
+                                                <option value="PD">พื้นที่ไลน์ผลิต</option>
+                                            </optgroup>
+                                            <optgroup label="คลังสินค้า">
+                                                <option value="RSFPW">Raw materials & semi Finished WH</option>
+                                                <option value="RMW">Raw material WH</option>
+                                                <option value="EW">Electronic WH</option>
+                                            </optgroup>
+                                            <optgroup label="ห้องแล็บและตรวจสอบ">
+                                                <option value="DQE">DQE LAB</option>
+                                                <option value="IQC">IQC room</option>
+                                            </optgroup>
+                                            <optgroup label="พื้นที่จัดเก็บ">
+                                                <option value="FA">พื้นที่รับของสโตร์</option>
+                                                <option value="JIG">ห้องเก็บอะไหล่</option>
+                                                <option value="DCC">ห้องเก็บของเล็กข้างห้องเซิฟเวอร์</option>
+                                            </optgroup>
+                                            <optgroup label="สำนักงานและห้องประชุม">
+                                                <option value="POR">ออฟฟิศ</option>
+                                                <option value="MR">ห้องบอส</option>
+                                                <option value="BTR">ห้องประชุม</option>
+                                                <option value="TC">ห้องเทรนงานชั้น 2</option>
+                                                <option value="CF">ห้องประชุมชั้น 2</option>
+                                                <option value="OFPD">ออฟฟิศไลน์ผลิต</option>
+                                            </optgroup>
+                                            <optgroup label="ห้องปฏิบัติการ">
+                                                <option value="PR">ห้องปลิ้นติ้ง</option>
+                                                <option value="OM">ห้องผสมสี</option>
+                                                <option value="SC">ห้องแผ่นสกีนรูม</option>
+                                            </optgroup>
+                                            <optgroup label="อื่นๆ">
+                                                <option value="PTR">ห้องยาม</option>
+                                                <option value="SLSC">ที่พักพนักงาน</option>
+                                                <option value="MICR">ห้องเซิฟเวอร์</option>
+                                                <option value="CR">ห้องเปลี่ยนรองเท้า</option>
+                                            </optgroup>
+                                        </select>
+                                        <div class="invalid-feedback">
+                                            กรุณาเลือกสถานที่จัดเก็บ
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6" id="productionLineContainer" style="display: none;">
+                                    <label for="productionLine" class="form-label"><i class="fas fa-industry me-1"></i>ไลน์ผลิต <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-conveyor-belt"></i></span>
+                                        <select class="form-select" id="productionLine" name="ProductionLine">
+                                            <option value="">-- เลือกไลน์ผลิต --</option>
+                                            <option value="L1">Line 1</option>
+                                            <option value="L2">Line 2</option>
+                                            <option value="L3">Line 3</option>
+                                            <option value="L4">Line 4</option>
+                                            <option value="L5">Line 5</option>
+                                            <option value="L6">Line 6</option>
+                                            <option value="L7">Line 7</option>
+                                            <option value="L8">Line 8</option>
+                                        </select>
+                                        <div class="invalid-feedback">
+                                            กรุณาเลือกไลน์ผลิต
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- รายละเอียดเพิ่มเติม -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>รายละเอียดเพิ่มเติม</h6>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" id="assetDescription" name="Description" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>ยกเลิก
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSaveAsset">
+                    <i class="fas fa-save me-1"></i>บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ยืนยันการลบ -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash-alt me-2"></i>ยืนยันการลบ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning fa-4x mb-3"></i>
+                    <p>คุณต้องการลบทรัพย์สิน <span id="deleteItemName" class="fw-bold text-danger"></span> ใช่หรือไม่?</p>
+                    <p class="text-muted small">การลบข้อมูลนี้ไม่สามารถเรียกคืนได้</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>ยกเลิก
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+                    <i class="fas fa-trash-alt me-1"></i>ยืนยันการลบ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- นำเข้า Select2 CSS และ JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <style>
+        /* ปรับแต่ง Card */
+        .card {
+            border: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+        }
+        
+        /* ปรับแต่ง Table */
+        .table {
+            --bs-table-hover-bg: rgba(13, 110, 253, 0.04);
+            --bs-table-hover-color: inherit;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            vertical-align: middle;
+            white-space: nowrap;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #dee2e6;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-hover tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        /* ปรับแต่ง Badge */
+        .badge {
+            padding: 0.5em 0.8em;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            font-size: 0.75rem;
+        }
+        
+        /* ปรับแต่ง Button */
+        .btn {
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+        }
+        
+        /* ปรับแต่ง Input */
+        .form-control, .form-select {
+            padding: 0.5rem 0.75rem;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.1);
+        }
+        
+        /* ปรับแต่ง Select2 */
+        .select2-container {
+            width: 100% !important;
+            z-index: 9999;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection {
+            height: calc(3.5rem + 2px);
+            padding: 1rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single {
+            padding: 0.375rem 0.75rem;
+            height: calc(1.5em + 0.75rem + 2px);
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            padding: 0;
+            line-height: 1.5;
+            color: #212529;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+            color: #6c757d;
+        }
+
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border-color: #86b7fe;
+            border-radius: 0.375rem;
+            z-index: 9999;
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
+            border-radius: 0.375rem;
+            border: 1px solid #ced4da;
+            padding: 0.375rem 0.75rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown .select2-results__options {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            padding: 0.5rem 0.75rem;
+            font-size: 1rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown .select2-results__option--highlighted {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+
+        .modal-body .select2-container {
+            z-index: 1056;
+        }
+
+        .select2-dropdown {
+            z-index: 1056;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+            border-color: #6c757d transparent transparent transparent;
+            border-style: solid;
+            border-width: 0.3em 0.3em 0 0.3em;
+            height: 0;
+            left: 50%;
+            margin-left: -0.15em;
+            margin-top: -0.15em;
+            position: absolute;
+            top: 50%;
+            width: 0;
+        }
+
+        /* ปรับแต่ง DataTable Controls */
+        .dataTables_wrapper .dataTables_length select {
+            min-width: 80px;
+            font-size: 0.875rem;
+            padding: 0.25rem 2rem 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            background-position: right 0.5rem center;
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            min-width: 250px;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid #dee2e6;
+            background-color: #fff;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.375rem 0.75rem;
+            margin: 0 0.125rem;
+            border-radius: 0.375rem;
+            border: none !important;
+            background: none !important;
+            color: #6c757d !important;
+            font-size: 0.875rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background-color: #e9ecef !important;
+            color: #0d6efd !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+        }
+
+        .dataTables_wrapper .dataTables_info {
+            font-size: 0.875rem;
+            color: #6c757d;
+            padding-top: 0.5rem;
+        }
+
+        /* ปรับแต่ง Action Buttons */
+        .btn-action {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-action + .btn-action {
+            margin-left: 0.5rem;
+        }
+    </style>
+    
+    <script>
+        $(document).ready(function() {
+            // กำหนดค่าเริ่มต้นสำหรับ Select2
+            function initSelect2() {
+                $('#assetOwner').select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#assetModal'),
+                    placeholder: 'เลือกพนักงาน',
+                    allowClear: true,
+                    width: '100%',
+                    language: {
+                        noResults: function() {
+                            return "ไม่พบข้อมูลพนักงาน";
+                        },
+                        searching: function() {
+                            return "กำลังค้นหา...";
+                        }
+                    }
+                }).on('select2:open', function() {
+                    document.querySelector('.select2-search__field').focus();
+                });
+            }
+
+            // DataTable
+            const table = $('#assetTable').DataTable({
+                ajax: {
+                    url: '/Asset/GetAll',
+                    type: 'POST',
+                    dataSrc: ''
+                },
+                columns: [
+                    { 
+                        data: 'code',
+                        render: function(data) {
+                            return `<span class="fw-semibold">${data}</span>`;
+                        }
+                    },
+                    { 
+                        data: 'name',
+                        render: function(data) {
+                            return `<span class="text-primary fw-semibold">${data}</span>`;
+                        }
+                    },
+                    { 
+                        data: 'type',
+                        render: function(data) {
+                            const types = {
+                                '1': '<span class="badge bg-primary">คอมพิวเตอร์</span>',
+                                '2': '<span class="badge bg-info">โน๊ตบุ๊ค</span>',
+                                '3': '<span class="badge bg-success">แท็บเล็ต</span>',
+                                '4': '<span class="badge bg-warning text-dark">โทรศัพท์</span>',
+                                '5': '<span class="badge bg-secondary">เครื่องพิมพ์</span>',
+                                '6': '<span class="badge bg-dark">อุปกรณ์เครือข่าย</span>',
+                                '7': '<span class="badge bg-light text-dark">อื่นๆ</span>'
+                            };
+                            return types[data] || '<span class="badge bg-secondary">ไม่ระบุ</span>';
+                        }
+                    },
+                    { 
+                        data: 'ownerName',
+                        render: function(data) {
+                            return data ? `<div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                            <span>${data}</span>
+                                        </div>` : '-';
+                        }
+                    },
+                    { 
+                        data: 'departmentName',
+                        render: function(data) {
+                            return data ? `<span class="badge bg-light text-dark">${data}</span>` : '-';
+                        }
+                    },
+                    { 
+                        data: 'status',
+                        render: function(data) {
+                            const statuses = {
+                                '1': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ใช้งานได้</span>',
+                                '2': '<span class="badge bg-warning text-dark"><i class="fas fa-tools me-1"></i>กำลังซ่อม</span>',
+                                '3': '<span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>ชำรุด</span>',
+                                '4': '<span class="badge bg-secondary"><i class="fas fa-archive me-1"></i>จำหน่าย</span>'
+                            };
+                            return statuses[data] || '<span class="badge bg-secondary">ไม่ระบุ</span>';
+                        }
+                    },
+                    { 
+                        data: 'purchaseDate',
+                        render: function(data) {
+                            if (!data) return '-';
+                            const date = new Date(data);
+                            return `<div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                        <span>${date.toLocaleDateString('th-TH', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}</span>
+                                    </div>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        className: 'text-center',
+                        render: function(data) {
+                            let actions = '';
+                            if (canEdit) {
+                                actions += `
+                                    <button class="btn btn-warning btn-action btn-edit" data-id="${data.id}" data-bs-toggle="tooltip" title="แก้ไข">
+                                        <i class="fas fa-edit"></i>
+                                    </button>`;
+                            }
+                            if (canDelete) {
+                                actions += `
+                                    <button class="btn btn-danger btn-action btn-delete" data-id="${data.id}" data-name="${data.name}" data-bs-toggle="tooltip" title="ลบ">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>`;
+                            }
+                            return actions || '<span class="text-muted">ไม่มีสิทธิ์</span>';
+                        },
+                        orderable: false
+                    }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Thai.json",
+                    searchPlaceholder: "ค้นหาทรัพย์สิน..."
+                },
+                dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row align-items-center mt-3"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
+                ordering: true,
+                order: [[0, 'asc']],
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], ['10', '25', '50', 'ทั้งหมด']],
+                responsive: true,
+                autoWidth: false,
+                searching: true,
+                processing: true,
+                initComplete: function() {
+                    // เพิ่ม class และ placeholder ให้กับ input ค้นหา
+                    $('.dataTables_filter input')
+                        .addClass('form-control form-control-sm')
+                        .attr('placeholder', 'ค้นหาทรัพย์สิน...');
+                    
+                    // เพิ่ม class ให้กับ select
+                    $('.dataTables_length select').addClass('form-select form-select-sm');
+                    
+                    // เพิ่ม tooltip
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
+            });
+
+            // ค้นหาแบบ real-time พร้อม debounce
+            let searchTimeout;
+            $('#searchInput').on('keyup', function() {
+                clearTimeout(searchTimeout);
+                const value = $(this).val();
+                searchTimeout = setTimeout(() => {
+                    table.search(value).draw();
+                }, 300);
+            });
+
+            // เปิด Modal เพิ่มทรัพย์สิน
+            $('#btnAddAsset').click(function() {
+                $('#assetForm')[0].reset();
+                $('#assetId').val('');
+                $('#assetModalLabel').html('<i class="fas fa-plus-circle me-2"></i>เพิ่มทรัพย์สิน IT');
+                initSelect2();
+                $('#assetModal').modal('show');
+            });
+
+            // เปิด Modal แก้ไขทรัพย์สิน
+            $(document).on('click', '.btn-edit', function() {
+                const id = $(this).data('id');
+                
+                $.ajax({
+                    url: `/Asset/Get/${id}`,
+                    type: 'GET',
+                    success: function(data) {
+                        $('#assetId').val(data.id);
+                        $('#assetCode').val(data.code);
+                        $('#assetName').val(data.name);
+                        $('#assetType').val(data.type);
+                        $('#assetStatus').val(data.status);
+                        $('#assetDepartment').val(data.department);
+                        
+                        initSelect2();
+                        setTimeout(() => {
+                            $('#assetOwner').val(data.owner).trigger('change');
+                        }, 500);
+                        
+                        $('#assetPurchaseDate').val(data.purchaseDate);
+                        $('#assetWarranty').val(data.warranty);
+                        $('#assetDescription').val(data.description);
+                        
+                        $('#assetModalLabel').html('<i class="fas fa-edit me-2"></i>แก้ไขทรัพย์สิน IT');
+                        $('#assetModal').modal('show');
+                    }
+                });
+            });
+
+            // เพิ่มการตรวจสอบข้อมูลก่อนบันทึก
+            function validateForm() {
+                const code = $('#assetCode').val();
+                const name = $('#assetName').val();
+                const type = $('#assetType').val();
+                const status = $('#assetStatus').val();
+                const location = $('#assetLocation').val();
+                
+                let isValid = true;
+                let errorMessage = '';
+                
+                if (!code) {
+                    errorMessage += 'กรุณาระบุรหัสทรัพย์สิน\n';
+                    isValid = false;
+                }
+                
+                if (!name) {
+                    errorMessage += 'กรุณาระบุชื่อทรัพย์สิน\n';
+                    isValid = false;
+                }
+                
+                if (!type) {
+                    errorMessage += 'กรุณาเลือกประเภททรัพย์สิน\n';
+                    isValid = false;
+                }
+                
+                if (!status) {
+                    errorMessage += 'กรุณาเลือกสถานะ\n';
+                    isValid = false;
+                }
+                
+                if (!location) {
+                    errorMessage += 'กรุณาเลือกสถานที่จัดเก็บ\n';
+                    isValid = false;
+                }
+                
+                if (location === 'PD' && !$('#productionLine').val()) {
+                    errorMessage += 'กรุณาเลือกไลน์ผลิต\n';
+                    isValid = false;
+                }
+                
+                if (!isValid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'กรุณาตรวจสอบข้อมูล',
+                        text: errorMessage,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+                
+                return isValid;
+            }
+
+            // ปรับปรุงฟังก์ชันบันทึก
+            $('#btnSaveAsset').click(function() {
+                if (!validateForm()) {
+                    return;
+                }
+                
+                const formData = {
+                    Id: $('#assetId').val() || 0,
+                    Code: $('#assetCode').val(),
+                    Name: $('#assetName').val(),
+                    Type: $('#assetType').val(),
+                    Status: $('#assetStatus').val(),
+                    Owner: $('#assetOwner').val(),
+                    Department: $('#assetDepartment').val(),
+                    PurchaseDate: $('#assetPurchaseDate').val(),
+                    Warranty: $('#assetWarranty').val(),
+                    Description: $('#assetDescription').val()
+                };
+                
+                const isNew = !formData.Id || formData.Id == "0";
+                const url = isNew ? '/Asset/Create' : '/Asset/Update';
+                const method = isNew ? 'POST' : 'PUT';
+                
+                $.ajax({
+                    url: url,
+                    type: method,
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    success: function() {
+                        table.ajax.reload();
+                        $('#assetModal').modal('hide');
+                        
+                        // แสดง Toast แจ้งเตือน
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            didOpen: (toast) => {
+                                toast.addEventListener('mouseenter', Swal.stopTimer)
+                                toast.addEventListener('mouseleave', Swal.resumeTimer)
+                            }
+                        });
+
+                        Toast.fire({
+                            icon: 'success',
+                            title: isNew ? 'เพิ่มทรัพย์สินสำเร็จ' : 'แก้ไขทรัพย์สินสำเร็จ'
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถบันทึกข้อมูลได้'
+                        });
+                    }
+                });
+            });
+
+            // เปิด Modal ยืนยันการลบ
+            $(document).on('click', '.btn-delete', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                
+                $('#deleteItemName').text(name);
+                $('#btnConfirmDelete').data('id', id);
+                $('#deleteModal').modal('show');
+            });
+
+            // ยืนยันการลบ
+            $('#btnConfirmDelete').click(function() {
+                const id = $(this).data('id');
+                
+                $.ajax({
+                    url: `/Asset/Delete/${id}`,
+                    type: 'DELETE',
+                    success: function() {
+                        table.ajax.reload();
+                        $('#deleteModal').modal('hide');
+                        
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'ลบทรัพย์สินสำเร็จ'
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถลบข้อมูลได้'
+                        });
+                    }
+                });
+            });
+
+            // อัปเดตสถิติแบบ real-time
+            const socket = new WebSocket('wss://your-websocket-server');
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'statistics') {
+                    updateStatistics(data.statistics);
+                }
+            };
+
+            // อัปเดทสถิติ
+            function updateStatistics(statistics) {
+                $('#totalAssets').text(statistics.total);
+                $('#activeAssets').text(statistics.active);
+                $('#repairAssets').text(statistics.repair);
+                $('#damagedAssets').text(statistics.damaged);
+            }
+
+            // แสดง/ซ่อนฟิลด์ไลน์ผลิตตามสถานที่ที่เลือก
+            $('#assetLocation').change(function() {
+                const selectedLocation = $(this).val();
+                const productionLineContainer = $('#productionLineContainer');
+                const productionLineSelect = $('#productionLine');
+                
+                if (selectedLocation === 'PD') {
+                    productionLineContainer.slideDown();
+                    productionLineSelect.prop('required', true);
+                } else {
+                    productionLineContainer.slideUp();
+                    productionLineSelect.prop('required', false);
+                    productionLineSelect.val('');
+                }
+            });
+        });
+    </script>
+}

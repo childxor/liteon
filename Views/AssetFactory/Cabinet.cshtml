@@ -1,0 +1,2566 @@
+@model IEnumerable<dynamic>
+@using IPS_TH.Models.Employee
+@using Newtonsoft.Json;
+
+@{
+    ViewData["Title"] = "จัดการตู้เก็บของพนักงาน";
+    
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-box me-2"></i>จัดการตู้เก็บของพนักงาน</h5>
+            @if (canAdd)
+            {
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success btn-sm" id="btnAddCabinet">
+                        <i class="fas fa-plus-circle me-1"></i>เพิ่มตู้ใหม่
+                    </button>
+                    <button type="button" class="btn btn-info btn-sm" id="btnAddCabinetRange">
+                        <i class="fas fa-layer-group me-1"></i>เพิ่มตู้แบบช่วง
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnShowReport">
+                        <i class="fas fa-file-alt me-1"></i>แสดงรายงาน
+                    </button>
+                </div>
+            }
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="cabinetTable" class="table table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th><i class="fas fa-hashtag me-1"></i>เลขที่ตู้</th>
+                            <th><i class="fas fa-user me-1"></i>ผู้ครอบครอง</th>
+                            <th><i class="fas fa-info-circle me-1"></i>สถานะ</th>
+                            <th><i class="fas fa-calendar-alt me-1"></i>อัพเดทล่าสุด</th>
+                            <th><i class="fas fa-user-edit me-1"></i>อัพเดทโดย</th>
+                            <th><i class="fas fa-cogs me-1"></i>การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- ข้อมูลจะถูกเพิ่มผ่าน DataTable -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal เพิ่ม/แก้ไขข้อมูล -->
+<div class="modal fade" id="cabinetModal" tabindex="-1" aria-labelledby="cabinetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="cabinetModalLabel"><i class="fas fa-edit me-2"></i>เพิ่มตู้เก็บของพนักงาน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cabinetForm">
+                    <input type="hidden" id="cabinetId" name="Id" />
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="cabinetNo" name="No" required placeholder="ระบุเลขที่ตู้">
+                                <label for="cabinetNo">
+                                    <i class="fas fa-hashtag me-1"></i>เลขที่ตู้ <span class="text-danger">*</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cabinetOwner" class="form-label">
+                                <i class="fas fa-user me-1"></i>ผู้ครอบครอง
+                            </label>
+                            <select class="form-select select2" id="cabinetOwner" name="Owner">
+                                <option value="">-- เลือกผู้ครอบครอง --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-floating">
+                                <select class="form-select" id="cabinetStatus" name="status">
+                                    <option value="0">ว่าง</option>
+                                    <option value="1">มีผู้ใช้งาน</option>
+                                    <option value="2">ชำรุด</option>
+                                </select>
+                                <label for="cabinetStatus">
+                                    <i class="fas fa-info-circle me-1"></i>สถานะ
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="ยกเลิก">
+                    <i class="fas fa-times me-1"></i>ยกเลิก
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSaveCabinet" aria-label="บันทึก">
+                    <i class="fas fa-save me-1"></i>บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ยืนยันการลบ -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash-alt me-2"></i>ยืนยันการลบ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning fa-4x mb-3"></i>
+                    <p>คุณต้องการลบตู้เก็บของหมายเลข <span id="deleteItemNo" class="fw-bold text-danger"></span> ใช่หรือไม่?</p>
+                    <p class="text-muted small">การลบข้อมูลนี้ไม่สามารถเรียกคืนได้</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="ยกเลิก">
+                    <i class="fas fa-times me-1"></i>ยกเลิก
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete" aria-label="ยืนยันการลบ">
+                    <i class="fas fa-trash-alt me-1"></i>ยืนยันการลบ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal เพิ่มตู้แบบช่วง -->
+<div class="modal fade" id="cabinetRangeModal" tabindex="-1" aria-labelledby="cabinetRangeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="cabinetRangeModalLabel"><i class="fas fa-layer-group me-2"></i>เพิ่มตู้เก็บของแบบช่วง</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cabinetRangeForm">
+                    <div class="mb-3">
+                        <label for="cabinetRange" class="form-label"><i class="fas fa-arrows-alt-h me-1"></i>ช่วงหมายเลขตู้ <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                            <input type="text" class="form-control" id="cabinetRange" name="range" required placeholder="ระบุช่วง เช่น 6-100">
+                        </div>
+                        <div class="form-text text-muted">ระบุช่วงตู้ที่ต้องการเพิ่ม เช่น 6-100 จะเพิ่มตู้หมายเลข 6 ถึง 100</div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>ระบบจะเพิ่มตู้ตามช่วงที่ระบุ โดยกรณีที่มีหมายเลขตู้อยู่แล้วจะข้ามไป
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="ยกเลิก">
+                    <i class="fas fa-times me-1"></i>ยกเลิก
+                </button>
+                <button type="button" class="btn btn-info" id="btnSaveCabinetRange" aria-label="เพิ่มตู้">
+                    <i class="fas fa-save me-1"></i>เพิ่มตู้
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แสดงผลการเพิ่มตู้แบบช่วง -->
+<div class="modal fade" id="cabinetRangeResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>ผลการเพิ่มตู้แบบช่วง</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cabinetRangeResultContent">
+                    <!-- ผลลัพธ์จะถูกเพิ่มด้วย JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="ตกลง">
+                    <i class="fas fa-check me-1"></i>ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แสดงรายงาน PDF -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title"><i class="fas fa-file-pdf me-2"></i>รายงานข้อมูลตู้เก็บของพนักงาน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnPrintReport">
+                            <i class="fas fa-print me-1"></i>พิมพ์รายงาน
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" id="btnExportPDF">
+                            <i class="fas fa-file-download me-1"></i>ดาวน์โหลด PDF
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" id="btnRefreshReport">
+                            <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                        </button>
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>อัพเดทล่าสุด: <span id="reportLastUpdate"></span>
+                    </div>
+                </div>
+                <div id="reportContent" class="p-3">
+                    <div class="table-responsive">
+                        <table id="reportTable" class="table table-bordered table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 80px;">เลขที่ตู้</th>
+                                    <th>ผู้ครอบครอง</th>
+                                    <th class="text-center" style="width: 120px;">สถานะ</th>
+                                    <th class="text-center" style="width: 150px;">อัพเดทล่าสุด</th>
+                                    <th>อัพเดทโดย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- ข้อมูลจะถูกเพิ่มด้วย JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>ปิด
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แสดง PDF ผ่าน iframe -->
+<div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-labelledby="pdfViewerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="pdfViewerModalLabel">
+                    <i class="fas fa-file-pdf me-2"></i>รายงานข้อมูลตู้เก็บของพนักงาน (PDF)
+                </h5>
+                <div class="d-flex gap-2">
+                    <!-- ปุ่มควบคุม PDF -->
+                    <button type="button" class="btn btn-light btn-sm" id="btnDownloadPDF" title="ดาวน์โหลด PDF">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button type="button" class="btn btn-light btn-sm" id="btnOpenNewTab" title="เปิดในแท็บใหม่">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                    <button type="button" class="btn btn-light btn-sm" id="btnRefreshPDF" title="รีเฟรช PDF">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="height: calc(100vh - 60px);">
+                <!-- Loading indicator -->
+                <div id="pdfLoadingIndicator" class="d-flex justify-content-center align-items-center h-100">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">กำลังโหลด...</span>
+                        </div>
+                        <h5 class="text-muted">กำลังสร้างรายงาน PDF</h5>
+                        <p class="text-muted">กรุณารอสักครู่...</p>
+                    </div>
+                </div>
+                
+                <!-- Error indicator -->
+                <div id="pdfErrorIndicator" class="d-none d-flex justify-content-center align-items-center h-100">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted">ไม่สามารถแสดง PDF ได้</h5>
+                        <p class="text-muted mb-4" id="pdfErrorMessage">เกิดข้อผิดพลาดในการสร้างไฟล์ PDF</p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button type="button" class="btn btn-primary" id="btnRetryPDF">
+                                <i class="fas fa-redo me-1"></i>ลองอีกครั้ง
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="btnDownloadHTML">
+                                <i class="fas fa-file-code me-1"></i>ดาวน์โหลด HTML
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- PDF iframe -->
+                <iframe 
+                    id="pdfIframe" 
+                    class="d-none w-100 h-100 border-0" 
+                    title="PDF Viewer"
+                    allow="fullscreen">
+                </iframe>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <span id="pdfStatus">กำลังเตรียมข้อมูล...</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnPrintPDF">
+                            <i class="fas fa-print me-1"></i>พิมพ์
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>ปิด
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แสดงรายงาน HTML -->
+<div class="modal fade" id="htmlReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>รายงานข้อมูลตู้เก็บของพนักงาน
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnPrintHTMLReport">
+                            <i class="fas fa-print me-1"></i>พิมพ์รายงาน
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" id="btnDownloadHTMLReport">
+                            <i class="fas fa-file-download me-1"></i>ดาวน์โหลด HTML
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" id="btnRefreshHTMLReport">
+                            <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                        </button>
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>รายการทั้งหมด: <span id="htmlReportTotalRecords">0</span> | 
+                        อัพเดทล่าสุด: <span id="htmlReportLastUpdate"></span>
+                    </div>
+                </div>
+                <div id="htmlReportContent" class="p-3">
+                    <!-- เนื้อหารายงาน HTML จะถูกเพิ่มด้วย JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>ปิด
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- นำเข้า Select2 CSS และ JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <style>
+        /* ปรับตำแหน่ง Modal ให้อยู่ด้านบนกึ่งกลาง */
+        .modal-dialog {
+            margin-top: 70px !important;
+            margin-bottom: auto !important;
+        }
+        
+        /* ปรับแต่ง Modal เพื่อให้มีเอฟเฟกต์การเคลื่อนไหว */
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s ease-out !important;
+            transform: translateY(-50px) !important;
+        }
+        
+        .modal.show .modal-dialog {
+            transform: none !important;
+        }
+        
+        /* เพิ่มเอฟเฟกต์ในการแสดง/ซ่อน */
+        .animated {
+            animation-duration: 0.3s;
+            animation-fill-mode: both;
+        }
+        
+        /* คำสั่ง keyframes สำหรับ bounceIn */
+        @@keyframes bounceIn {
+            from, 20%, 40%, 60%, a0% {
+                animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+            }
+            0% {
+                transform: scale3d(0.3, 0.3, 0.3);
+            }
+            20% {
+                transform: scale3d(1.1, 1.1, 1.1);
+            }
+            40% {
+                transform: scale3d(0.9, 0.9, 0.9);
+            }
+            60% {
+                transform: scale3d(1.03, 1.03, 1.03);
+            }
+            80% {
+                transform: scale3d(0.97, 0.97, 0.97);
+            }
+            to {
+                transform: scale3d(1, 1, 1);
+            }
+        }
+        
+        .bounceIn {
+            animation-name: bounceIn;
+        }
+        
+        /* คำสั่ง keyframes สำหรับ fadeIn */
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .fadeIn {
+            animation-name: fadeIn;
+        }
+        
+        /* ทำให้ backdrop ทึบแสดงมีสีเข้มขึ้น */
+        .modal-backdrop.show {
+            opacity: 0.7 !important;
+            background-color: #1a2035 !important;
+        }
+        
+        /* แก้ไขปัญหาเครื่องหมายถูกสีเขียวที่แสดงหลังการอัปเดต */
+        svg.checkmark, 
+        .swal2-success-circular-line-left, 
+        .swal2-success-circular-line-right, 
+        .swal2-success-fix, 
+        .swal2-success-ring,
+        .success-icon, 
+        .check-icon {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        
+        /* กำหนดให้ซ่อนเครื่องหมายถูกสีเขียว */
+        .swal2-icon.swal2-success [class^="swal2-success-line"] {
+            display: none !important;
+        }
+        
+        /* ซ่อนวงกลมสีเขียวที่มักจะเป็นของ SweetAlert2 */
+        .swal2-success-ring, .swal2-icon.swal2-success .swal2-success-ring {
+            display: none !important;
+        }
+        
+        /* Custom styles สำหรับ PDF Modal */
+        #pdfViewerModal .modal-dialog {
+            margin: 0;
+            max-width: 100%;
+            height: 100vh;
+        }
+
+        #pdfViewerModal .modal-content {
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        #pdfViewerModal .modal-header {
+            border-radius: 0;
+            padding: 0.75rem 1rem;
+        }
+
+        #pdfViewerModal .modal-footer {
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        #pdfIframe {
+            border: none;
+            background: #f8f9fa;
+        }
+
+        /* Loading และ Error indicators */
+        #pdfLoadingIndicator,
+        #pdfErrorIndicator {
+            background: #f8f9fa;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            #pdfViewerModal .modal-header .d-flex {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            #pdfViewerModal .modal-header .btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.875rem;
+            }
+            
+            #pdfViewerModal .modal-footer .d-flex {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        /* PDF Viewer enhancements */
+        .pdf-controls {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* เพิ่ม responsive สำหรับ mobile */
+        @@media (max-width: 576px) {
+            .pdf-fallback-content {
+                padding: 1rem;
+            }
+            
+            .pdf-fallback-content .btn {
+                min-width: auto;
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .pdf-fallback-content .d-flex {
+                flex-direction: column;
+            }
+        }
+    </style>
+    
+    <script>
+        $(document).ready(function() {
+            // ตั้งค่าสิทธิ์การใช้งาน
+            const canEdit = @Json.Serialize(canEdit);
+            const canDelete = @Json.Serialize(canDelete);
+            
+            // เก็บข้อมูลพนักงานไว้ใช้งาน
+            let employeesData = [];
+            
+            // จัดการ Modal HTML Report
+            const htmlReportModal = new bootstrap.Modal(document.getElementById('htmlReportModal'));
+            
+            // โหลดข้อมูลพนักงานครั้งเดียวตอนเริ่มต้น
+            function loadEmployeesOnce() {
+                $.ajax({
+                    url: '/Cabinet/GetEmployees',
+                    type: 'GET',
+                    success: function(data) {
+                        employeesData = data;
+                        populateEmployeeSelect();
+                    },
+                    error: function(xhr) {
+                        console.error('ไม่สามารถโหลดข้อมูลพนักงานได้:', xhr);
+                    }
+                });
+            }
+            
+            // เติมข้อมูลพนักงานลงใน select
+            function populateEmployeeSelect() {
+                const select = $('#cabinetOwner');
+                select.empty();
+                select.append('<option value="">-- เลือกผู้ครอบครอง --</option>');
+                
+                $.each(employeesData, function(i, item) {
+                    select.append(`<option value="${item.id}" data-employee-code="${item.id}">${item.fullName} (${item.id})</option>`);
+                });
+                
+                select.trigger('change');
+            }
+
+            // =====  เปลี่ยนปุ่มรายงาน PDF เป็น HTML Report =====
+            $('#btnShowReport').off('click').on('click', function() {
+                showHTMLReport();
+            });
+
+            // ฟังก์ชันแสดงรายงาน HTML
+            function showHTMLReport() {
+                // แสดง loading
+                Swal.fire({
+                    title: 'กำลังโหลดรายงาน',
+                    text: 'กรุณารอสักครู่...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // เรียกใช้ API GetReportHtml
+                $.ajax({
+                    url: '/Cabinet/GetReportHtml',
+                    type: 'GET',
+                    success: function(response) {
+                        Swal.close();
+                        
+                        if (response.success) {
+                            // แสดงรายงาน HTML ใน modal
+                            $('#htmlReportContent').html(response.htmlContent);
+                            $('#htmlReportLastUpdate').text(response.generatedAt || new Date().toLocaleString('th-TH'));
+                            $('#htmlReportTotalRecords').text(response.totalRecords || 0);
+                            
+                            // แสดง modal
+                            htmlReportModal.show();
+                            
+                            // เพิ่ม tooltip สำหรับข้อมูลที่มี title attribute
+                            $('[title]').tooltip();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: response.message || 'ไม่สามารถสร้างรายงานได้',
+                                confirmButtonText: 'ตกลง'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        
+                        let errorMessage = 'ไม่สามารถสร้างรายงานได้';
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            errorMessage = errorResponse.message || errorMessage;
+                        } catch (e) {
+                            errorMessage = xhr.responseText || errorMessage;
+                        }
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: errorMessage,
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            }
+
+            // ปุ่มพิมพ์รายงาน HTML
+            $(document).on('click', '#btnPrintHTMLReport', function() {
+                // เปิดรายงานแบบเต็มหน้าใน tab ใหม่เพื่อพิมพ์
+                const printWindow = window.open('/Cabinet/GetFullPageReport?print=true', '_blank');
+                
+                // แสดงแจ้งเตือน
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+                
+                Toast.fire({
+                    icon: 'info',
+                    title: 'กำลังเปิดหน้าพิมพ์...'
+                });
+            });
+
+            // ปุ่มดาวน์โหลดรายงาน HTML
+            $(document).on('click', '#btnDownloadHTMLReport', function() {
+                downloadHTMLReport();
+            });
+
+            // ฟังก์ชันดาวน์โหลดรายงาน HTML
+            function downloadHTMLReport() {
+                // แสดง loading
+                const btnHtml = $('#btnDownloadHTMLReport').html();
+                $('#btnDownloadHTMLReport').html('<i class="fas fa-spinner fa-spin me-1"></i>กำลังสร้าง...').prop('disabled', true);
+                
+                $.ajax({
+                    url: '/Cabinet/GetFullPageReport',
+                    type: 'GET',
+                    success: function(htmlContent) {
+                        // สร้าง blob และดาวน์โหลด
+                        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        // แสดงแจ้งเตือนสำเร็จ
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'ดาวน์โหลดรายงาน HTML สำเร็จ'
+                        });
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถดาวน์โหลดรายงานได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    },
+                    complete: function() {
+                        // คืนค่าปุ่มเดิม
+                        $('#btnDownloadHTMLReport').html(btnHtml).prop('disabled', false);
+                    }
+                });
+            }
+
+            // ปุ่มรีเฟรชรายงาน
+            $(document).on('click', '#btnRefreshHTMLReport', function() {
+                // แสดง loading ในปุ่ม
+                const btnHtml = $(this).html();
+                $(this).html('<i class="fas fa-spinner fa-spin"></i> กำลังรีเฟรช...').prop('disabled', true);
+                
+                // โหลดรายงานใหม่
+                $.ajax({
+                    url: '/Cabinet/GetReportHtml',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            // อัปเดตเนื้อหา
+                            $('#htmlReportContent').html(response.htmlContent);
+                            $('#htmlReportLastUpdate').text(response.generatedAt || new Date().toLocaleString('th-TH'));
+                            $('#htmlReportTotalRecords').text(response.totalRecords || 0);
+                            
+                            // เพิ่ม tooltip ใหม่
+                            $('[title]').tooltip();
+                            
+                            // แสดงแจ้งเตือนสำเร็จ
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 1500,
+                                timerProgressBar: true
+                            });
+                            
+                            Toast.fire({
+                                icon: 'success',
+                                title: 'รีเฟรชข้อมูลสำเร็จ'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ไม่สามารถรีเฟรชข้อมูลได้',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถรีเฟรชข้อมูลได้',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    },
+                    complete: function() {
+                        // คืนค่าปุ่มเดิม
+                        $('#btnRefreshHTMLReport').html(btnHtml).prop('disabled', false);
+                    }
+                });
+            });
+
+            // จัดการ Modal และ Focus
+            function setupModal(modalId) {
+                const modal = document.getElementById(modalId);
+                const modalInstance = new bootstrap.Modal(modal);
+                
+                // เก็บ focus ไว้ใน Modal
+                let previousActiveElement = null;
+                
+                modal.addEventListener('show.bs.modal', function() {
+                    previousActiveElement = document.activeElement;
+                    modal.removeAttribute('aria-hidden');
+                    modal.setAttribute('aria-modal', 'true');
+                });
+                
+                modal.addEventListener('shown.bs.modal', function() {
+                    const focusableElements = modal.querySelectorAll(
+                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (focusableElements.length > 0) {
+                        focusableElements[0].focus();
+                    }
+                });
+                
+                modal.addEventListener('hide.bs.modal', function() {
+                    modal.setAttribute('aria-hidden', 'true');
+                    modal.removeAttribute('aria-modal');
+                });
+                
+                modal.addEventListener('hidden.bs.modal', function() {
+                    if (previousActiveElement) {
+                        previousActiveElement.focus();
+                    }
+                });
+                
+                // จัดการ focus เมื่อกด Tab
+                modal.addEventListener('keydown', function(e) {
+                    if (e.key === 'Tab') {
+                        const focusableElements = modal.querySelectorAll(
+                            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                        );
+                        const firstFocusable = focusableElements[0];
+                        const lastFocusable = focusableElements[focusableElements.length - 1];
+                        
+                        if (e.shiftKey) {
+                            if (document.activeElement === firstFocusable) {
+                                e.preventDefault();
+                                lastFocusable.focus();
+                            }
+                        } else {
+                            if (document.activeElement === lastFocusable) {
+                                e.preventDefault();
+                                firstFocusable.focus();
+                            }
+                        }
+                    }
+                });
+                
+                // ป้องกันการคลิกนอก Modal
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modalInstance.hide();
+                    }
+                });
+                
+                return modalInstance;
+            }
+            
+            // ตั้งค่า Modal ทั้งหมด
+            const cabinetModal = setupModal('cabinetModal');
+            const deleteModal = setupModal('deleteModal');
+            const cabinetRangeModal = setupModal('cabinetRangeModal');
+            const cabinetRangeResultModal = setupModal('cabinetRangeResultModal');
+            
+            // DataTable
+            const table = $('#cabinetTable').DataTable({
+                ajax: {
+                    url: '/Cabinet/GetAll',
+                    type: 'GET',
+                    dataSrc: ''
+                },
+                columns: [
+                    { 
+                        data: 'No',
+                        className: 'text-center'
+                    },
+                    { 
+                        data: 'OwnerName', 
+                        render: function(data, type, row) {
+                            if (type === 'display') {
+                                let html = '';
+                                
+                                if (data) {
+                                    // มีชื่อพนักงาน
+                                    if (row.IsResigned) {
+                                        // พนักงานลาออกแล้ว - แสดงชื่อพร้อมป้ายลาออก
+                                        html = `<div class="d-flex align-items-center gap-2">
+                                                    <span>${data}</span>
+                                                    <span class="badge bg-danger" data-bs-toggle="tooltip" title="วันที่ลาออก: ${row.ResignDate || 'ไม่ระบุ'}">ลาออกแล้ว</span>
+                                                </div>`;
+                                    } else {
+                                        // พนักงานยังทำงานอยู่ - แสดงชื่อปกติ
+                                        html = data;
+                                    }
+                                } else if (row.Owner) {
+                                    // มีรหัสพนักงานแต่ไม่มีชื่อ
+                                    html = `<span class="text-primary">${row.Owner}</span>`;
+                                } else {
+                                    // ไม่มีทั้งชื่อและรหัสพนักงาน
+                                    html = '<span class="text-muted">-</span>';
+                                }
+                                
+                                return html;
+                            }
+                            return data || row.Owner || '';
+                        } 
+                    },
+                    { 
+                        data: 'status', 
+                        render: function(data, type, row) {
+                            if (type === 'display') {
+                                let statusText, statusClass, icon;
+                                
+                                switch(data) {
+                                    case "0": 
+                                        statusText = "ว่าง"; 
+                                        statusClass = "bg-success";
+                                        icon = "check-circle";
+                                        break;
+                                    case "1": 
+                                        statusText = "มีผู้ใช้งาน"; 
+                                        statusClass = "bg-primary";
+                                        icon = "user-check";
+                                        break;
+                                    case "2": 
+                                        statusText = "ชำรุด"; 
+                                        statusClass = "bg-danger";
+                                        icon = "exclamation-circle";
+                                        break;
+                                    default: 
+                                        statusText = "ไม่ระบุ"; 
+                                        statusClass = "bg-secondary";
+                                        icon = "question-circle";
+                                }
+                                
+                                if (!canEdit) {
+                                    return `<span class="badge ${statusClass}"><i class="fas fa-${icon} me-1"></i>${statusText}</span>`;
+                                }
+                                
+                                // สร้าง Switch Toggle
+                                const isActive = data === "1"; // เช็คว่าสถานะเป็น "มีผู้ใช้งาน" หรือไม่
+                                
+                                return `
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input status-switch" type="checkbox" role="switch" 
+                                            id="statusSwitch${row.Id}" 
+                                            data-id="${row.Id}" 
+                                            data-current="${data}"
+                                            ${isActive ? 'checked' : ''}>
+                                    </div>
+                                    <span class="badge ${statusClass}"><i class="fas fa-${icon} me-1"></i>${statusText}</span>
+                                </div>`;
+                            }
+                            
+                            return data;
+                        } 
+                    },
+                    { data: 'updated_at', render: function(data) { return data || '<span class="text-muted">-</span>'; } },
+                    { data: 'updated_by', render: function(data) { return data || '<span class="text-muted">-</span>'; } },
+                    {
+                        data: null,
+                        render: function(data) {
+                            let actions = '';
+                            if (canEdit) {
+                                actions += `<button class="btn btn-warning btn-sm me-1 btn-edit" data-id="${data.Id}" data-bs-toggle="tooltip" title="แก้ไข"><i class="fas fa-edit"></i></button>`;
+                            }
+                            if (canDelete) {
+                                actions += `<button class="btn btn-danger btn-sm btn-delete" data-id="${data.Id}" data-no="${data.No}" data-bs-toggle="tooltip" title="ลบ"><i class="fas fa-trash-alt"></i></button>`;
+                            }
+                            return actions || '<span class="text-muted">ไม่มีสิทธิ์</span>';
+                        },
+                        orderable: false
+                    }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Thai.json"
+                }, 
+                responsive: true,
+                order: [[0, 'asc']],
+                pageLength: -1,
+                dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex"f>>t<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex"p>>',
+                initComplete: function() {
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                    $('.dataTables_length select').addClass('form-select form-select-sm');
+                    $('.dataTables_filter input').addClass('form-control form-control-sm');
+                    $('.dataTables_filter input').attr('placeholder', 'ค้นหา...');
+                    $('.dataTables_filter label').addClass('d-flex align-items-center gap-2');
+                    $('.dataTables_filter label').html(`<i class="fas fa-search"></i>${$('.dataTables_filter label').html()}`);
+                }
+            });
+
+            // เปิด Modal เพิ่มข้อมูล
+            $('#btnAddCabinet').click(function() {
+                // รอให้ข้อมูลพนักงานโหลดเสร็จก่อน
+                function waitForEmployeesData(callback) {
+                    if (employeesData.length > 0) {
+                        callback();
+                    } else {
+                        setTimeout(() => waitForEmployeesData(callback), 100);
+                    }
+                }
+                
+                waitForEmployeesData(function() {
+                    $('#cabinetForm')[0].reset();
+                    $('#cabinetId').val('');
+                    $('#cabinetModalLabel').html('<i class="fas fa-plus-circle me-2"></i>เพิ่มตู้เก็บของพนักงาน');
+                    populateEmployeeSelect();
+                    cabinetModal.show();
+                });
+            });
+
+            // เปิด Modal เพิ่มตู้แบบช่วง
+            $('#btnAddCabinetRange').click(function() {
+                $('#cabinetRangeForm')[0].reset();
+                cabinetRangeModal.show();
+            });
+
+            // บันทึกการเพิ่มตู้แบบช่วง
+            $('#btnSaveCabinetRange').click(function() {
+                if (!$('#cabinetRangeForm')[0].checkValidity()) {
+                    $('#cabinetRangeForm')[0].reportValidity();
+                    return;
+                }
+                
+                const jsonData = {
+                    Range: $('#cabinetRange').val()
+                };
+                
+                Swal.fire({
+                    title: 'กำลังดำเนินการ',
+                    text: 'กำลังเพิ่มตู้เก็บของแบบช่วง...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                    url: '/api/Cabinet/BatchCreate',
+                    type: 'POST',
+                    data: JSON.stringify(jsonData),
+                    contentType: 'application/json',
+                    success: function(result) {
+                        Swal.close();
+                        table.ajax.reload();
+                        cabinetRangeModal.hide();
+                        
+                        // แสดงผลลัพธ์
+                        let resultContent = `
+                            <div class="mb-4">
+                                <h5>สรุปผลการดำเนินการ</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <tr>
+                                            <th class="bg-light">ช่วงที่ระบุ</th>
+                                            <td>${result.Range}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">จำนวนตู้ทั้งหมดที่ต้องการเพิ่ม</th>
+                                            <td>${result.TotalRequested}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">จำนวนตู้ที่เพิ่มสำเร็จ</th>
+                                            <td><span class="text-success">${result.TotalCreated}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">จำนวนตู้ที่ข้าม (มีอยู่แล้ว)</th>
+                                            <td><span class="text-warning">${result.TotalSkipped}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">จำนวนตู้ที่เพิ่มไม่สำเร็จ</th>
+                                            <td><span class="text-danger">${result.TotalFailed}</span></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                        
+                        if (result.TotalCreated > 0) {
+                            resultContent += `
+                                <div class="mb-3">
+                                    <h6 class="text-success"><i class="fas fa-check-circle me-1"></i>รายการตู้ที่เพิ่มสำเร็จ (${result.TotalCreated} รายการ)</h6>
+                                    <div class="bg-light p-2 rounded mb-2" style="max-height: 100px; overflow-y: auto;">
+                                        ${result.CreatedCabinets.join(', ')}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (result.TotalSkipped > 0) {
+                            resultContent += `
+                                <div class="mb-3">
+                                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>รายการตู้ที่ข้าม (มีอยู่แล้ว) (${result.TotalSkipped} รายการ)</h6>
+                                    <div class="bg-light p-2 rounded mb-2" style="max-height: 100px; overflow-y: auto;">
+                                        ${result.SkippedCabinets.join(', ')}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (result.TotalFailed > 0) {
+                            let failedList = '';
+                            result.FailedCabinets.forEach(item => {
+                                failedList += `<div>ตู้ ${item.key}: ${item.value}</div>`;
+                            });
+                            
+                            resultContent += `
+                                <div class="mb-3">
+                                    <h6 class="text-danger"><i class="fas fa-times-circle me-1"></i>รายการตู้ที่เพิ่มไม่สำเร็จ (${result.TotalFailed} รายการ)</h6>
+                                    <div class="bg-light p-2 rounded mb-2" style="max-height: 100px; overflow-y: auto;">
+                                        ${failedList}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        $('#cabinetRangeResultContent').html(resultContent);
+                        cabinetRangeResultModal.show();
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถเพิ่มตู้แบบช่วงได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            });
+
+            // เปิด Modal แก้ไขข้อมูล
+            $(document).on('click', '.btn-edit', function() {
+                const id = $(this).data('id');
+                // get no cabinet
+                const no = $(this).closest('tr').find('td:eq(0)').text();
+                
+                $.ajax({
+                    url: `/Cabinet/Get/${id}`,
+                    type: 'GET',
+                    success: function(data) {
+                        try {
+                            // รอให้ข้อมูลพนักงานโหลดเสร็จก่อน
+                            function waitForEmployeesData(callback) {
+                                if (employeesData.length > 0) {
+                                    callback();
+                                } else {
+                                    setTimeout(() => waitForEmployeesData(callback), 100);
+                                }
+                            }
+                            
+                            waitForEmployeesData(function() {
+                                populateEmployeeSelect();
+                                
+                                $(document).find('#cabinetId').val(data.Id || '');
+                                $(document).find('#cabinetNo').val(no);
+                                $(document).find('#cabinetStatus').val(data.status || '0');
+                                
+                                // กำหนดค่า select โดยใช้ Owner ID
+                                if (data.Owner) {
+                                    $(document).find('#cabinetOwner').val(data.Owner).trigger('change');
+                                } else {
+                                    $(document).find('#cabinetOwner').val('').trigger('change');
+                                }
+                                
+                                $('#cabinetModalLabel').html('<i class="fas fa-edit me-2"></i>แก้ไขตู้เก็บของพนักงาน');
+                                cabinetModal.show();
+                            });
+                            
+                        } catch (error) {
+                            console.error('Error setting cabinet form values:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: 'ไม่สามารถโหลดข้อมูลตู้ได้',
+                                confirmButtonText: 'ตกลง'
+                            });
+                        }
+                    }
+                });
+            });
+
+            // บันทึกข้อมูล
+            $('#btnSaveCabinet').click(function() {
+                if (!$('#cabinetForm')[0].checkValidity()) {
+                    $('#cabinetForm')[0].reportValidity();
+                    return;
+                }
+                
+                const formData = {
+                    Id: $('#cabinetId').val() || 0,
+                    No: $('#cabinetNo').val(),
+                    Owner: $('#cabinetOwner').val(),
+                    status: $('#cabinetStatus').val() || "0"
+                };
+                
+                if (formData.status === "1" && (!formData.Owner || formData.Owner === "")) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ข้อมูลไม่ครบถ้วน',
+                        text: 'สถานะ "มีผู้ใช้งาน" ต้องระบุผู้ครอบครอง',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+                
+                const isNew = !formData.Id || formData.Id == "0" || formData.Id == 0;
+                const url = isNew ? '/Cabinet/Create' : '/Cabinet/Update';
+                const method = isNew ? 'POST' : 'PUT';
+                
+                $.ajax({
+                    url: url,
+                    type: method,
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    success: function() {
+                        table.ajax.reload();
+                        cabinetModal.hide();
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'บันทึกข้อมูลสำเร็จ',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถบันทึกข้อมูลได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            });
+
+            // เปิด Modal ยืนยันการลบ
+            $(document).on('click', '.btn-delete', function() {
+                const id = $(this).data('id');
+                const no = $(this).data('no');
+                
+                $('#deleteItemNo').text(no);
+                $('#btnConfirmDelete').data('id', id);
+                deleteModal.show();
+            });
+
+            // ยืนยันการลบ
+            $('#btnConfirmDelete').click(function() {
+                const id = $(this).data('id');
+                
+                $.ajax({
+                    url: `/Cabinet/Delete/${id}`,
+                    type: 'DELETE',
+                    success: function() {
+                        table.ajax.reload();
+                        deleteModal.hide();
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ลบข้อมูลสำเร็จ',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    },
+                    error: function(xhr) {
+                        deleteModal.hide();
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถลบข้อมูลได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            });
+            
+            // แสดง tooltip
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // เพิ่ม Event handlers สำหรับการเปลี่ยนสถานะด้วย Switch
+            $(document).on('change', '.status-switch', function() {
+                const id = $(this).data('id');
+                const current = $(this).data('current'); 
+                const isChecked = $(this).prop('checked');
+                var dataRow = $(this).closest('tr');
+                var no = dataRow.find('td:eq(0)').text();
+                
+                let newStatus = isChecked ? "1" : "0";
+                
+                if (current === "2" && !isChecked) {
+                    Swal.fire({
+                        title: 'เปลี่ยนสถานะตู้',
+                        text: 'ตู้นี้อยู่ในสถานะชำรุด คุณต้องการเปลี่ยนเป็น?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'ว่าง',
+                        cancelButtonText: 'ยกเลิก',
+                        showDenyButton: true,
+                        denyButtonText: 'ยังชำรุดอยู่',
+                        denyButtonColor: '#dc3545'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            updateCabinetStatus(id, "0", no);
+                        } else if (result.isDenied) {
+                            updateCabinetStatus(id, "2", no);
+                            $(this).prop('checked', false);
+                        } else {
+                            $(this).prop('checked', !isChecked);
+                        }
+                    });
+                    return;
+                }
+                
+                updateCabinetStatus(id, newStatus, no);
+            });
+            
+            // ฟังก์ชันอัปเดตสถานะตู้
+            function updateCabinetStatus(id, newStatus, no) {
+                $.ajax({
+                    url: `/Cabinet/Get/${id}`,
+                    type: 'GET',
+                    success: function(data) {
+                        // ถ้าต้องการเปลี่ยนเป็นไม่ว่าง (1) แต่ยังไม่มีผู้ครอบครอง
+                        if (newStatus === "1" && (!data.owner || data.owner === "")) {
+                            // รอให้ข้อมูลพนักงานโหลดเสร็จก่อน
+                            function waitForEmployeesData(callback) {
+                                if (employeesData.length > 0) {
+                                    callback();
+                                } else {
+                                    setTimeout(() => waitForEmployeesData(callback), 100);
+                                }
+                            }
+                            
+                            waitForEmployeesData(function() {
+                                populateEmployeeSelect();
+                                
+                                $(document).find('#cabinetId').val(id);
+                                $(document).find('#cabinetNo').val(data.No);
+                                $(document).find('#cabinetStatus').val(newStatus);
+                                $(document).find('#cabinetOwner').val(data.owner || '').trigger('change');
+                                
+                                $(document).find('#cabinetModalLabel').html('<i class="fas fa-user-plus me-2"></i>กรุณาระบุผู้ครอบครอง');
+                                cabinetModal.show();
+                            });
+                            return;
+                        }
+
+                        // อัปเดตสถานะและข้อมูลผู้ครอบครอง
+                        data.status = newStatus;
+                        // ถ้าต้องการเปลี่ยนเป็นว่าง (0) ให้ล้างข้อมูลผู้ครอบครอง
+                        if (newStatus === "0") {
+                            data.owner = "";
+                        }
+
+                        $.ajax({
+                            url: '/Cabinet/Update',
+                            type: 'PUT',
+                            data: JSON.stringify(data),
+                            contentType: 'application/json',
+                            success: function() {
+                                table.ajax.reload(null, false);
+                                
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'อัปเดตสถานะสำเร็จ',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'อัปเดตสถานะไม่สำเร็จ',
+                                    text: xhr.responseText || 'ไม่สามารถเปลี่ยนสถานะได้',
+                                    confirmButtonText: 'ตกลง'
+                                });
+                                table.ajax.reload(null, false);
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถดึงข้อมูลตู้ได้'
+                        });
+                        table.ajax.reload(null, false);
+                    }
+                });
+            }
+
+            // กำหนดค่าเริ่มต้นสำหรับ Select2
+            function initSelect2() {
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    dropdownParent: $('#cabinetModal'),
+                    allowClear: true,
+                    placeholder: "-- เลือกผู้ครอบครอง --",
+                    language: {
+                        noResults: function() {
+                            return "ไม่พบข้อมูลพนักงาน";
+                        },
+                        searching: function() {
+                            return "กำลังค้นหา...";
+                        }
+                    },
+                    templateResult: function(option) {
+                        if (!option.id) {
+                            return option.text;
+                        }
+                        
+                        // สร้าง template สำหรับแสดงผลในรายการ dropdown
+                        var $option = $(
+                            '<div class="d-flex align-items-center">' +
+                                '<div class="me-2">' +
+                                    '<i class="fas fa-user-circle text-primary"></i>' +
+                                '</div>' +
+                                '<div>' +
+                                    '<div class="fw-semibold">' + option.text.split(' (')[0] + '</div>' +
+                                    '<div class="text-muted small">รหัส: ' + option.element.dataset.employeeCode + '</div>' +
+                                '</div>' +
+                            '</div>'
+                        );
+                        return $option;
+                    },
+                    templateSelection: function(option) {
+                        if (!option.id) {
+                            return option.text;
+                        }
+                        
+                        // สร้าง template สำหรับแสดงผลเมื่อเลือกแล้ว
+                        return option.text.split(' (')[0]; // แสดงแค่ชื่อ ไม่แสดงรหัส
+                    }
+                });
+            }
+
+            // เรียกใช้ Select2 เมื่อเพจโหลดเสร็จ
+            initSelect2();
+            
+            // โหลดข้อมูลพนักงานครั้งเดียวตอนเริ่มต้น
+            loadEmployeesOnce();
+            
+            // ต้องเรียกใช้ Select2 อีกครั้งเมื่อ Modal แสดง
+            $('#cabinetModal').on('shown.bs.modal', function() {
+                initSelect2();
+            });
+
+            // จัดการ Modal รายงาน
+            const reportModal = setupModal('reportModal');
+            let reportTable;
+
+            // ตัวแปรสำหรับเก็บ URL ของ PDF
+            let currentPdfUrl = null;
+            let pdfModal = null;
+            
+            // Initialize PDF Modal
+            const pdfModalElement = document.getElementById('pdfViewerModal');
+            if (pdfModalElement) {
+                pdfModal = new bootstrap.Modal(pdfModalElement);
+            }
+            
+            // ฟังก์ชันแสดง PDF ใน Modal
+            function showPDFInModal() {
+                if (!pdfModal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถเปิด Modal ได้',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+                
+                // แสดง Modal และ loading
+                pdfModal.show();
+                showPDFLoading();
+                
+                // สร้างและเรียกใช้ API
+                generatePDFAndShow();
+            }
+            
+            // ฟังก์ชันแสดง loading
+            function showPDFLoading() {
+                $('#pdfLoadingIndicator').removeClass('d-none');
+                $('#pdfErrorIndicator').addClass('d-none');
+                $('#pdfIframe').addClass('d-none');
+                $('#pdfStatus').text('กำลังสร้างรายงาน PDF...');
+            }
+            
+            // ฟังก์ชันแสดง error
+            function showPDFError(message) {
+                $('#pdfLoadingIndicator').addClass('d-none');
+                $('#pdfErrorIndicator').removeClass('d-none');
+                $('#pdfIframe').addClass('d-none');
+                $('#pdfErrorMessage').text(message || 'เกิดข้อผิดพลาดในการสร้างไฟล์ PDF');
+                $('#pdfStatus').text('เกิดข้อผิดพลาด');
+            }
+            
+            // ฟังก์ชันแสดง PDF
+            function showPDFContent(url) {
+                $('#pdfLoadingIndicator').addClass('d-none');
+                $('#pdfErrorIndicator').addClass('d-none');
+                $('#pdfIframe').removeClass('d-none');
+                
+                // ตั้งค่า iframe
+                const iframe = document.getElementById('pdfIframe');
+                iframe.src = url;
+                currentPdfUrl = url;
+                
+                $('#pdfStatus').text('แสดง PDF สำเร็จ');
+                
+                // จัดการ iframe load event
+                iframe.onload = function() {
+                    $('#pdfStatus').text(`แสดง PDF สำเร็จ - ${new Date().toLocaleString('th-TH')}`);
+                };
+                
+                iframe.onerror = function() {
+                    showPDFError('ไม่สามารถโหลด PDF ได้');
+                };
+            }
+            
+            // ฟังก์ชันสร้างและแสดง PDF
+            function generatePDFAndShow() {
+                // สร้าง URL สำหรับ PDF พร้อม timestamp เพื่อป้องกัน cache
+                const pdfUrl = `/Cabinet/ExportPDF?timestamp=${Date.now()}`;
+                
+                // ตรวจสอบว่า PDF สร้างได้หรือไม่
+                fetch(pdfUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/pdf, application/json'
+                    }
+                })
+                .then(response => {
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (response.ok && contentType && contentType.includes('application/pdf')) {
+                        // สำเร็จ - แสดง PDF
+                        showPDFContent(pdfUrl);
+                    } else if (response.ok && contentType && contentType.includes('application/json')) {
+                        // ได้ JSON response (อาจเป็น error หรือ fallback)
+                        return response.json().then(data => {
+                            if (data.success === false) {
+                                showPDFError(data.message || 'ไม่สามารถสร้าง PDF ได้');
+                            } else {
+                                showPDFError('ได้รับข้อมูลไม่ถูกต้อง');
+                            }
+                        });
+                    } else {
+                        // HTTP error
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('PDF Generation Error:', error);
+                    showPDFError(`เกิดข้อผิดพลาด: ${error.message}`);
+                });
+            }
+
+            // เปิด Modal รายงาน
+            $('#btnShowReport').off('click').on('click', function() {
+                showPDFInModal();
+            });
+            
+            // ปุ่มดาวน์โหลด PDF ใน Modal
+            $('#btnDownloadPDF').on('click', function() {
+                if (currentPdfUrl) {
+                    const link = document.createElement('a');
+                    link.href = currentPdfUrl;
+                    link.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // แสดงแจ้งเตือน
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'เริ่มดาวน์โหลด PDF แล้ว'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่พบไฟล์ PDF',
+                        text: 'กรุณาสร้าง PDF ใหม่อีกครั้ง',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            });
+            
+            // ปุ่มเปิดในแท็บใหม่
+            $('#btnOpenNewTab').on('click', function() {
+                if (currentPdfUrl) {
+                    window.open(currentPdfUrl, '_blank');
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่พบไฟล์ PDF',
+                        text: 'กรุณาสร้าง PDF ใหม่อีกครั้ง',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            });
+            
+            // ปุ่มรีเฟรช PDF
+            $('#btnRefreshPDF').on('click', function() {
+                if (pdfModal._isShown) {
+                    showPDFLoading();
+                    generatePDFAndShow();
+                }
+            });
+            
+            // ปุ่มลองอีกครั้ง
+            $('#btnRetryPDF').on('click', function() {
+                showPDFLoading();
+                generatePDFAndShow();
+            });
+            
+            // ปุ่มดาวน์โหลด HTML (fallback)
+            $('#btnDownloadHTML').on('click', function() {
+                $.ajax({
+                    url: '/Cabinet/GetAll',
+                    type: 'GET',
+                    success: function(data) {
+                        // สร้าง HTML content
+                        const htmlContent = generateFullPageReport(data);
+                        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ดาวน์โหลดสำเร็จ',
+                            text: 'ไฟล์ HTML ถูกดาวน์โหลดแล้ว',
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถสร้างไฟล์ HTML ได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            });
+            
+            // ปุ่มพิมพ์
+            $('#btnPrintPDF').on('click', function() {
+                if (currentPdfUrl) {
+                    // เปิดในหน้าต่างใหม่เพื่อพิมพ์
+                    const printWindow = window.open(currentPdfUrl, '_blank');
+                    printWindow.onload = function() {
+                        setTimeout(() => {
+                            printWindow.print();
+                        }, 1000);
+                    };
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่พบไฟล์ PDF',
+                        text: 'กรุณาสร้าง PDF ใหม่อีกครั้ง',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            });
+            
+            // จัดการเมื่อ Modal ปิด
+            $('#pdfViewerModal').on('hidden.bs.modal', function() {
+                // ล้าง iframe
+                const iframe = document.getElementById('pdfIframe');
+                if (iframe) {
+                    iframe.src = '';
+                }
+                currentPdfUrl = null;
+                
+                // รีเซ็ต UI
+                $('#pdfLoadingIndicator').removeClass('d-none');
+                $('#pdfErrorIndicator').addClass('d-none');
+                $('#pdfIframe').addClass('d-none');
+                $('#pdfStatus').text('กำลังเตรียมข้อมูล...');
+            });
+            
+            // เปิดรายงานใน tab ใหม่ (แบบเต็มหน้า)
+            $('#btnPrintReport').click(function() {
+                // แสดง loading
+                Swal.fire({
+                    title: 'กำลังสร้างรายงาน',
+                    text: 'กรุณารอสักครู่...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // เรียกใช้ API เพื่อสร้างรายงานแบบเต็มหน้า
+                $.ajax({
+                    url: '/Cabinet/GetAll',
+                    type: 'GET',
+                    success: function(data) {
+                        Swal.close();
+                        
+                        // สร้าง HTML สำหรับรายงานแบบเต็มหน้า
+                        const reportWindow = window.open('', '_blank');
+                        reportWindow.document.write(generateFullPageReport(data));
+                        reportWindow.document.close();
+                        
+                        // รอให้หน้าโหลดเสร็จแล้วเรียกใช้ print
+                        reportWindow.onload = function() {
+                            setTimeout(() => {
+                                reportWindow.print();
+                            }, 500);
+                        };
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถสร้างรายงานได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            });
+            
+            // ดาวน์โหลด PDF
+            $('#btnExportPDF').click(function() {
+                // แสดง loading
+                Swal.fire({
+                    title: 'กำลังสร้าง PDF',
+                    text: 'กรุณารอสักครู่...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // เรียกใช้ API เพื่อสร้าง PDF
+                fetch('/Cabinet/ExportPDF', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/pdf, application/json'
+                    }
+                })
+                .then(response => {
+                    Swal.close();
+                    
+                    // ตรวจสอบ Content-Type
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/pdf')) {
+                        // กรณีได้ไฟล์ PDF
+                        return response.blob().then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ดาวน์โหลดสำเร็จ',
+                                text: 'ไฟล์ PDF ถูกดาวน์โหลดแล้ว',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        });
+                    } else {
+                        // กรณีได้ response แบบ JSON (error หรือ fallback)
+                        return response.json().then(data => {
+                            if (data.success === false) {
+                                // แสดงข้อความแจ้งเตือน
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'ไม่สามารถสร้าง PDF ได้',
+                                    text: data.message || 'กรุณาตรวจสอบการตั้งค่า DinkToPdf',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'ดาวน์โหลด HTML แทน',
+                                    cancelButtonText: 'ยกเลิก'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        // ดาวน์โหลดเป็น HTML แทน
+                                        downloadAsHTML();
+                                    }
+                                });
+                            } else {
+                                throw new Error(data.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ');
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.close();
+                    console.error('Export PDF Error:', error);
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: error.message || 'ไม่สามารถสร้างไฟล์ PDF ได้',
+                        showCancelButton: true,
+                        confirmButtonText: 'ลองดาวน์โหลด HTML',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            downloadAsHTML();
+                        }
+                    });
+                });
+            });
+            
+            // ฟังก์ชันดาวน์โหลดเป็น HTML
+            function downloadAsHTML() {
+                $.ajax({
+                    url: '/Cabinet/GetAll',
+                    type: 'GET',
+                    success: function(data) {
+                        const htmlContent = generateFullPageReport(data);
+                        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ดาวน์โหลดสำเร็จ',
+                            text: 'ไฟล์ HTML ถูกดาวน์โหลดแล้ว',
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถสร้างไฟล์ HTML ได้',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            }
+
+            // ฟังก์ชันสร้างรายงานแบบเต็มหน้า
+            function generateFullPageReport(data) {
+                // คำนวณสถิติ
+                const stats = calculateStats(data);
+                
+                const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>รายงานข้อมูลตู้เก็บของพนักงาน</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                <style>
+                    @@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+                    
+                    body {
+                        font-family: 'Sarabun', sans-serif;
+                        font-size: 14px;
+                        line-height: 1.6;
+                    }
+                    
+                    .report-header {
+                        background: linear-gradient(135deg, #007bff, #0056b3);
+                        color: white;
+                        padding: 2rem;
+                        margin-bottom: 2rem;
+                        border-radius: 15px;
+                    }
+                    
+                    .stats-card {
+                        border: none;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    }
+                    
+                    .table {
+                        font-size: 13px;
+                    }
+                    
+                    .badge {
+                        font-size: 11px;
+                        padding: 6px 10px;
+                        border-radius: 20px;
+                    }
+                    
+                    @@media print {
+                        body { print-color-adjust: exact; }
+                        .no-print { display: none !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container-fluid p-4">
+                    <div class="report-header text-center">
+                        <h1><i class="fas fa-box me-3"></i>รายงานข้อมูลตู้เก็บของพนักงาน</h1>
+                        <div class="fs-6 opacity-75">Employee Cabinet Management Report</div>
+                        <div class="fs-6 opacity-75">สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}</div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-2">
+                            <div class="card stats-card">
+                                <div class="card-body text-center bg-light">
+                                    <h3 class="text-secondary mb-1">${stats.total}</h3>
+                                    <small class="text-muted">ตู้ทั้งหมด</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card stats-card">
+                                <div class="card-body text-center bg-success text-white">
+                                    <h3 class="mb-1">${stats.available}</h3>
+                                    <small>ตู้ว่าง</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card stats-card">
+                                <div class="card-body text-center bg-primary text-white">
+                                    <h3 class="mb-1">${stats.occupied}</h3>
+                                    <small>มีผู้ใช้งาน</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card stats-card">
+                                <div class="card-body text-center bg-danger text-white">
+                                    <h3 class="mb-1">${stats.damaged}</h3>
+                                    <small>ชำรุด</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card stats-card">
+                                <div class="card-body text-center bg-warning text-white">
+                                    <h3 class="mb-1">${stats.resigned}</h3>
+                                    <small>เจ้าของลาออก</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card stats-card">
+                                <div class="card-body text-center bg-info text-white">
+                                    <h3 class="mb-1">-</h3>
+                                    <small>พนักงานไม่มีตู้</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>รายละเอียดตู้เก็บของ (${data.length} รายการ)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th class="text-center" style="width: 60px;">#</th>
+                                            <th class="text-center" style="width: 100px;">เลขที่ตู้</th>
+                                            <th>ผู้ครอบครอง</th>
+                                            <th class="text-center" style="width: 130px;">สถานะ</th>
+                                            <th class="text-center" style="width: 160px;">อัพเดทล่าสุด</th>
+                                            <th class="text-center" style="width: 120px;">อัพเดทโดย</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${generateTableRows(data)}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center text-muted">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            รายงานนี้สร้างอัตโนมัติจากระบบจัดการตู้เก็บของพนักงาน
+                        </small>
+                    </div>
+                </div>`;
+
+                return htmlContent;
+            }
+
+            // ฟังก์ชันคำนวณสถิติ
+            function calculateStats(data) {
+                const total = data.length;
+                const available = data.filter(item => item.status === "0").length;
+                const occupied = data.filter(item => item.status === "1").length;
+                const damaged = data.filter(item => item.status === "2").length;
+                const resigned = data.filter(item => item.IsResigned === true).length;
+                
+                return { total, available, occupied, damaged, resigned };
+            }
+
+            // ฟังก์ชันสร้างแถวตาราง
+            function generateTableRows(data) {
+                return data.map((cabinet, index) => {
+                    let statusText, statusClass, icon;
+                    switch (cabinet.status) {
+                        case "0":
+                            statusText = "ว่าง";
+                            statusClass = "bg-success";
+                            icon = "check-circle";
+                            break;
+                        case "1":
+                            statusText = "มีผู้ใช้งาน";
+                            statusClass = "bg-primary";
+                            icon = "user-check";
+                            break;
+                        case "2":
+                            statusText = "ชำรุด";
+                            statusClass = "bg-danger";
+                            icon = "exclamation-circle";
+                            break;
+                        default:
+                            statusText = "ไม่ระบุ";
+                            statusClass = "bg-secondary";
+                            icon = "question-circle";
+                    }
+
+                    let ownerDisplay = '<span class="text-muted">-</span>';
+                    if (cabinet.OwnerName) {
+                        ownerDisplay = cabinet.OwnerName;
+                        if (cabinet.IsResigned) {
+                            ownerDisplay += ' <span class="badge bg-danger ms-1">ลาออกแล้ว</span>';
+                        }
+                    } else if (cabinet.Owner) {
+                        ownerDisplay = `<span class="text-primary">${cabinet.Owner}</span>`;
+                    }
+
+                    return `
+                        <tr>
+                            <td class="text-center">${index + 1}</td>
+                            <td class="text-center fw-bold">${cabinet.No}</td>
+                            <td>${ownerDisplay}</td>
+                            <td class="text-center">
+                                <span class="badge ${statusClass}">
+                                    <i class="fas fa-${icon} me-1"></i>${statusText}
+                                </span>
+                            </td>
+                            <td class="text-center">${cabinet.updated_at || '-'}</td>
+                            <td class="text-center">${cabinet.updated_by || '-'}</td>
+                        </tr>`;
+                }).join('');
+            }
+
+            // รีเฟรชรายงาน
+            $('#btnRefreshReport').click(function() {
+                // แสดง loading ในปุ่ม
+                const btnHtml = $(this).html();
+                $(this).html('<i class="fas fa-spinner fa-spin"></i> กำลังรีเฟรช...');
+                $(this).prop('disabled', true);
+                
+                // เรียกใช้ API GetReportHtml เพื่อดึงเนื้อหา HTML โดยตรง
+                $.ajax({
+                    url: '/Cabinet/GetReportHtml',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            // แสดงเนื้อหา HTML โดยตรงใน modal
+                            $('#reportContent').html(response.htmlContent);
+                            
+                            // ปรับแต่ง CSS ให้รายงานแสดงผลได้อย่างเหมาะสม
+                            $('#reportContent').css({
+                                'max-height': '70vh',
+                                'overflow-y': 'auto',
+                                'padding': '15px'
+                            });
+                            
+                            // อัพเดทเวลาล่าสุด
+                            $('#reportLastUpdate').text(new Date().toLocaleString('th-TH'));
+                            
+                            // เพิ่ม tooltip สำหรับข้อมูลที่มี title attribute
+                            $('[title]').tooltip();
+                            
+                            // แสดงแจ้งเตือนเล็กๆ ด้วย SweetAlert2
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 1500,
+                                timerProgressBar: true
+                            });
+                            
+                            Toast.fire({
+                                icon: 'success',
+                                title: 'รีเฟรชข้อมูลสำเร็จ'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ไม่สามารถรีเฟรชข้อมูลได้',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถรีเฟรชข้อมูลได้',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    },
+                    complete: () => {
+                        // คืนค่าปุ่มเดิม
+                        $(this).html(btnHtml);
+                        $(this).prop('disabled', false);
+                    }
+                });
+            });
+
+            // ตัวแปรสำหรับจัดการ PDF
+            let pdfBlobUrl = null;
+            let isGeneratingPDF = false;
+
+            // ตรวจสอบสถานะ PDF service เมื่อโหลดหน้า
+            checkPDFServiceStatus();
+
+            // ฟังก์ชันตรวจสอบสถานะ PDF service
+            function checkPDFServiceStatus() {
+                $.ajax({
+                    url: '/Cabinet/CheckPDFStatus',
+                    type: 'GET',
+                    timeout: 5000,
+                    success: function(response) {
+                        if (response.success) {
+                            console.log('PDF Service Status:', response.message);
+                            
+                            // อัปเดต UI ตามสถานะ service
+                            if (!response.pdfServiceAvailable) {
+                                // แสดงแจ้งเตือนว่า PDF service ไม่พร้อม
+                                $('#btnShowReport').attr('title', 'PDF service ไม่พร้อมใช้งาน - จะใช้ HTML แทน');
+                                $('#btnShowReport').addClass('btn-warning').removeClass('btn-secondary');
+                            } else {
+                                $('#btnShowReport').attr('title', 'แสดงรายงาน PDF');
+                                $('#btnShowReport').addClass('btn-secondary').removeClass('btn-warning');
+                            }
+                        }
+                    },
+                    error: function() {
+                        console.warn('ไม่สามารถตรวจสอบสถานะ PDF service ได้');
+                    }
+                });
+            }
+
+            // ปรับปรุงฟังก์ชันสร้างและแสดง PDF
+            function generatePDFAndShow() {
+                if (isGeneratingPDF) {
+                    console.log('PDF กำลังสร้างอยู่แล้ว');
+                    return;
+                }
+
+                isGeneratingPDF = true;
+                $('#pdfStatus').text('กำลังสร้างรายงาน PDF...');
+
+                // ล้าง blob URL เก่า
+                if (pdfBlobUrl) {
+                    URL.revokeObjectURL(pdfBlobUrl);
+                    pdfBlobUrl = null;
+                } 
+
+                // สร้าง timestamp เพื่อป้องกัน cache
+                const timestamp = Date.now();
+                const pdfUrl = `/Cabinet/ExportPDFWithiText?timestamp=${timestamp}`;
+
+                // ใช้ fetch เพื่อดึงข้อมูล PDF
+                fetch(pdfUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/pdf, application/json',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (response.ok && contentType && contentType.includes('application/pdf')) {
+                        // สำเร็จ - ได้ PDF
+                        return response.blob().then(blob => {
+                            // สร้าง blob URL
+                            pdfBlobUrl = URL.createObjectURL(blob);
+                            currentPdfUrl = pdfBlobUrl;
+                            showPDFContent(pdfBlobUrl);
+                            
+                            $('#pdfStatus').text(`แสดง PDF สำเร็จ - ขนาดไฟล์: ${formatFileSize(blob.size)}`);
+                        });
+                    } else if (response.ok && contentType && contentType.includes('application/json')) {
+                        // ได้ JSON response (error หรือ fallback info)
+                        return response.json().then(data => {
+                            console.log('PDF Service Response:', data);
+                            
+                            if (data.success === false) {
+                                if (data.fallbackAvailable) {
+                                    // แสดงตัวเลือกให้ผู้ใช้
+                                    showPDFServiceUnavailable(data.message);
+                                } else {
+                                    showPDFError(data.message);
+                                }
+                            } else {
+                                showPDFError('ได้รับข้อมูลไม่ถูกต้อง');
+                            }
+                        });
+                    } else {
+                        // HTTP error
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('PDF Generation Error:', error);
+                    showPDFError(`เกิดข้อผิดพลาด: ${error.message}`);
+                })
+                .finally(() => {
+                    isGeneratingPDF = false;
+                });
+            }
+
+            // ฟังก์ชันแสดงข้อความเมื่อ PDF service ไม่พร้อม
+            function showPDFServiceUnavailable(message) {
+                $('#pdfLoadingIndicator').addClass('d-none');
+                $('#pdfIframe').addClass('d-none');
+                
+                const fallbackContent = `
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-info-circle text-info mb-3" style="font-size: 4rem;"></i>
+                            <h5 class="text-muted mb-3">PDF Service ไม่พร้อมใช้งาน</h5>
+                            <p class="text-muted mb-4">${message}</p>
+                            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                <button type="button" class="btn btn-primary" id="btnShowHTMLReport">
+                                    <i class="fas fa-file-code me-1"></i>แสดงรายงาน HTML
+                                </button>
+                                <button type="button" class="btn btn-success" id="btnDownloadHTMLFallback">
+                                    <i class="fas fa-download me-1"></i>ดาวน์โหลด HTML
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="btnRetryPDFService">
+                                    <i class="fas fa-redo me-1"></i>ลองอีกครั้ง
+                                </button>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    คุณยังสามารถดูรายงานในรูปแบบ HTML ได้
+                                </small>
+                            </div>
+                        </div>
+                    </div>`;
+                
+                $('#pdfErrorIndicator').html(fallbackContent).removeClass('d-none');
+                $('#pdfStatus').text('PDF Service ไม่พร้อมใช้งาน');
+
+                // เพิ่ม event listeners สำหรับปุ่มใน fallback content
+                setupFallbackEventListeners();
+            }
+
+            // ตั้งค่า event listeners สำหรับ fallback options
+            function setupFallbackEventListeners() {
+                // แสดงรายงาน HTML ใน modal
+                $(document).on('click', '#btnShowHTMLReport', function() {
+                    $('#pdfViewerModal').modal('hide');
+                    
+                    // เรียกใช้ modal รายงาน HTML เดิม
+                    setTimeout(() => {
+                        $('#btnShowReport').data('force-html', true);
+                        showHTMLReportInModal();
+                    }, 500);
+                });
+
+                // ดาวน์โหลด HTML
+                $(document).on('click', '#btnDownloadHTMLFallback', function() {
+                    downloadAsHTML();
+                });
+
+                // ลองสร้าง PDF อีกครั้ง
+                $(document).on('click', '#btnRetryPDFService', function() {
+                    showPDFLoading();
+                    setTimeout(generatePDFAndShow, 1000);
+                });
+            }
+
+            // ฟังก์ชันแสดงรายงาน HTML ใน modal
+            function showHTMLReportInModal() {
+                $.ajax({
+                    url: '/Cabinet/GetReportHtml',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            // สร้าง modal ใหม่สำหรับ HTML
+                            const htmlModal = `
+                                <div class="modal fade" id="htmlReportModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-xl">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-info text-white">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-file-code me-2"></i>รายงานข้อมูลตู้เก็บของพนักงาน (HTML)
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body p-3" style="max-height: 70vh; overflow-y: auto;">
+                                                ${response.htmlContent}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-primary" onclick="window.print()">
+                                                    <i class="fas fa-print me-1"></i>พิมพ์
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <i class="fas fa-times me-1"></i>ปิด
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            
+                            // เพิ่ม modal เข้าไปใน DOM ถ้ายังไม่มี
+                            if (!document.getElementById('htmlReportModal')) {
+                                $('body').append(htmlModal);
+                            }
+                            
+                            // แสดง modal
+                            $('#htmlReportModal').modal('show');
+                            
+                            // ลบ modal เมื่อปิด
+                            $('#htmlReportModal').on('hidden.bs.modal', function() {
+                                $(this).remove();
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถสร้างรายงาน HTML ได้'
+                        });
+                    }
+                });
+            }
+
+            // ฟังก์ชันแปลงขนาดไฟล์
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // ปรับปรุง event handler สำหรับปุ่มดาวน์โหลด PDF
+            $('#btnDownloadPDF').off('click').on('click', function() {
+                if (pdfBlobUrl) {
+                    // ใช้ blob URL สำหรับดาวน์โหลด
+                    const link = document.createElement('a');
+                    link.href = pdfBlobUrl;
+                    link.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    showDownloadToast('เริ่มดาวน์โหลด PDF แล้ว', 'success');
+                } else if (currentPdfUrl && !currentPdfUrl.startsWith('blob:')) {
+                    // ใช้ URL ปกติ
+                    window.open(currentPdfUrl, '_blank');
+                } else {
+                    // สร้าง PDF ใหม่สำหรับดาวน์โหลด
+                    fetch('/Cabinet/DownloadPDF', {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/pdf' }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.blob();
+                        }
+                        throw new Error('ไม่สามารถดาวน์โหลด PDF ได้');
+                    })
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `cabinet_report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        showDownloadToast('ดาวน์โหลด PDF สำเร็จ', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Download error:', error);
+                        showDownloadToast('ไม่สามารถดาวน์โหลด PDF ได้', 'error');
+                    });
+                }
+            });
+
+            // ฟังก์ชันแสดงแจ้งเตือนการดาวน์โหลด
+            function showDownloadToast(message, type = 'info') {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+                
+                Toast.fire({
+                    icon: type,
+                    title: message
+                });
+            }
+
+            // จัดการเมื่อ PDF Modal ปิด
+            $('#pdfViewerModal').on('hidden.bs.modal', function() {
+                // ล้าง blob URL
+                if (pdfBlobUrl) {
+                    URL.revokeObjectURL(pdfBlobUrl);
+                    pdfBlobUrl = null;
+                }
+                
+                // รีเซ็ต state
+                currentPdfUrl = null;
+                isGeneratingPDF = false;
+                
+                // ล้าง iframe
+                const iframe = document.getElementById('pdfIframe');
+                if (iframe) {
+                    iframe.src = '';
+                }
+                
+                // รีเซ็ต UI
+                $('#pdfLoadingIndicator').removeClass('d-none');
+                $('#pdfErrorIndicator').addClass('d-none').html(getOriginalErrorContent());
+                $('#pdfIframe').addClass('d-none');
+                $('#pdfStatus').text('กำลังเตรียมข้อมูล...');
+            });
+
+            // ฟังก์ชันรีเซ็ต error content เป็นค่าเดิม
+            function getOriginalErrorContent() {
+                return `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-warning fa-4x mb-3"></i>
+                        <h5 class="text-muted">ไม่สามารถแสดง PDF ได้</h5>
+                        <p class="text-muted mb-4" id="pdfErrorMessage">เกิดข้อผิดพลาดในการสร้างไฟล์ PDF</p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button type="button" class="btn btn-primary" id="btnRetryPDF">
+                                <i class="fas fa-redo me-1"></i>ลองอีกครั้ง
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="btnDownloadHTML">
+                                <i class="fas fa-file-code me-1"></i>ดาวน์โหลด HTML
+                            </button>
+                        </div>
+                    </div>`;
+            }
+
+            // เพิ่มการตรวจสอบ memory usage
+            function checkMemoryUsage() {
+                if (performance.memory) {
+                    const used = Math.round(performance.memory.usedJSHeapSize / 1048576);
+                    const total = Math.round(performance.memory.totalJSHeapSize / 1048576);
+                    console.log(`Memory usage: ${used}MB / ${total}MB`);
+                    
+                    // ถ้าใช้ memory มากเกินไป ให้ล้าง blob URLs
+                    if (used > 100 && pdfBlobUrl) {
+                        URL.revokeObjectURL(pdfBlobUrl);
+                        pdfBlobUrl = null;
+                        console.log('Cleaned up PDF blob URL due to high memory usage');
+                    }
+                }
+            }
+
+            // ตรวจสอบ memory ทุก 30 วินาที
+            setInterval(checkMemoryUsage, 30000);
+        });
+    </script>
+
+    <!-- เพิ่ม CSS เพิ่มเติมสำหรับ UI improvements -->
+    <style>
+        .pdf-service-warning {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+            color: white;
+            border: none;
+        }
+        
+        .pdf-service-warning:hover {
+            background: linear-gradient(45deg, #e0a800, #dc6502);
+            color: white;
+        }
+        
+        .pdf-fallback-content {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 2rem;
+        }
+        
+        .pdf-fallback-content .btn {
+            min-width: 140px;
+        }
+        
+        .pdf-loading-spinner {
+            animation: spin 2s linear infinite;
+        }
+        
+        .pdf-status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+        }
+        
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* เพิ่ม responsive สำหรับ mobile */
+        @@media (max-width: 576px) {
+            .pdf-fallback-content {
+                padding: 1rem;
+            }
+            
+            .pdf-fallback-content .btn {
+                min-width: auto;
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .pdf-fallback-content .d-flex {
+                flex-direction: column;
+            }
+        }
+    </style>
+}

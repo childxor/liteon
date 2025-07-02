@@ -1,0 +1,1211 @@
+@model IEnumerable<emp_wrkplan>
+@using IPS_TH.Models.Employee
+@using Newtonsoft.Json;
+
+@{
+    ViewData["Title"] = "ข้อมูลการเข้าออก";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canView = permissions?["CanView"] ?? false;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false; 
+    @using IPS_TH.Extensions
+}
+
+<!-- เพิ่มการอ้างอิงไลบรารี SheetJS (XLSX) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<div class="container-fluid p-3">
+    <div class="card">
+        <div class="card-header">
+            <h5 data-translate="attendance_data">@Context.Session.GetTranslation("attendance_data")</h5>
+        </div>
+        <div class="card-body">
+            <!-- ส่วนกรอง -->
+            <div class="card mb-4"> 
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- ส่วนเลือกวันที่ -->
+                        <div class="col-md-4">
+                            <div class="date-selection-container">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="dateRangeSwitch">
+                                        <label class="form-check-label ms-2" for="dateRangeSwitch">
+                                            <i class="fas fa-calendar-alt me-1"></i><span data-translate="select_multiple_days">@Context.Session.GetTranslation("select_multiple_days")</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div id="singleDateContainer" class="date-input-group">
+                                    <label for="selectedDate" class="form-label" data-translate="date">@Context.Session.GetTranslation("date")</label>
+                                    <div class="input-group">
+                                        <button class="btn btn-outline-secondary date-nav-btn" id="prevDateBtn" type="button">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                        <input type="date" class="form-control" id="selectedDate">
+                                        <button class="btn btn-outline-secondary date-nav-btn" id="nextDateBtn" type="button">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="dateRangeContainer" class="date-range-group" style="display: none;">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label for="startDate" class="form-label" data-translate="start_date">@Context.Session.GetTranslation("start_date")</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar-minus"></i></span>
+                                                <input type="date" class="form-control" id="startDate">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="endDate" class="form-label" data-translate="end_date">@Context.Session.GetTranslation("end_date")</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar-plus"></i></span>
+                                                <input type="date" class="form-control" id="endDate">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ส่วนเลือกแผนกและกะ -->
+                        <div class="col-md-5">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label for="departmentFilter" class="form-label" data-translate="department">@Context.Session.GetTranslation("department")</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                        <select class="form-select" id="departmentFilter">
+                                            <option value="" data-translate="all">@Context.Session.GetTranslation("all")</option>
+                                            @foreach (var dept in ViewBag.Departments)
+                                            {
+                                                <option value="@dept.SecDsc">@dept.SecDsc</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="shiftFilter" class="form-label" data-translate="shift">@Context.Session.GetTranslation("shift")</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                        <select class="form-select" id="shiftFilter">
+                                            <option value="" data-translate="all">@Context.Session.GetTranslation("all")</option>
+                                            <option value="day" data-translate="day_shift">@Context.Session.GetTranslation("day_shift")</option>
+                                            <option value="night" data-translate="night_shift">@Context.Session.GetTranslation("night_shift")</option>
+                                            <option value="office" data-translate="office_shift">@Context.Session.GetTranslation("office_shift")</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ส่วนปุ่มดำเนินการ -->
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="button-group w-100">
+                                <button id="searchBtn" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i><span data-translate="search">@Context.Session.GetTranslation("search")</span>
+                                </button>
+                                <button id="resetBtn" class="btn btn-secondary mx-2">
+                                    <i class="fas fa-redo me-1"></i><span data-translate="reset">@Context.Session.GetTranslation("reset")</span>
+                                </button>
+                                <button id="exportExcelBtn" class="btn btn-success">
+                                    <i class="fas fa-file-excel me-1"></i><span data-translate="export">@Context.Session.GetTranslation("export")</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ตารางข้อมูล -->
+            <div class="table-responsive">
+                <table id="employeeTable" class="table table-striped table-bordered display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th data-translate="employee_id">@Context.Session.GetTranslation("employee_id")</th>
+                            <th data-translate="employee_name">@Context.Session.GetTranslation("employee_name")</th>
+                            <th data-translate="department">@Context.Session.GetTranslation("department")</th>
+                            <th data-translate="date">@Context.Session.GetTranslation("date")</th>
+                            <th data-translate="shift">@Context.Session.GetTranslation("shift")</th>
+                            <th data-translate="check_in">@Context.Session.GetTranslation("check_in")</th>
+                            <th data-translate="status">@Context.Session.GetTranslation("status")</th>
+                            <th data-translate="total_break_time">@Context.Session.GetTranslation("total_break_time")</th>
+                            <th data-translate="break_count">@Context.Session.GetTranslation("break_count")</th>
+                            <th data-translate="longest_break">@Context.Session.GetTranslation("longest_break")</th>
+                            <th data-translate="average_break">@Context.Session.GetTranslation("average_break")</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only" data-translate="loading">@Context.Session.GetTranslation("loading")</span>
+    </div>
+</div>
+
+<style>
+    /* สไตล์สำหรับ Child Row */
+    .timeline {
+        position: relative;
+        margin: 0 0 30px 10px;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .timeline:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 20px;
+        width: 3px;
+        background: #e9ecef;
+        border-radius: 2px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+        display: flex;
+    }
+    
+    .timeline-dot {
+        position: absolute;
+        left: 16px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+    }
+    
+    .timeline-dot-in {
+        background-color: #28a745;
+        box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.2);
+    }
+    
+    .timeline-dot-out {
+        background-color: #dc3545;
+        box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.2);
+    }
+    
+    .timeline-content {
+        position: relative;
+        margin-left: 40px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    
+    .timeline-content:hover {
+        background: #f0f0f0;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-info {
+        flex-grow: 1;
+    }
+    
+    .timeline-time {
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .break-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        margin-left: 10px;
+        border-radius: 12px;
+    }
+    
+    .morning-break {
+        background-color: #e3f2fd;
+        color: #0d6efd;
+    }
+    
+    .lunch-break {
+        background-color: #fff3cd;
+        color: #fd7e14;
+    }
+    
+    .action-btn {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 5px;
+        transition: color 0.2s;
+    }
+    
+    .action-btn:hover {
+        color: #343a40;
+    }
+    
+    .badge-shift {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .badge-day {
+        background-color: #e3f2fd;
+        color: #0d6efd;
+    }
+    
+    .badge-night {
+        background-color: #f8d7da;
+        color: #dc3545;
+    }
+    
+    .badge-office {
+        background-color: #d1e7dd;
+        color: #198754;
+    }
+    
+    .shift-day {
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .shift-night {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .shift-office {
+        border-left: 4px solid #198754;
+    }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    /* สไตล์ใหม่สำหรับ Child Row ที่ปรับปรุง */
+    .child-row-container {
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 10px 0;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+    
+    .stats-card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-actions-buttons {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .action-button {
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: none;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .action-button.edit {
+        background-color: #e3f2fd;
+        color: #0d6efd;
+    }
+    
+    .action-button.edit:hover {
+        background-color: #cfe2ff;
+    }
+    
+    .action-button.view {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .action-button.view:hover {
+        background-color: #e9ecef;
+    }
+    
+    .action-button.break {
+        background-color: #d1e7dd;
+        color: #198754;
+    }
+    
+    .action-button.break:hover {
+        background-color: #badbcc;
+    }
+    
+    .break-info-card {
+        background-color: #f0f8ff;
+        border-left: 4px solid #0d6efd;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .break-info-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        color: #0d6efd;
+    }
+
+    /* สไตล์สำหรับปุ่มเพิ่มลดวัน */
+    .date-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 38px;
+        padding: 0;
+        transition: all 0.2s;
+    }
+
+    .date-nav-btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .date-nav-btn:active {
+        transform: scale(0.95);
+    }
+</style>
+ 
+
+@section Scripts {
+    <script>
+        // เพิ่มตัวแปร JavaScript สำหรับเก็บค่าสิทธิ์การแก้ไข
+        var canEdit = @(canEdit ? "true" : "false");  
+        loadLanguageData('@ViewBag.ModuleId');
+
+        
+        $(document).ready(function () {
+                 // ปุ่มเพิ่มลดวัน
+            $('#prevDateBtn').on('click', function() {
+                var currentDate = moment($('#selectedDate').val());
+                var newDate = currentDate.subtract(1, 'days');
+                $('#selectedDate').val(newDate.format('YYYY-MM-DD'));
+                saveFilterSettings();
+                table.ajax.reload();
+            });
+
+            $('#nextDateBtn').on('click', function() {
+                var currentDate = moment($('#selectedDate').val());
+                var newDate = currentDate.add(1, 'days');
+                $('#selectedDate').val(newDate.format('YYYY-MM-DD'));
+                saveFilterSettings();
+                table.ajax.reload();
+            });
+
+
+            // ฟังก์ชันสำหรับบันทึกค่า filter ลงใน localStorage
+            function saveFilterSettings() {
+                var isDateRange = $('#dateRangeSwitch').is(':checked');
+                var filterSettings = {
+                    isDateRange: isDateRange,
+                    selectedDate: $('#selectedDate').val(),
+                    startDate: $('#startDate').val(),
+                    endDate: $('#endDate').val(),
+                    department: $('#departmentFilter').val(),
+                    shift: $('#shiftFilter').val()
+                };
+                localStorage.setItem('attendanceFilterSettings', JSON.stringify(filterSettings));
+            }
+            
+            // ฟังก์ชันสำหรับโหลดค่า filter จาก localStorage
+            function loadFilterSettings() {
+                var savedSettings = localStorage.getItem('attendanceFilterSettings');
+                if (savedSettings) {
+                    var settings = JSON.parse(savedSettings);
+                    
+                    // ตั้งค่าสวิตช์เลือกวันที่
+                    $('#dateRangeSwitch').prop('checked', settings.isDateRange);
+                    
+                    if (settings.isDateRange) {
+                        $('#singleDateContainer').hide();
+                        $('#dateRangeContainer').show();
+                        $('#startDate').val(settings.startDate);
+                        $('#endDate').val(settings.endDate);
+                    } else {
+                        $('#singleDateContainer').show();
+                        $('#dateRangeContainer').hide();
+                        $('#selectedDate').val(settings.selectedDate);
+                    }
+                    
+                    // ตั้งค่าแผนกและกะ
+                    $('#departmentFilter').val(settings.department);
+                    $('#shiftFilter').val(settings.shift);
+                    
+                    return true;
+                }
+                return false;
+            }
+            
+            // พยายามโหลดค่า filter จาก localStorage
+            var settingsLoaded = loadFilterSettings();
+            
+            // ถ้าไม่มีค่าที่บันทึกไว้ ให้ตั้งค่าเริ่มต้นเป็นวันปัจจุบัน
+            if (!settingsLoaded) {
+                $('#selectedDate').val(moment().format('YYYY-MM-DD'));
+            }
+            
+            // เริ่มต้นตาราง DataTable
+            var table = $('#employeeTable').DataTable({
+                processing: true,
+                serverSide: false,
+                pageLength: -1, // แสดงแถวทั้งหมด
+                paging: false,
+                lengthMenu: [], // ซ่อนตัวเลือกจำนวนแถวต่อหน้า
+                language: {
+                    processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">' + translate("loading") + '</span></div>',
+                    search: translate("search") + ':',
+                    lengthMenu: translate("show") + ' _MENU_ ' + translate("entries"),
+                    info: translate("showing") + ' _START_ ' + translate("to") + ' _END_ ' + translate("of") + ' _TOTAL_ ' + translate("entries"),
+                    infoEmpty: translate("showing") + ' 0 ' + translate("to") + ' 0 ' + translate("of") + ' 0 ' + translate("entries"),
+                    infoFiltered: '(' + translate("filtered_from") + ' _MAX_ ' + translate("total_entries") + ')',
+                    emptyTable: translate("no_data"),
+                    paginate: {
+                        first: translate("first"),
+                        previous: translate("previous"),
+                        next: translate("next"),
+                        last: translate("last")
+                    }
+                },
+                ajax: {
+                    url: '/Attendance/GetAllEmployeeBreakEvents',
+                    type: 'GET',
+                    data: function() {
+                        var isDateRange = $('#dateRangeSwitch').is(':checked');
+                        return {
+                            date: isDateRange ? null : $('#selectedDate').val(),
+                            startDate: isDateRange ? $('#startDate').val() : null,
+                            endDate: isDateRange ? $('#endDate').val() : null,
+                            department: $('#departmentFilter').val()
+                        };
+                    },
+                    dataSrc: function(json) {
+                        if (json.success && json.data) {
+                            // กรองข้อมูลตามกะการทำงาน
+                            var shiftFilter = $('#shiftFilter').val();
+                            var filteredData = json.data;
+                            
+                            if (shiftFilter) {
+                                filteredData = json.data.filter(function(item) {
+                                    var shift = item.shift.toLowerCase();
+                                    if (shiftFilter === 'day') {
+                                        return shift.includes('d') || shift.includes('day');
+                                    } else if (shiftFilter === 'night') {
+                                        return shift.includes('n') || shift.includes('night');
+                                    } else if (shiftFilter === 'office') {
+                                        return shift.includes('of') || shift.includes('office');
+                                    }
+                                    return true;
+                                });
+                            }
+                            
+                            // คำนวณข้อมูลสถิติการพักใหม่สำหรับแต่ละรายการ
+                            filteredData.forEach(function(item) {
+                                if (item.events && item.events.length > 0) {
+                                    // แยกการคำนวณตามกะการทำงาน
+                                    var shift = item.shift || '';
+                                    var isNightShift = shift.toLowerCase().includes('n') || shift.toLowerCase().includes('night');
+                                    var isDayShift = shift.toLowerCase().includes('d') || shift.toLowerCase().includes('day');
+                                    var isOfficeShift = shift.toLowerCase().includes('of') || shift.toLowerCase().includes('office');
+                                    
+                                    // กำหนดประเภทกะการทำงาน
+                                    var shiftType = isNightShift ? 'night' : (isDayShift ? 'day' : 'office');
+                                    
+                                    // คำนวณสถิติการพักตามกะการทำงาน
+                                    var stats = calculateBreakStats(item.events, shiftType);
+                                    
+                                    // อัพเดทข้อมูลสถิติการพัก
+                                    item.breakStats = {
+                                        totalBreakTime: stats.totalBreakTime,
+                                        breakCount: stats.breakCount,
+                                        longestBreak: stats.longestBreak,
+                                        averageBreak: stats.averageBreak,
+                                        scheduledBreaks: item.breakStats ? item.breakStats.scheduledBreaks : null,
+                                        shiftType: shiftType
+                                    };
+                                    
+                                    // กำหนดสถานะใหม่ตามข้อมูลการเข้า-ออกล่าสุด
+                                    if (item.events.length > 0) {
+                                        var lastEventIndex = item.events.length - 1;
+                                        var isLastEventIn = lastEventIndex % 2 === 0; // เลขคู่ (รวม 0) = เข้า, เลขคี่ = ออก
+                                        item.currentStatus = isLastEventIn ? 'IN' : 'OUT';
+                                    }
+                                }
+                            });
+                            
+                            return filteredData;
+                        }
+                        return [];
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', error);
+                        alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + thrown);
+                        $('#loadingOverlay').hide();
+                    },
+                    beforeSend: function() {
+                        $('#loadingOverlay').show();
+                    },
+                    complete: function() {
+                        $('#loadingOverlay').hide();
+                    }
+                },
+                columns: [
+                    {
+                        className: 'dt-control text-center',
+                        orderable: false,
+                        data: null,
+                        defaultContent: '',
+                        render: function () {
+                            return '<i class="fas fa-plus-circle text-primary"></i>';
+                        }
+                    },
+                    { 
+                        data: 'employeeId',
+                        render: function(data) {
+                            return data || 'ไม่ระบุ';
+                        }
+                    },
+                    { 
+                        data: 'employeeName',
+                        render: function(data) {
+                            return data || 'ไม่ระบุ';
+                        }
+                    },
+                    { 
+                        data: 'department',
+                        render: function(data) {
+                            return data || 'ไม่ระบุ';
+                        }
+                    },
+                    { 
+                        data: 'date',
+                        render: function(data) {
+                            return moment(data).format('DD/MM/YYYY');
+                        }
+                    },
+                    { 
+                        data: null,
+                        render: function(data) {
+                            var shift = data.shift || '';
+                            var shiftName = data.shiftName || '';
+                            var badgeClass = 'badge-office';
+                            
+                            if (shift.toLowerCase().includes('d') || shift.toLowerCase().includes('day')) {
+                                badgeClass = 'badge-day';
+                            } else if (shift.toLowerCase().includes('n') || shift.toLowerCase().includes('night')) {
+                                badgeClass = 'badge-night';
+                            }
+                            
+                            return '<span class="badge-shift ' + badgeClass + '">' + shift + '</span><br><small>' + shiftName + '</small>';
+                        }
+                    },
+                    {
+                        data: null,
+                        width: '200px',
+                        render: function(data, type, row) {
+                            var checkIn = row.firstCheckIn ? moment(row.firstCheckIn).format('HH:mm:ss') : 'ไม่ระบุ';
+                            var checkOut = row.lastCheckOut ? moment(row.lastCheckOut).format('HH:mm:ss') : 'ไม่ระบุ';
+                            
+                            // ถ้า checkout เหมือนกับ checkin ไม่ต้องแสดงเวลา checkout
+                            if (checkIn === checkOut) {
+                                checkOut = 'ไม่ระบุ';
+                            }
+                            
+                            return '<div class="d-flex align-items-center justify-content-between p-2">' +
+                                '<div class="text-center mr-3">' +
+                                    '<i class="fas fa-sign-in-alt text-success mb-1"></i><br>' +
+                                    '<span class="badge bg-light text-dark">' + checkIn + '</span>' +
+                                '</div>' +
+                                '<div class="text-muted px-2">|</div>' + 
+                                '<div class="text-center ml-3">' +
+                                    '<i class="fas fa-sign-out-alt text-danger mb-1"></i><br>' +
+                                    '<span class="badge bg-light text-dark">' + checkOut + '</span>' +
+                                '</div>' +
+                            '</div>';
+                        }
+                    },
+                    { 
+                        data: 'currentStatus',
+                        render: function(data, type, row) {
+                            // ตรวจสอบสถานะจากข้อมูลการเข้า-ออกล่าสุด
+                            var status = data;
+                            if (row.events && row.events.length > 0) {
+                                var lastEventIndex = row.events.length - 1;
+                                var isLastEventIn = lastEventIndex % 2 === 0; // เลขคู่ (รวม 0) = เข้า, เลขคี่ = ออก
+                                status = isLastEventIn ? 'IN' : 'OUT';
+                            }
+                            
+                            if (status === 'IN') {
+                                return '<span class="badge bg-success text-white" style="font-size: 14px; padding: 8px 12px; width: 100%; display: block; text-align: center;"><i class="fas fa-sign-in-alt mr-1"></i> อยู่ในบริษัท</span>';
+                            } else if (status === 'OUT') {
+                                return '<span class="badge bg-danger text-white" style="font-size: 14px; padding: 8px 12px; width: 100%; display: block; text-align: center;"><i class="fas fa-sign-out-alt mr-1"></i> ออกจากบริษัท</span>';
+                            } else {
+                                return '<span class="badge bg-secondary text-white" style="font-size: 14px; padding: 8px 12px; width: 100%; display: block; text-align: center;"><i class="fas fa-question-circle mr-1"></i> ไม่ระบุ</span>';
+                            }
+                        }
+                    },
+                    { 
+                        data: 'breakStats.totalBreakTime',
+                        render: function(data, type, row) {
+                            // ใช้ข้อมูลที่คำนวณใหม่
+                            return (row.breakStats ? row.breakStats.totalBreakTime : 0) + ' ' + translate("minutes");
+                        }
+                    },
+                    { 
+                        data: 'breakStats.breakCount',
+                        render: function(data, type, row) {
+                            // ใช้ข้อมูลที่คำนวณใหม่
+                            return (row.breakStats ? row.breakStats.breakCount : 0) + ' ' + translate("break_count");
+                        }
+                    },
+                    { 
+                        data: 'breakStats.longestBreak',
+                        render: function(data, type, row) {
+                            // ใช้ข้อมูลที่คำนวณใหม่
+                            return (row.breakStats ? row.breakStats.longestBreak : 0) + ' ' + translate("longest_break");
+                        }
+                    },
+                    { 
+                        data: 'breakStats.averageBreak',
+                        render: function(data, type, row) {
+                            // ใช้ข้อมูลที่คำนวณใหม่
+                            return (row.breakStats ? row.breakStats.averageBreak : 0) + ' ' + translate("average_break");
+                        }
+                    }
+                ],
+                order: [[2, 'asc']], // เรียงตามชื่อพนักงาน
+                rowCallback: function(row, data) {
+                    // กำหนดสีของแถวตามกะการทำงาน
+                    var shift = data.shift || '';
+                    if (shift.toLowerCase().includes('d') || shift.toLowerCase().includes('day')) {
+                        $(row).addClass('shift-day');
+                    } else if (shift.toLowerCase().includes('n') || shift.toLowerCase().includes('night')) {
+                        $(row).addClass('shift-night');
+                    } else {
+                        $(row).addClass('shift-office');
+                    }
+                }
+            });
+
+            // การทำงานเมื่อคลิกปุ่ม + เพื่อดูรายละเอียด
+            $('#employeeTable tbody').on('click', 'td.dt-control', function () {
+                var tr = $(this).closest('tr');
+                var row = table.row(tr);
+                var icon = $(this).find('i');
+
+                if (row.child.isShown()) {
+                    // ซ่อนรายละเอียด
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    icon.removeClass('fa-minus-circle').addClass('fa-plus-circle');
+                } else {
+                    // แสดงรายละเอียด
+                    var detailHtml = formatBreakDetails(row.data());
+                    row.child(detailHtml).show();
+                    tr.addClass('shown');
+                    icon.removeClass('fa-plus-circle').addClass('fa-minus-circle');
+                    
+                    // เพิ่ม event listener สำหรับปุ่ม editBreak
+                    $('.editBreak').on('click', function() {
+                        var breakStartTime = $(this).data('break-start');
+                        var breakEndTime = $(this).data('break-end');
+                        var id = $(this).data('id');
+                        adjustBreakTime(breakStartTime, breakEndTime, id);
+                    });
+
+                    // เพิ่ม z-index ให้กับ child row
+                    $(tr).css('z-index', 1000);
+                }
+            }); 
+
+            // การค้นหาและรีเซ็ตข้อมูล
+            $('#searchBtn').on('click', function() {
+                saveFilterSettings(); // บันทึกค่า filter ก่อนค้นหา
+                table.ajax.reload();
+            });
+
+            $('#resetBtn').on('click', function() {
+                // ล้างค่าใน localStorage
+                localStorage.removeItem('attendanceFilterSettings');
+                
+                // รีเซ็ตค่า filter เป็นค่าเริ่มต้น
+                $('#dateRangeSwitch').prop('checked', false);
+                $('#singleDateContainer').show();
+                $('#dateRangeContainer').hide();
+                $('#selectedDate').val(moment().format('YYYY-MM-DD'));
+                $('#departmentFilter').val('');
+                $('#shiftFilter').val('');
+                
+                table.ajax.reload();
+            });
+
+            // ฟังก์ชันปรับปรุงเวลาพัก
+            $(document).on('click', '.editBreak', function() {
+                var breakStartTime = $(this).data('break-start');
+                var breakEndTime = $(this).data('break-end');
+                var id = $(this).data('id');
+                adjustBreakTime(breakStartTime, breakEndTime, id); // เรียกใช้ฟังก์ชันปรับปรุงเวลาพัก
+            });
+            
+            // ฟังก์ชันคำนวณสถิติการพัก
+            function calculateBreakStats(events, shiftType) {
+                var totalBreakTime = 0;
+                var breakCount = 0;
+                var longestBreak = 0;
+                var breakTimes = [];
+                if (!events || events.length < 2) {
+                    return {
+                        totalBreakTime: 0,
+                        breakCount: 0,
+                        longestBreak: 0,
+                        averageBreak: 0,
+                        shiftType: shiftType
+                    };
+                }
+                
+                // กำหนดช่วงเวลาพักตามกะการทำงาน
+                var morningBreakStart, morningBreakEnd, lunchBreakStart, lunchBreakEnd;
+                
+                if (shiftType === 'night') {
+                    // กะกลางคืน
+                    morningBreakStart = '02:00';
+                    morningBreakEnd = '02:10';
+                    lunchBreakStart = '00:00';
+                    lunchBreakEnd = '01:00';
+                } else if (shiftType === 'day') {
+                    // กะกลางวัน
+                    morningBreakStart = '10:00';
+                    morningBreakEnd = '10:10';
+                    lunchBreakStart = '12:00';
+                    lunchBreakEnd = '13:00';
+                } else {
+                    // กะออฟฟิศหรือกะอื่นๆ
+                    morningBreakStart = '10:00';
+                    morningBreakEnd = '10:10';
+                    lunchBreakStart = '12:00';
+                    lunchBreakEnd = '13:00';
+                }
+                
+                // คำนวณเวลาพัก
+                for (var i = 2; i < events.length; i += 2) {
+                    if (i % 2 === 0) { // เฉพาะเลขคู่ (การเข้าหลังจากออก)
+                        var breakEndTime = moment(events[i].time);
+                        var breakStartTime = moment(events[i-1].time);
+                        var breakDuration = breakEndTime.diff(breakStartTime, 'minutes');
+                        
+                        // ตรวจสอบว่าเป็นช่วงเวลาพักตามตารางหรือไม่
+                        var breakStartTimeStr = breakStartTime.format('HH:mm');
+                        var breakEndTimeStr = breakEndTime.format('HH:mm');
+                        
+                        // ไม่นับเวลาพักที่น้อยกว่า 1 นาที
+                        if (breakDuration >= 1) {
+                            totalBreakTime += breakDuration;
+                            breakCount++;
+                            breakTimes.push(breakDuration);
+                            if (breakDuration > longestBreak) {
+                                longestBreak = breakDuration;
+                            }
+                        }
+                    }
+                }
+                
+                var averageBreak = breakCount > 0 ? Math.round(totalBreakTime / breakCount) : 0;
+                
+                return {
+                    totalBreakTime: totalBreakTime,
+                    breakCount: breakCount,
+                    longestBreak: longestBreak,
+                    averageBreak: averageBreak,
+                    shiftType: shiftType
+                };
+            }
+            
+            // ฟังก์ชันจัดรูปแบบรายละเอียดการพัก
+            function formatBreakDetails(data) {
+                console.log(data);
+                if (!data || !data.events || data.events.length === 0) {
+                    return '<div class="p-3 text-center">ไม่พบข้อมูลการเข้าออก</div>';
+                }
+
+                var html = '<div class="child-row-container">';
+                
+                // ตรวจสอบกะการทำงาน
+                var shift = data.shift || '';
+                var isNightShift = shift.toLowerCase().includes('n') || shift.toLowerCase().includes('night');
+                var isDayShift = shift.toLowerCase().includes('d') || shift.toLowerCase().includes('day');
+                var isOfficeShift = shift.toLowerCase().includes('of') || shift.toLowerCase().includes('office');
+                
+                var shiftType = isNightShift ? 'night' : (isDayShift ? 'day' : 'office');
+                var shiftName = isNightShift ? translate("night_shift") : (isDayShift ? translate("day_shift") : translate("office_shift"));
+                
+                // คำนวณสถิติการพัก
+                var breakStats = calculateBreakStats(data.events, shiftType);
+                
+                // แสดงข้อมูลสรุป
+                html += '<div class="row mb-4">';
+                html += '<div class="col-md-3">';
+                html += '<div class="card stats-card">';
+                html += '<div class="card-body text-center">';
+                html += '<h6 class="card-title">' + translate("total_break_time") + '</h6>';
+                html += '<h4 class="text-primary">' + breakStats.totalBreakTime + ' ' + translate("minutes") + '</h4>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                html += '<div class="col-md-3">';
+                html += '<div class="card stats-card">';
+                html += '<div class="card-body text-center">';
+                html += '<h6 class="card-title">' + translate("break_count") + '</h6>';
+                html += '<h4 class="text-info">' + breakStats.breakCount + '</h4>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                html += '<div class="col-md-3">';
+                html += '<div class="card stats-card">';
+                html += '<div class="card-body text-center">';
+                html += '<h6 class="card-title">' + translate("longest_break") + '</h6>';
+                html += '<h4 class="text-warning">' + breakStats.longestBreak + ' ' + translate("minutes") + '</h4>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                html += '<div class="col-md-3">';
+                html += '<div class="card stats-card">';
+                html += '<div class="card-body text-center">';
+                html += '<h6 class="card-title">' + translate("average_break") + '</h6>';
+                html += '<h4 class="text-success">' + breakStats.averageBreak + ' ' + translate("minutes") + '</h4>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                // แสดงข้อมูลเวลาพักตามตาราง
+                html += '<div class="break-info-card mb-4">';
+                html += '<div class="break-info-title"><i class="fas fa-info-circle"></i><h6 class="mb-0">' + translate("break_schedule") + ' (' + shiftName + ')</h6></div>';
+                html += '<div class="row">';
+                html += '<div class="col-md-6">';
+                
+                if (isNightShift) {
+                    html += '<strong>' + translate("morning_break") + ':</strong> 02:00-02:10 (' + translate("minutes") + '10)';
+                    html += '</div>';
+                    html += '<div class="col-md-6">';
+                    html += '<strong>' + translate("night_break") + ':</strong> 00:00-01:00 (' + translate("minutes") + '60)';
+                } else {
+                    html += '<strong>' + translate("morning_break") + ':</strong> 10:00-10:10 (' + translate("minutes") + '10)';
+                    html += '</div>';
+                    html += '<div class="col-md-6">';
+                    html += '<strong>' + translate("lunch_break") + ':</strong> 12:00-13:00 (' + translate("minutes") + '60)';
+                }
+                
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                
+                // แสดงข้อมูลการพักแบบไทม์ไลน์
+                html += '<h6 class="mb-3">' + translate("break_details") + ' (' + shiftName + ')</h6>';
+                html += '<div class="timeline">';
+                
+                // เพิ่มข้อมูลไทม์ไลน์
+                for (var i = 0; i < data.events.length; i++) {
+                    var evt = data.events[i];
+                    var timeStr = moment(evt.time).format('HH:mm:ss');
+                    
+                    // กำหนดประเภทตามลำดับ: 0=เข้า, 1=ออก, 2=เข้า, 3=ออก, ...
+                    var isIn = i % 2 === 0; // เลขคู่ (รวม 0) = เข้า, เลขคี่ = ออก
+                    var dotClass = isIn ? 'timeline-dot-in' : 'timeline-dot-out';
+                    var statusText = isIn ? translate("enter_company") : translate("leave_company");
+                    
+                    // คำนวณเวลาพัก
+                    if (isIn && i > 0) { // ถ้าเป็นการเข้า (หลังจากออก) และไม่ใช่รายการแรก
+                        var breakEndTime = moment(evt.time);
+                        var breakStartTime = moment(data.events[i-1].time);
+                        var breakDuration = breakEndTime.diff(breakStartTime, 'minutes');
+                        
+                        // เพิ่มแท็กแสดงระยะเวลาพัก
+                        statusText += ' (' + translate("break_time") + ' ' + breakDuration + ' ' + translate("minutes") + ')';
+                    }
+                    
+                    html += '<div class="timeline-item">';
+                    html += '<div class="timeline-dot ' + dotClass + '"></div>';
+                    html += '<div class="timeline-content">';
+                    html += '<div class="timeline-info">';
+                    html += '<div class="timeline-time">' + timeStr;
+                    
+                    // เพิ่มป้ายกำกับสำหรับเวลาพัก
+                    var eventTime = moment(evt.time);
+                    var eventTimeStr = eventTime.format('HH:mm');
+                    
+                    // กำหนดช่วงเวลาพักตามกะการทำงาน
+                    if (!isIn) {
+                        if (isNightShift) {
+                            if (eventTimeStr >= '02:00' && eventTimeStr <= '02:10') {
+                                html += '<span class="break-badge morning-break">' + translate("morning_break") + '</span>';
+                            }
+                            if (eventTimeStr >= '00:00' && eventTimeStr <= '01:00') {
+                                html += '<span class="break-badge lunch-break">' + translate("night_break") + '</span>';
+                            }
+                        } else {
+                            if (eventTimeStr >= '10:00' && eventTimeStr <= '10:10') {
+                                html += '<span class="break-badge morning-break">' + translate("morning_break") + '</span>';
+                            }
+                            if (eventTimeStr >= '12:00' && eventTimeStr <= '13:00') {
+                                html += '<span class="break-badge lunch-break">' + translate("lunch_break") + '</span>';
+                            }
+                        }
+                    }
+                    
+                    html += '</div>';
+                    html += '<div>' + statusText + '</div>';
+                    html += '<small>' + translate("device") + ': ' + (evt.deviceName || translate("not_specified")) + '</small>';
+                    html += '<small class="ml-2">' + translate("shift") + ': ' + shiftName + '</small>';
+                    html += '</div>';
+                    
+                    // เปลี่ยนจาก dropdown เป็นปุ่ม action ธรรมดา
+                    if (canEdit) {
+                        html += '<div class="timeline-actions-buttons">';
+                        html += '<button class="action-button edit" onclick="editTime(' + evt.id + '); return false;"><i class="fas fa-edit"></i>' + translate("edit") + '</button>';
+                        html += '<button class="action-button view" onclick="viewDetails(' + evt.id + '); return false;"><i class="fas fa-info-circle"></i>' + translate("details") + '</button>';
+                        if (isIn && i > 0) {
+                            html += '<button class="action-button break editBreak" data-break-start="' + moment(data.events[i-1].time).format('HH:mm:ss') + '" data-break-end="' + moment(evt.time).format('HH:mm:ss') + '" data-id="' + evt.rowAutoID + '"><i class="fas fa-clock"></i>' + translate("adjust_break_time") + '</button>';
+                        }
+                        html += '</div>';
+                    }
+                    
+                    html += '</div>';
+                    html += '</div>';
+                }
+                
+                html += '</div>'; // ปิด timeline
+                html += '</div>'; // ปิด container
+                
+                return html;
+            }
+
+            // ฟังก์ชันสุ่มเวลาพัก
+            function adjustBreakTime(breakStartTime, breakEndTime, id) {
+                // แปลงเวลาเป็น moment object
+                var startTime = moment(breakStartTime, 'HH:mm:ss');
+                var endTime = moment(breakEndTime, 'HH:mm:ss');
+                
+                // คำนวณเวลาพักปัจจุบัน (นาที)
+                var currentBreakDuration = endTime.diff(startTime, 'minutes');
+                
+                // สุ่มเวลาพักใหม่ระหว่าง 10-15 นาที
+                var newBreakDuration = Math.floor(Math.random() * (15 - 10 + 1)) + 10;
+                
+                // คำนวณเวลาใหม่โดยปรับจากเวลาออก (breakStartTime)
+                var newEndTime = moment(breakStartTime, 'HH:mm:ss').add(newBreakDuration, 'minutes');
+
+                // แสดง Modal ยืนยัน
+                Swal.fire({
+                    title: translate("confirm_adjust_break"),
+                    html: `
+                        <div class="text-left">
+                            <p>` + translate("exit_time") + `: ${breakStartTime}</p>
+                            <p>` + translate("original_entry_time") + `: ${breakEndTime}</p>
+                            <p>` + translate("original_break_time") + `: ${currentBreakDuration} ` + translate("minutes") + `</p>
+                            <hr>
+                            <p>` + translate("new_entry_time") + `: ${newEndTime.format('HH:mm:ss')}</p>
+                            <p>` + translate("new_break_time") + `: ${newBreakDuration} ` + translate("minutes") + `</p>
+                            <p class="text-info">` + translate("break_time_reduction") + `: ${currentBreakDuration - newBreakDuration} ` + translate("minutes") + `</p>
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: translate("confirm"),
+                    cancelButtonText: translate("cancel")
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // ส่งข้อมูลไปยัง server
+                        $.ajax({
+                            url: '/Attendance/AdjustBreakTime',
+                            type: 'POST',
+                            data: {
+                                id: id,
+                                adjustedTime: newEndTime.format('YYYY-MM-DD HH:mm:ss')
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    Swal.fire(
+                                        translate("success"),
+                                        translate("break_time_adjusted"),
+                                        'success'
+                                    ).then(() => {
+                                        // รีโหลดข้อมูล
+                                        table.ajax.reload();
+                                    });
+                                } else {
+                                    Swal.fire(
+                                        translate("error"),
+                                        response.message || translate("cannot_adjust_break"),
+                                        'error'
+                                    );
+                                }
+                            },
+                            error: function() {
+                                Swal.fire(
+                                    translate("error"),
+                                    translate("connection_error"),
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
+            }
+
+            // เพิ่มฟังก์ชัน Export Excel
+            $('#exportExcelBtn').on('click', function() {
+                // แสดง loading
+                $('#loadingOverlay').show();
+
+                // ดึงข้อมูลจาก DataTable
+                var data = table.data().toArray();
+                
+                // สร้างข้อมูลสำหรับ Excel
+                var excelData = data.map(function(item) {
+                    // คำนวณเวลาพักและสถิติต่างๆ
+                    var breakStats = calculateBreakStats(item.events, item.shift);
+                    
+                    return {
+                        [translate("employee_id")]: item.employeeId || '',
+                        [translate("employee_name")]: item.employeeName || '',
+                        [translate("department")]: item.department || '',
+                        [translate("shift")]: item.shift || '',
+                        [translate("date")]: item.date || '',
+                        [translate("first_check_in_time")]: item.firstCheckIn ? moment(item.firstCheckIn).format('HH:mm:ss') : '',
+                        [translate("last_check_out_time")]: item.lastCheckOut ? moment(item.lastCheckOut).format('HH:mm:ss') : '',
+                        [translate("status_in_out")]: item.currentStatus === 'IN' ? translate("in_company") : translate("out_of_company"),
+                        [translate("total_break_time")]: breakStats.totalBreakTime,
+                        [translate("break_count")]: breakStats.breakCount,
+                        [translate("longest_break")]: breakStats.longestBreak,
+                        [translate("average_break")]: breakStats.averageBreak
+                    };
+                });
+
+                // สร้าง Workbook
+                var wb = XLSX.utils.book_new();
+                var ws = XLSX.utils.json_to_sheet(excelData);
+
+                // ปรับความกว้างคอลัมน์
+                var wscols = [
+                    {wch: 15}, // รหัสพนักงาน
+                    {wch: 25}, // ชื่อ-นามสกุล
+                    {wch: 20}, // แผนก
+                    {wch: 15}, // กะ
+                    {wch: 15}, // วันที่ 
+                    {wch: 12}, // เวลาเข้า
+                    {wch: 12}, // เวลาออก
+                    {wch: 15}, // สถานะ
+                    {wch: 15}, // เวลาพักรวม
+                    {wch: 15}, // จำนวนครั้ง
+                    {wch: 15}, // พักนานที่สุด
+                    {wch: 15}  // พักเฉลี่ย
+                ];
+                ws['!cols'] = wscols;
+
+                // เพิ่ม worksheet ลงใน workbook
+                XLSX.utils.book_append_sheet(wb, ws, translate("attendance_data"));
+
+                // สร้างชื่อไฟล์
+                var fileName = translate("attendance_data") + '_' + moment().format('YYYY-MM-DD_HH-mm-ss') + '.xlsx';
+
+                // บันทึกไฟล์
+                XLSX.writeFile(wb, fileName);
+
+                // ซ่อน loading
+                $('#loadingOverlay').hide();
+            });
+
+            // จัดการสวิตช์เลือกวันที่
+            $('#dateRangeSwitch').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#singleDateContainer').hide();
+                    $('#dateRangeContainer').show();
+                    // ตั้งค่าวันที่เริ่มต้นและสิ้นสุดเป็นวันที่ปัจจุบัน
+                    if (!$('#startDate').val()) {
+                        $('#startDate').val($('#selectedDate').val());
+                    }
+                    if (!$('#endDate').val()) {
+                        $('#endDate').val($('#selectedDate').val());
+                    }
+                } else {
+                    $('#singleDateContainer').show();
+                    $('#dateRangeContainer').hide();
+                }
+                saveFilterSettings(); // บันทึกการเปลี่ยนแปลงสวิตช์
+            });
+
+            // ตรวจสอบวันที่เริ่มต้นและสิ้นสุด
+            $('#startDate, #endDate').on('change', function() {
+                var startDate = moment($('#startDate').val());
+                var endDate = moment($('#endDate').val());
+                
+                if (endDate.isBefore(startDate)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: translate("warning"),
+                        text: translate("end_date_warning")
+                    });
+                    $(this).val(startDate.format('YYYY-MM-DD'));
+                }
+                saveFilterSettings(); // บันทึกการเปลี่ยนแปลงวันที่
+            });
+            
+            // บันทึกค่าเมื่อมีการเปลี่ยนแปลงใน filter
+            $('#selectedDate, #departmentFilter, #shiftFilter').on('change', function() {
+                saveFilterSettings();
+            });
+            
+            // บันทึกค่า filter เมื่อมีการออกจากหน้า
+            $(window).on('beforeunload', function() {
+                saveFilterSettings();
+            });
+        });
+    </script>
+}

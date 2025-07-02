@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+ตรวจหาหน้าวิวที่ไม่ได้ get session ภาษา เช่น  <h5 class="card-title mb-0 text-rainy-dark">
+                            <i class="fas fa-calendar-alt me-2 text-rainy-warning"></i>
+                            วันหยุดที่จะมาถึง
+                        </h5> ให้แทนที่ด้วย @Context.Session.GetTranslation("resigned_employees_month")</p> คำว่า resigned_employees_month เปลี่ยนไปตามบริบทของภาษาที่แทน
+                        พร้อมทั้ง gen sql insert ให้ด้วย นี่คือตารางที่ต้อง insert SELECT        Keyword, ModuleId, Th, En, Cn
+
+FROM            sys_language

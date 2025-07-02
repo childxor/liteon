@@ -1,0 +1,38 @@
+@using System.Text.Json
+@using IPS_TH.Models
+@model IEnumerable<dynamic>
+
+@foreach (var module in Model)
+{
+    bool hasChildren = false;
+    try {
+        hasChildren = module.Children != null && module.Children.Count > 0;
+    } catch {}
+    
+    @if (hasChildren)
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="@module.Icon"></i> @module.Name
+            </a>
+            <ul class="dropdown-menu">
+                @foreach (var child in module.Children)
+                {
+                    <li>
+                        <a class="dropdown-item" href="@child.Url">
+                            <i class="@child.Icon"></i> @child.Name + "123"
+                        </a>
+                    </li>
+                }
+            </ul>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link" href="@module.Url">
+                <i class="@module.Icon"></i> @module.Name + "123"
+            </a>
+        </li>
+    }
+} 

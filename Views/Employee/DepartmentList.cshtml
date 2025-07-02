@@ -1,0 +1,686 @@
+@model IEnumerable<dynamic>
+@using IPS_TH.Models.Employee
+@using Newtonsoft.Json;
+
+@{
+    ViewData["Title"] = "รายการแผนก";
+    
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row my-4">
+        <div class="col">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h2 class="text-primary mb-0">
+                    <i class="fas fa-building me-2"></i>รายการแผนก
+                </h2>
+                @if (canAdd)
+                {
+                    <button class="btn btn-primary d-flex align-items-center shadow-sm" onclick="openAddModal()">
+                        <i class="fas fa-plus me-2"></i>เพิ่มแผนก
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar avatar-md bg-primary-subtle rounded">
+                                <i class="fas fa-building fa-lg text-primary"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1 text-muted">แผนกทั้งหมด</h6>
+                            <h4 class="card-title mb-0 fw-bold" id="totalDept">-</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar avatar-md bg-success-subtle rounded">
+                                <i class="fas fa-user-tie fa-lg text-success"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1 text-muted">มีหัวหน้าแผนก</h6>
+                            <h4 class="card-title mb-0 fw-bold" id="activeCount">-</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar avatar-md bg-warning-subtle rounded">
+                                <i class="fas fa-phone fa-lg text-warning"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1 text-muted">มีเบอร์ฉุกเฉิน</h6>
+                            <h4 class="card-title mb-0 fw-bold" id="withEmergencyContact">-</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="avatar avatar-md bg-info-subtle rounded">
+                                <i class="fas fa-user-check fa-lg text-info"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1 text-muted">พนักงานที่ Active</h6>
+                            <h4 class="card-title mb-0 fw-bold" id="withEmail">-</h4>
+                            <small class="text-muted">คน</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">รายการแผนก</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="departmentTable" style="width: 100%;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-hashtag"></i> รหัสแผนก</th>
+                                    <th><i class="fas fa-building"></i> ชื่อแผนก</th>
+                                    <th><i class="fas fa-users"></i> จำนวนพนักงาน</th>
+                                    <th><i class="fas fa-user-tie"></i> หัวหน้าแผนก</th>
+                                    <th><i class="fas fa-phone"></i> เบอร์โทร</th>
+                                    <th><i class="fas fa-envelope"></i> อีเมล</th>
+                                    <th><i class="fas fa-clock"></i> แก้ไขล่าสุด</th>
+                                    @if (canEdit)
+                                    {
+                                        <th><i class="fas fa-cogs"></i> จัดการ</th>
+                                    }
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        var table;
+        
+        $(document).ready(function() {
+            table = $('#departmentTable').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("GetDepartmentList", "Departments")",
+                    "type": "POST",
+                    "datatype": "json",
+                    "dataSrc": function(response) {
+                        if (response.summary) {
+                            $('#totalDept').text(response.summary.total);
+                            $('#activeCount').text(response.summary.activeCount);
+                            $('#withEmergencyContact').text(response.summary.withEmergencyContact);
+                            $('#withEmail').text(response.summary.totalEmployees);
+                        }
+                        return response.data || [];
+                    }
+                },
+                "columns": [
+                    { 
+                        "data": "code",
+                        "render": function(data) {
+                            return `<span class="badge bg-info">${data}</span>`;
+                        }
+                    },
+                    { "data": "name" },
+                    {
+                        "data": "EmployeeCount",
+                        "className": "text-center",
+                        "render": function(data, type, row) {
+                            const total = parseInt(data);
+                            const active = parseInt(row.ActiveEmployees);
+                            const inactive = parseInt(row.InactiveEmployees);
+                            return `
+                                <div>
+                                    <span class="badge bg-primary">${total} คน</span>
+                                    <button class="btn btn-link btn-sm p-0 ms-2" onclick="viewEmployees('${row.deptID}', '${row.name}')">
+                                        <i class="fas fa-users"></i> ดูรายชื่อ
+                                    </button>
+                                    <div class="small text-muted mt-1">
+                                        <span class="text-success">Active: ${active}</span> / 
+                                        <span class="text-danger">Inactive: ${inactive}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    },
+                    { 
+                        "data": "director",
+                        "render": function(data, type, row) {
+                            if (!data) return '-';
+                            return `
+                                <div>
+                                    <span class="fw-bold">${row.directorName || 'ไม่พบชื่อ'}</span>
+                                    <div class="small text-muted">
+                                        <i class="fas fa-id-card me-1"></i>${data}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    },
+                    { 
+                        "data": "phone",
+                        "render": function(data) {
+                            return data || '-';
+                        }
+                    },
+                    { 
+                        "data": "email",
+                        "render": function(data) {
+                            return data ? `<a href="mailto:${data}">${data}</a>` : '-';
+                        }
+                    },
+                    { 
+                        "data": "LastModified",
+                        "render": function(data) {
+                            return moment(data).format('DD/MM/YYYY HH:mm');
+                        }
+                    },
+                    @if (canEdit)
+                    {
+                        <text>
+                        {
+                            "data": null,
+                            "render": function(data) {
+                                return `
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-info btn-sm" onclick="viewDetails('${data.code}')" title="ดูรายละเอียด">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" onclick="editDepartment('${data.code}')" title="แก้ไข">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteDepartment('${data.code}')" title="ลบ">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        }
+                        </text>
+                    }
+                ],
+                "order": [[0, 'asc']],
+                "pageLength": -1,
+                "paging": false,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                "language": {
+                    "search": "ค้นหา:",
+                    "lengthMenu": "แสดง _MENU_ รายการ",
+                    "info": "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                    "infoEmpty": "แสดง 0 ถึง 0 จาก 0 รายการ",
+                    "zeroRecords": "ไม่พบข้อมูล",
+                    "paginate": {
+                        "first": "หน้าแรก",
+                        "last": "หน้าสุดท้าย",
+                        "next": "ถัดไป",
+                        "previous": "ก่อนหน้า"
+                    }
+                }
+            });
+
+            // Refresh ทุก 5 นาที
+            setInterval(function() {
+                table.ajax.reload(null, false);
+            }, 300000);
+        });
+
+        function viewDetails(code) {
+            $.get(`@Url.Action("GetDepartmentById", "Departments")?code=${code}`, function(dept) {
+                // ดึงรายชื่อพนักงาน
+                $.get(`@Url.Action("GetEmployeesByDeptId", "Departments")?deptId=${dept.deptID}`, function(response) {
+                    const employees = response.data;
+                    const employeeList = employees.map(emp => `
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <i class="fas fa-user me-2"></i>${emp.name}
+                                <small class="text-muted">(${emp.jobPositionID || '-'})</small>
+                            </div>
+                            <span class="badge ${emp.useCategory === 'Normal card' ? 'bg-success' : 'bg-secondary'}">
+                                ${emp.useCategory}
+                            </span>
+                        </div>
+                    `).join('');
+
+                    Swal.fire({
+                        title: 'รายละเอียดแผนก',
+                        html: `
+                            <div class="text-start">
+                                <p><strong>รหัสแผนก:</strong> ${dept.code}</p>
+                                <p><strong>ชื่อแผนก:</strong> ${dept.name}</p>
+                                <p><strong>หัวหน้าแผนก:</strong> ${dept.director || '-'}</p>
+                                <p><strong>เบอร์โทร:</strong> ${dept.phone || '-'}</p>
+                                <p><strong>อีเมล:</strong> ${dept.email || '-'}</p>
+                                <p><strong>ผู้ติดต่อฉุกเฉิน:</strong> ${dept.EmergencyContacts || '-'}</p>
+                                <p><strong>เบอร์ฉุกเฉิน:</strong> ${dept.EmergencyTel || '-'}</p>
+                                <p><strong>ที่อยู่:</strong> ${dept.address || '-'}</p>
+                                <p><strong>หมายเหตุ:</strong> ${dept.note || '-'}</p>
+                                <hr>
+                                <h6 class="mb-3">รายชื่อพนักงาน (${employees.length} คน)</h6>
+                                <div class="small" style="max-height: 200px; overflow-y: auto;">
+                                    ${employeeList || '<div class="text-muted">- ไม่มีพนักงาน -</div>'}
+                                </div>
+                            </div>
+                        `,
+                        width: '600px',
+                        confirmButtonText: 'ปิด'
+                    });
+                });
+            });
+        }
+
+        function editDepartment(code) {
+            // ดึงข้อมูลแผนกและรายชื่อพนักงาน
+            Promise.all([
+                $.get(`@Url.Action("GetDepartmentById", "Departments")?code=${code}`),
+                $.get('@Url.Action("GetEmployeeList", "Departments")')
+            ]).then(([deptResponse, empResponse]) => {
+                if (deptResponse.success && empResponse.success) {
+                    const dept = deptResponse.data;
+                    const employees = empResponse.data;
+
+                    // สร้าง options สำหรับ select
+                    const employeeOptions = employees.map(emp => 
+                        `<option value="${emp.empNo}" ${emp.empNo === dept.director ? 'selected' : ''}>
+                            ${emp.name} (${emp.position || '-'})
+                        </option>`
+                    ).join('');
+
+                    Swal.fire({
+                        title: 'แก้ไขข้อมูลแผนก',
+                        html: `
+                            <form id="editForm" class="text-start">
+                                <div class="mb-3">
+                                    <label class="form-label">รหัสแผนก</label>
+                                    <input type="text" class="form-control" value="${dept.code}" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">ชื่อแผนก</label>
+                                    <input type="text" class="form-control" id="name" value="${dept.name || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">หัวหน้าแผนก</label>
+                                    <select class="form-select" id="director">
+                                        <option value="">-- เลือกหัวหน้าแผนก --</option>
+                                        ${employeeOptions}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">เบอร์โทร</label>
+                                    <input type="text" class="form-control" id="phone" value="${dept.phone || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">อีเมล</label>
+                                    <input type="email" class="form-control" id="email" value="${dept.email || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">ผู้ติดต่อฉุกเฉิน</label>
+                                    <input type="text" class="form-control" id="emergencyContacts" value="${dept.Emergency_Contacts || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">เบอร์ฉุกเฉิน</label>
+                                    <input type="text" class="form-control" id="emergencyTel" value="${dept.Emergency_TEL || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">หมายเหตุ</label>
+                                    <textarea class="form-control" id="note">${dept.note || ''}</textarea>
+                                </div>
+                            </form>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'บันทึก',
+                        cancelButtonText: 'ยกเลิก',
+                        preConfirm: () => {
+                            const updatedDept = {
+                                code: dept.code,
+                                name: $('#name').val(),
+                                director: $('#director').val(),
+                                phone: $('#phone').val(),
+                                email: $('#email').val(),
+                                Emergency_Contacts: $('#emergencyContacts').val(),
+                                Emergency_TEL: $('#emergencyTel').val(),
+                                note: $('#note').val()
+                            };
+
+                            return $.ajax({
+                                url: '@Url.Action("UpdateDepartment", "Departments")',
+                                type: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify(updatedDept)
+                            });
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            if (result.value.success) {
+                                Swal.fire('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('ผิดพลาด', result.value.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // เพิ่ม CSS สำหรับ select2
+        function initializeSelect2() {
+            $('#director').select2({
+                dropdownParent: $('#swal2-html-container'),
+                width: '100%',
+                placeholder: 'เลือกหัวหน้าแผนก',
+                allowClear: true
+            });
+        }
+
+        function deleteDepartment(code) {
+            Swal.fire({
+                title: 'ยืนยันการลบ',
+                text: "คุณต้องการลบแผนกนี้ใช่หรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ลบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('@Url.Action("DeleteDepartment", "Departments")', { code: code })
+                        .done(function(response) {
+                            if (response.success) {
+                                Swal.fire('สำเร็จ', 'ลบข้อมูลเรียบร้อย', 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('ผิดพลาด', response.message, 'error');
+                            }
+                        })
+                        .fail(function() {
+                            Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการลบข้อมูล', 'error');
+                        });
+                }
+            });
+        }
+
+        function viewEmployees(deptId, deptName) {
+            // ดึงข้อมูลพนักงานและรายชื่อแผนก
+            Promise.all([
+                $.get(`@Url.Action("GetEmployeesByDeptId", "Departments")?deptId=${deptId}`),
+                $.get('@Url.Action("GetDepartments", "Departments")')
+            ]).then(([empResponse, deptResponse]) => {
+                if (empResponse.success && deptResponse.success) {
+                    const employees = empResponse.data;
+                    const departments = deptResponse.data;
+
+                    // ตรวจสอบสิทธิ์การแก้ไข
+                    const permissions = @Html.Raw(Json.Serialize(ViewData["Permissions"]));
+                    const canEdit = permissions.CanEdit;
+
+                    // สร้าง options สำหรับ select แผนก
+                    const deptOptions = departments
+                        .filter(d => d.deptID !== deptId) // ไม่แสดงแผนกปัจจุบัน
+                        .map(d => `<option value="${d.deptID}">${d.name}</option>`)
+                        .join('');
+
+                    const employeeList = employees.map(emp => `
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+                            <div>
+                                <div class="fw-bold">${emp.name}</div>
+                                <div class="small text-muted">
+                                    <i class="fas fa-id-card me-1"></i>${emp.personID}
+                                    ${emp.jobPositionID ? `<span class="mx-2">|</span><i class="fas fa-briefcase me-1"></i>${emp.jobPositionID}` : ''}
+                                    <br><i class="fas fa-calendar me-1"></i>วันที่เริ่มงาน: ${emp.startDate || '-'}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                ${canEdit ? `
+                                <div class="mb-2">
+                                    <select class="form-select form-select-sm employee-dept-select" 
+                                            onchange="changeDepartment('${emp.personID}', this.value)"
+                                            style="width: 200px;">
+                                        <option value="">-- ย้ายแผนก --</option>
+                                        ${deptOptions}
+                                    </select>
+                                </div>
+                                ` : ''}
+                                <span class="badge ${emp.useCategory === 'Normal card' ? 'bg-success' : 'bg-secondary'}">
+                                    ${emp.useCategory || 'ไม่ระบุ'}
+                                </span>
+                                <div class="small text-muted mt-1">
+                                    ${emp.phone ? `<i class="fas fa-phone me-1"></i>${emp.phone}` : ''}
+                                    ${emp.email ? `<br><i class="fas fa-envelope me-1"></i>${emp.email}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    Swal.fire({
+                        title: `รายชื่อพนักงานแผนก ${deptName}`,
+                        html: `
+                            <div class="text-start">
+                                <div class="mb-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="searchEmployee" 
+                                            placeholder="ค้นหาพนักงาน..." onkeyup="filterEmployees()">
+                                    </div>
+                                </div>
+                                <div id="employeeList" style="max-height: 400px; overflow-y: auto;">
+                                    ${employeeList || '<div class="text-center text-muted">- ไม่มีพนักงาน -</div>'}
+                                </div>
+                            </div>
+                        `,
+                        width: '800px',
+                        confirmButtonText: 'ปิด',
+                        didOpen: () => {
+                            // เริ่มต้น Select2 สำหรับทุก select ในรายการพนักงาน
+                            $('.employee-dept-select').select2({
+                                dropdownParent: $('#swal2-html-container'),
+                                width: '100%',
+                                placeholder: 'เลือกแผนกที่ต้องการย้าย',
+                                allowClear: true
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        function filterEmployees() {
+            const searchText = $('#searchEmployee').val().toLowerCase();
+            $('#employeeList > div').each(function() {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.includes(searchText));
+            });
+        }
+
+        function changeDepartment(personId, newDeptId) {
+            if (!newDeptId) return;
+
+            // ตรวจสอบสิทธิ์การแก้ไข
+            const permissions = @Html.Raw(Json.Serialize(ViewData["Permissions"]));
+            const canEdit = permissions.CanEdit;
+            if (!canEdit) {
+                Swal.fire('ข้อผิดพลาด', 'คุณไม่มีสิทธิ์ในการย้ายแผนก', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการย้ายแผนก',
+                text: 'คุณต้องการย้ายพนักงานไปแผนกนี้ใช่หรือไม่?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ย้าย',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('@Url.Action("UpdateEmployeeDepartment", "Departments")', {
+                        personId: personId,
+                        newDeptId: newDeptId
+                    }).done(function(response) {
+                        if (response.success) {
+                            Swal.fire('สำเร็จ', response.message, 'success').then(() => {
+                                // Refresh ข้อมูล
+                                table.ajax.reload();
+                                // ปิด modal รายชื่อพนักงาน
+                                Swal.close();
+                            });
+                        } else {
+                            Swal.fire('ผิดพลาด', response.message, 'error');
+                        }
+                    }).fail(function() {
+                        Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการย้ายแผนก', 'error');
+                    });
+                }
+            });
+        }
+    </script>
+}
+
+<style>
+    .table > :not(caption) > * > * {
+        padding: 0.75rem;
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(0,0,0,.075);
+    }
+    
+    .btn-group .btn {
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .offcanvas {
+        width: 350px !important;
+    }
+    
+    .avatar {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .bg-primary-subtle {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    
+    .bg-success-subtle {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    
+    .bg-warning-subtle {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+    
+    .bg-danger-subtle {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+    
+    .bg-info-subtle {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+    
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        padding: 5px;
+        border: 1px solid #ced4da;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #0d6efd;
+    }
+    
+    #employeeList .border-bottom:hover {
+        background-color: rgba(0,0,0,.03);
+    }
+    
+    .btn-link {
+        text-decoration: none;
+    }
+    
+    .btn-link:hover {
+        text-decoration: underline;
+    }
+    
+    #employeeList .form-select {
+        font-size: 0.875rem;
+    }
+    
+    #employeeList .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    /* ปรับแต่ง Select2 ในรายการพนักงาน */
+    .employee-dept-select + .select2-container {
+        z-index: 9999;
+    }
+    
+    .employee-dept-select + .select2-container .select2-selection--single {
+        height: 31px;
+        padding: 2px;
+    }
+    
+    .employee-dept-select + .select2-container .select2-selection__arrow {
+        height: 29px;
+    }
+</style>

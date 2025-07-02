@@ -1,0 +1,784 @@
+@using IPS_TH.Models
+@using Newtonsoft.Json
+@using IPS_TH.Extensions
+
+@{
+    ViewData["Title"] = "Home Page";
+    var userData = Context.Session.GetString("UserData");
+    var moduleMenu = Context.Session.GetString("ModuleMenu");
+    var isAdmin = Context.Session.GetString("IsAdmin") == "true";
+    var username = string.Empty;
+
+    if (!string.IsNullOrEmpty(userData))
+    {
+        try
+        {
+            var user = JsonConvert.DeserializeObject<sys_user>(userData);
+            username = user?.Username;
+        }
+        catch { /* handle error */ }
+    }
+
+    // เพิ่มการดึงเวลา build
+    var buildTime = DateTime.Now;
+    try {
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var assemblyPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase);
+        if (!string.IsNullOrEmpty(assemblyPath)) {
+            assemblyPath = new Uri(assemblyPath).LocalPath;
+            var dllPath = System.IO.Path.Combine(assemblyPath, assembly.GetName().Name + ".dll");
+            if (System.IO.File.Exists(dllPath)) {
+                buildTime = System.IO.File.GetLastWriteTime(dllPath);
+            }
+        }
+    } catch {
+        // หากมีข้อผิดพลาดให้ใช้เวลาปัจจุบัน
+        buildTime = DateTime.Now;
+    }
+}
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ระบบจัดการพนักงาน</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+
+    @await RenderSectionAsync("Styles", required: false)
+    <style>
+        /* Theme Colors - Modern & Professional */
+        :root {
+            --primary-color: #374151;
+            --primary-light: #6b7280;
+            --primary-dark: #1f2937;
+            --accent-color: #10b981;
+            --accent-light: #34d399;
+            --accent-dark: #059669;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --light-bg: #f8fafc;
+            --light-gray: #f1f5f9;
+            --dark-text: #1e293b;
+            --medium-text: #475569;
+            --light-text: #f8fafc;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition-speed: 0.3s;
+        }
+
+        /* Global Styles */
+        body {
+            font-family: 'Prompt', sans-serif;
+            min-height: 100vh;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+            overflow-x: hidden;
+            padding-top: 60px; /* Make space for fixed navbar */
+        }
+
+        /* Scrollbar Customization */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-dark);
+        }
+
+        /* Card Styles with Modern Design */
+        .card {
+            background: white;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* Button Styles */
+        .btn {
+            border-radius: 10px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+            border-color: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Form Controls */
+        .form-control, .form-select {
+            border-radius: 10px;
+            padding: 0.65rem 1rem;
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-speed);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(55, 65, 81, 0.25);
+        }
+
+        .input-group-text {
+            border-radius: 10px;
+            background-color: var(--light-gray);
+        }
+
+        /* Badge Styles */
+        .badge {
+            padding: 0.5em 0.8em;
+            font-weight: 500;
+            border-radius: 8px;
+        }
+
+        /* Topbar Styles */
+        .topbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: var(--light-text);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            transition: all var(--transition-speed);
+        }
+
+        .topbar-brand {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .topbar-brand img {
+            height: 40px;
+            margin-right: 0.5rem;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            padding: 0;
+        }
+
+        .navbar-nav .nav-item {
+            position: relative;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            padding: 1rem 1.25rem;
+            font-weight: 500;
+            transition: all var(--transition-speed);
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar-nav .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            font-weight: 600;
+        }
+
+        .navbar-nav .nav-link i {
+            margin-right: 7px;
+            font-size: 1rem;
+        }
+
+        /* Mega Menu Dropdown */
+        .navbar-nav .dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
+            padding: 1rem;
+            min-width: 240px;
+            margin-top: 0.5rem;
+        }
+
+        .navbar-nav .dropdown-item {
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .navbar-nav .dropdown-item:hover {
+            background-color: rgba(67, 97, 238, 0.08);
+            transform: translateX(5px);
+        }
+
+        .navbar-nav .dropdown-item.active {
+            background-color: rgba(67, 97, 238, 0.12);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .navbar-nav .dropdown-item i {
+            margin-right: 10px;
+            color: var(--primary-color);
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Navbar Toggle */
+        .navbar-toggler {
+            border: none;
+            margin-right: 1rem;
+            padding: 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-toggler-icon {
+            width: 1.5em;
+            height: 1.5em;
+        }
+
+        /* User Avatar and Menu */
+        .nav-user {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .user-name {
+            font-weight: 600;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        /* Rainbow Animation */
+        @@keyframes rainbow {
+            0% { background: #ff73b3; }
+            20% { background: #ff9f40; }
+            40% { background: #fff176; }
+            60% { background: #81c784; }
+            80% { background: #64b5f6; }
+            100% { background: #ff73b3; }
+        }
+
+        .rainbow-bg {
+            animation: rainbow 10s linear infinite;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .rainbow-bg:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Language Switcher Styles */
+        .language-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.7rem 1rem;
+            transition: all 0.2s;
+        }
+
+        .language-option:hover {
+            background-color: rgba(67, 97, 238, 0.08);
+            transform: translateX(3px);
+        }
+
+        .language-option.active {
+            background-color: rgba(67, 97, 238, 0.12);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .language-option.active .fas.fa-check {
+            display: inline-block;
+        }
+
+        .language-option .fas.fa-check {
+            display: none;
+        }
+
+        .language-flag {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        
+        /* Dropdown header style */
+        .dropdown-header {
+            color: var(--primary-color);
+            font-weight: 600;
+            padding: 0.7rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Language Switcher Button */
+        .language-switcher .nav-link {
+            font-size: 1.2rem;
+            padding: 0.5rem 0.8rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            margin-right: 0.5rem;
+        }
+
+        .language-switcher .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .language-switcher .dropdown-toggle::after {
+            display: none;
+        }
+
+        .language-switcher .dropdown-menu {
+            min-width: 180px;
+            padding: 0.5rem;
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Page Loader -->
+    <div class="page-loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg topbar">
+        <div class="container-fluid">
+            <!-- Logo -->
+            <a class="navbar-brand topbar-brand" href="@Url.Action("Index", "Home")">
+                <img src="/image/logo-text.png" alt="Logo" class="img-fluid">
+            </a>
+
+            <!-- Mobile Toggle Button -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+ 
+            <!-- Navbar Links -->
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    @if (!string.IsNullOrEmpty(username))
+                    {
+                       
+                        @await Component.InvokeAsync("NavbarModuleMenu")
+                    }
+                </ul>
+
+                <!-- Right Side -->
+                <ul class="navbar-nav ms-auto"> 
+                    <!-- Language Switcher -->
+                    <li class="nav-item dropdown language-switcher">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            @if (Context.Session.GetCurrentLanguage() == "th")
+                            {
+                                <span>🇹🇭</span>
+                            }
+                            else if (Context.Session.GetCurrentLanguage() == "en")
+                            {
+                                <span>🇺🇸</span>
+                            }
+                            else if (Context.Session.GetCurrentLanguage() == "zh")
+                            {
+                                <span>🇨🇳</span>
+                            }
+                            else
+                            {
+                                <span>🇹🇭</span>
+                            }
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item language-option @(Context.Session.GetCurrentLanguage() == "th" ? "active" : "")" href="@Url.Action("ChangeLanguage", "Home", new { lang = "th" })">
+                                    <span class="me-2">🇹🇭</span> ไทย
+                                    @if (Context.Session.GetCurrentLanguage() == "th")
+                                    {
+                                        <i class="fas fa-check ms-auto text-success"></i>
+                                    }
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item language-option @(Context.Session.GetCurrentLanguage() == "en" ? "active" : "")" href="@Url.Action("ChangeLanguage", "Home", new { lang = "en" })">
+                                    <span class="me-2">🇺🇸</span> English
+                                    @if (Context.Session.GetCurrentLanguage() == "en")
+                                    {
+                                        <i class="fas fa-check ms-auto text-success"></i>
+                                    }
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item language-option @(Context.Session.GetCurrentLanguage() == "zh" ? "active" : "")" href="@Url.Action("ChangeLanguage", "Home", new { lang = "zh" })">
+                                    <span class="me-2">zh</span> 中文
+                                    @if (Context.Session.GetCurrentLanguage() == "zh")
+                                    {
+                                        <i class="fas fa-check ms-auto text-success"></i>
+                                    }
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    @if (string.IsNullOrEmpty(username))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Authen" asp-action="Login">
+                                <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <!-- User Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" 
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="user-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="d-none d-lg-block ms-2">
+                                    <div class="user-name">@username</div>
+                                    <div class="user-role">@(isAdmin ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน")</div>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="@Url.Action("Profile", "Account")">
+                                        <i class="fas fa-user-circle"></i> โปรไฟล์
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="@Url.Action("ChangePassword", "Account")">
+                                        <i class="fas fa-key"></i> เปลี่ยนรหัสผ่าน
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" asp-controller="Authen" asp-action="Logout">
+                                        <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile User Info (shows only when menu collapsed) -->
+    <div class="d-lg-none user-info-mobile collapse" id="userInfoMobile">
+        @if (!string.IsNullOrEmpty(username))
+        {
+            <div class="user-avatar mx-auto mb-2">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="text-center">
+                <div class="user-name">@username</div>
+                <div class="user-role">@(isAdmin ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน")</div>
+            </div>
+        }
+    </div>
+
+    <main class="main-content fade-in">
+        <div class="container-fluid">
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- Core Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- Select2 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Moment.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/th.min.js"></script>
+
+    <!-- Tempus Dominus -->
+    <script src="https://cdn.jsdelivr.net/npm/@@eonasdan/tempus-dominus@6.7.19/dist/js/tempus-dominus.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@@eonasdan/tempus-dominus@6.7.19/dist/css/tempus-dominus.min.css" rel="stylesheet">
+
+    <!-- Bootstrap 5 Toggle -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap5-toggle@5.1.1/css/bootstrap5-toggle.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap5-toggle@5.1.1/js/bootstrap5-toggle.ecmas.min.js"></script>
+
+    <!-- Toastr -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Hide loader when page is loaded
+            setTimeout(function() {
+                $('.page-loader').fadeOut('fast');
+            }, 500);
+
+            // Initialize Select2
+            if ($('.select2').length > 0) {
+                try {
+                    $('.select2').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        dropdownCssClass: 'select2-dropdown-animated'
+                    });
+                } catch (e) {
+                    console.warn('Select2 initialization failed:', e);
+                }
+            }
+
+            // Initialize DataTables with improved styling
+            if ($('.datatable').length > 0) {
+                try {
+                    $('.datatable').DataTable({
+                        language: {
+                            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/th.json'
+                        },
+                        responsive: true,
+                        autoWidth: false,
+                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6"f>>' +
+                             '<"row"<"col-md-12"tr>>' +
+                             '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
+                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                        pageLength: 10
+                    });
+                } catch (e) {
+                    console.warn('DataTables initialization failed:', e);
+                }
+            }
+
+            // Initialize Tempus Dominus
+            if ($('.datetimepicker').length > 0) {
+                try {
+                    $('.datetimepicker').each(function () {
+                        new tempusDominus.TempusDominus(this, {
+                            locale: 'th',
+                            display: {
+                                icons: {
+                                    time: 'fas fa-clock',
+                                    date: 'fas fa-calendar',
+                                    up: 'fas fa-arrow-up',
+                                    down: 'fas fa-arrow-down',
+                                    previous: 'fas fa-chevron-left',
+                                    next: 'fas fa-chevron-right',
+                                    today: 'fas fa-calendar-check',
+                                    clear: 'fas fa-trash',
+                                    close: 'fas fa-times'
+                                },
+                                buttons: {
+                                    today: true,
+                                    clear: true,
+                                    close: true
+                                }
+                            }
+                        });
+                    });
+                } catch (e) {
+                    console.warn('Tempus Dominus initialization failed:', e);
+                }
+            }
+
+            // Initialize Bootstrap 5 Toggle
+            if ($('[data-toggle="toggle"]').length > 0) {
+                try {
+                    $('[data-toggle="toggle"]').bootstrapToggle();
+                } catch (e) {
+                    console.warn('Bootstrap Toggle initialization failed:', e);
+                }
+            }
+
+            // Initialize Tooltips
+            try {
+                const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                if (tooltipTriggerList.length > 0) {
+                    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, {
+                        animation: true,
+                        delay: { show: 100, hide: 100 }
+                    }));
+                }
+            } catch (e) {
+                console.warn('Tooltip initialization failed:', e);
+            }
+
+            // Initialize Popovers
+            try {
+                const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+                if (popoverTriggerList.length > 0) {
+                    [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
+                        animation: true,
+                        trigger: 'hover focus'
+                    }));
+                }
+            } catch (e) {
+                console.warn('Popover initialization failed:', e);
+            }
+
+            // Mobile Menu Handling
+            $('.navbar-toggler').on('click', function() {
+                $('#userInfoMobile').collapse('toggle');
+            });
+
+            // Set active state based on current URL
+            const currentPath = window.location.pathname;
+            $('.nav-link').each(function() {
+                const href = $(this).attr('href');
+                if (href && currentPath === href) {
+                    $(this).addClass('active');
+                    
+                    // If in dropdown, add active to parent
+                    const dropdownParent = $(this).closest('.dropdown');
+                    if (dropdownParent.length) {
+                        dropdownParent.find('.dropdown-toggle').addClass('active');
+                    }
+                }
+            });
+
+            // Initialize Toastr
+            toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                timeOut: 5000,
+                extendedTimeOut: 1000,
+                showEasing: "swing",
+                hideEasing: "linear",
+                showMethod: "fadeIn",
+                hideMethod: "fadeOut"
+            };
+
+            // Add smooth scrolling
+            $('a[href^="#"]:not([data-bs-toggle])').on('click', function(e) {
+                e.preventDefault();
+                const target = $(this.hash);
+                if (target.length) {
+                    $('html, body').animate({
+                        scrollTop: target.offset().top - 70
+                    }, 500);
+                }
+            });
+
+            // Add animation to cards
+            $('.card').addClass('fade-in');
+        });
+
+        // Page transition effect
+        $(window).on('beforeunload', function() {
+            $('.page-loader').fadeIn('fast');
+        });
+
+        // Handle AJAX loading indicator
+        $(document).ajaxStart(function() {
+            $('.page-loader').fadeIn('fast');
+        }).ajaxStop(function() {
+            $('.page-loader').fadeOut('fast');
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

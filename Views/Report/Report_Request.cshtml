@@ -1,0 +1,431 @@
+@model IEnumerable<dynamic>
+@using Newtonsoft.Json;
+
+@{
+    ViewData["Title"] = "ระบบออกรายงาน";
+    var departments = ViewBag.Departments;
+    var shifts = ViewBag.Shifts;
+
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+}
+
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="row my-4">
+        <div class="col">
+            <h2 class="text-primary">
+                <i class="fas fa-file-alt me-2"></i>ระบบออกรายงาน
+            </h2>
+        </div>
+    </div>
+
+    <!-- Action Buttons and Stats Section -->
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">แผนก</label>
+                                <select class="form-select filter-department">
+                                    <option value="">ทั้งหมด</option>
+                                    @if (departments != null)
+                                    {
+                                        @foreach (dynamic department in departments)
+                                        {
+                                            if (department.deptID != null)
+                                            {
+                                                <option value="@department.deptID">@department.name</option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">กะการทำงาน</label>
+                                <select class="form-select filter-shift">
+                                    <option value="">ทั้งหมด</option>
+                                    @if (ViewBag.Shifts != null)
+                                    {
+                                        @foreach (var shift in ViewBag.Shifts)
+                                        {
+                                            <option value="@shift.ShiftGroup">@shift.ShiftName (@shift.ShiftGroup)</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">สถานะ</label>
+                                <select class="form-select filter-status">
+                                    <option value="">ทั้งหมด</option>
+                                    <option value="active">ทำงาน</option>
+                                    <option value="inactive">ลาออก</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="row g-0">
+                        <div class="col-4 text-center border-end p-3">
+                            <div class="text-primary mb-2">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-0">พนักงานทั้งหมด</h5>
+                            <h4 class="mb-0 total-employees">0</h4>
+                        </div>
+                        <div class="col-4 text-center border-end p-3">
+                            <div class="text-success mb-2">
+                                <i class="fas fa-user-check fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-0">กำลังทำงาน</h5>
+                            <h4 class="mb-0 active-employees">0</h4>
+                        </div>
+                        <div class="col-4 text-center p-3">
+                            <div class="text-danger mb-2">
+                                <i class="fas fa-user-times fa-2x"></i>
+                            </div>
+                            <h5 class="text-muted mb-0">ลาออก</h5>
+                            <h4 class="mb-0 inactive-employees">0</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Selection Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h5 class="card-title mb-0 text-primary">
+                        <i class="fas fa-file-export me-2"></i>เลือกประเภทรายงาน
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="reportForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ประเภทรายงาน</label>
+                                <select class="form-select" id="reportType" required>
+                                    <option value="">-- เลือกประเภทรายงาน --</option>
+                                    <option value="attendance">รายงานการเข้างาน</option>
+                                    <option value="summary">รายงานสรุปการทำงาน</option>
+                                    <option value="overtime">รายงานการทำงานล่วงเวลา</option>
+                                    <option value="leave">รายงานการลา</option>
+                                    <option value="late">รายงานการมาสาย</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">วันที่เริ่มต้น</label>
+                                <input type="date" class="form-control" id="startDate" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">วันที่สิ้นสุด</label>
+                                <input type="date" class="form-control" id="endDate" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="selectAllEmployees">
+                                    <label class="form-check-label" for="selectAllEmployees">
+                                        เลือกพนักงานทั้งหมดที่แสดงในตาราง
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 text-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-file-export me-2"></i>ออกรายงาน
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee List Table -->
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <table class="table table-striped table-hover" id="employeeTable" style="width: 100%;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="checkAll">
+                                        <label class="form-check-label" for="checkAll"></label>
+                                    </div>
+                                </th>
+                                <th><i class="fas fa-id-card me-1"></i> เลขบัตร</th>
+                                <th><i class="fas fa-user me-1"></i> รหัสพนักงาน</th>
+                                <th><i class="fas fa-user-tag me-1"></i> ชื่อ-นามสกุล</th>
+                                <th><i class="fas fa-building me-1"></i> แผนก</th>
+                                <th><i class="fas fa-clock me-1"></i> กะการทำงาน</th>
+                                <th><i class="fas fa-calendar-alt me-1"></i> วันเริ่มงาน</th>
+                                <th><i class="fas fa-phone me-1"></i> เบอร์โทร</th>
+                                <th><i class="fas fa-toggle-on me-1"></i> สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Report Confirmation Modal -->
+<div class="modal fade" id="exportConfirmModal" tabindex="-1" aria-labelledby="exportConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="exportConfirmModalLabel">ยืนยันการออกรายงาน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <p>คุณต้องการออกรายงานใช่หรือไม่?</p>
+                    <p>ประเภทรายงาน: <span id="modalReportType" class="fw-bold"></span></p>
+                    <p>จำนวนพนักงานที่เลือก: <span id="modalSelectedCount" class="fw-bold"></span> คน</p>
+                    <p>ช่วงวันที่: <span id="modalDateRange" class="fw-bold"></span></p>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="exportFormat" class="form-label">รูปแบบไฟล์</label>
+                    <select class="form-select" id="exportFormat">
+                        <option value="excel">Excel (.xlsx)</option>
+                        <option value="pdf">PDF</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" id="confirmExport" class="btn btn-primary">
+                    <i class="fas fa-file-export me-2"></i>ออกรายงาน
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Initialize DataTable
+            var table = $('#employeeTable').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 100,
+                ajax: {
+                    url: '/Report/GetEmployees',
+                    type: 'GET',
+                    data: function (d) {
+                        d.search = d.search.value;
+                        d.status = $('.filter-status').val();
+                        d.department = $('.filter-department').val();
+                        d.shift = $('.filter-shift').val();
+                    }
+                },
+                columns: [
+                    {
+                        data: 'personID',
+                        orderable: false,
+                        className: 'text-center',
+                        render: function (data) {
+                            return '<div class="form-check"><input class="form-check-input employee-checkbox" type="checkbox" value="' + data + '"></div>';
+                        }
+                    },
+                    { data: 'cardNumber' },
+                    { data: 'personID' },
+                    { data: 'name' },
+                    { data: 'deptName' },
+                    { data: 'shiftName' },
+                    { data: 'startDate' },
+                    { data: 'phone' },
+                    {
+                        data: 'useCategory',
+                        render: function (data) {
+                            if (data == 1) {
+                                return '<span class="badge bg-success">ทำงาน</span>';
+                            } else {
+                                return '<span class="badge bg-danger">ลาออก</span>';
+                            }
+                        }
+                    }
+                ],
+                language: {
+                    url: '/lib/datatables/th.json'
+                },
+                order: [[3, 'asc']],
+                responsive: true
+            });
+
+            // Filter handlers
+            $('.filter-department, .filter-shift, .filter-status').change(function () {
+                table.ajax.reload();
+                updateEmployeeStats();
+            });
+
+            // Check all checkboxes
+            $('#checkAll').change(function () {
+                $('.employee-checkbox').prop('checked', $(this).prop('checked'));
+            });
+
+            // Select all employees checkbox
+            $('#selectAllEmployees').change(function () {
+                if ($(this).prop('checked')) {
+                    $('#checkAll').prop('disabled', true);
+                    $('.employee-checkbox').prop('disabled', true);
+                } else {
+                    $('#checkAll').prop('disabled', false);
+                    $('.employee-checkbox').prop('disabled', false);
+                }
+            });
+
+            // Handle form submission
+            $('#reportForm').submit(function (e) {
+                e.preventDefault();
+                
+                var reportType = $('#reportType').val();
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var selectAll = $('#selectAllEmployees').prop('checked');
+                
+                var selectedEmployees = [];
+                if (!selectAll) {
+                    $('.employee-checkbox:checked').each(function () {
+                        selectedEmployees.push($(this).val());
+                    });
+                    
+                    if (selectedEmployees.length === 0) {
+                        alert('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
+                        return;
+                    }
+                }
+                
+                // Update modal content
+                $('#modalReportType').text($('#reportType option:selected').text());
+                $('#modalSelectedCount').text(selectAll ? 'ทั้งหมด' : selectedEmployees.length);
+                $('#modalDateRange').text(startDate + ' ถึง ' + endDate);
+                
+                // Show confirmation modal
+                $('#exportConfirmModal').modal('show');
+            });
+
+            // Handle export confirmation
+            $('#confirmExport').click(function () {
+                var reportType = $('#reportType').val();
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var selectAll = $('#selectAllEmployees').prop('checked');
+                var exportFormat = $('#exportFormat').val();
+                
+                var selectedEmployees = [];
+                if (!selectAll) {
+                    $('.employee-checkbox:checked').each(function () {
+                        selectedEmployees.push($(this).val());
+                    });
+                }
+                
+                // AJAX call to export report
+                $.ajax({
+                    url: '/Report/ExportReport',
+                    type: 'POST',
+                    data: {
+                        reportType: reportType,
+                        startDate: startDate,
+                        endDate: endDate,
+                        selectAll: selectAll,
+                        department: $('.filter-department').val(),
+                        shift: $('.filter-shift').val(),
+                        status: $('.filter-status').val(),
+                        employees: selectedEmployees,
+                        format: exportFormat
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $('#exportConfirmModal').modal('hide');
+                            
+                            // Download file
+                            window.location.href = response.fileUrl;
+                            
+                            // Show success message
+                            Swal.fire({
+                                title: 'สำเร็จ!',
+                                text: 'ออกรายงานเรียบร้อยแล้ว',
+                                icon: 'success',
+                                confirmButtonText: 'ตกลง'
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'เกิดข้อผิดพลาด!',
+                                text: response.message,
+                                icon: 'error',
+                                confirmButtonText: 'ตกลง'
+                            });
+                        }
+                    },
+                    error: function () {
+                        Swal.fire({
+                            title: 'เกิดข้อผิดพลาด!',
+                            text: 'ไม่สามารถออกรายงานได้ โปรดลองใหม่อีกครั้ง',
+                            icon: 'error',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                });
+            });
+
+            // Function to update employee statistics
+            function updateEmployeeStats() {
+                $.ajax({
+                    url: '/Report/GetEmployeeStats',
+                    type: 'GET',
+                    data: {
+                        department: $('.filter-department').val(),
+                        shift: $('.filter-shift').val(),
+                        status: $('.filter-status').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $('.total-employees').text(response.total);
+                            $('.active-employees').text(response.active);
+                            $('.inactive-employees').text(response.inactive);
+                        }
+                    }
+                });
+            }
+
+            // Initialize stats
+            updateEmployeeStats();
+
+            // Set default dates (current month)
+            var today = new Date();
+            var firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            var lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            $('#startDate').val(firstDay.toISOString().split('T')[0]);
+            $('#endDate').val(lastDay.toISOString().split('T')[0]);
+        });
+    </script>
+}
