@@ -15,7 +15,7 @@ public class ModuleController : Controller
     {
         _context = context;
         _logger = logger;
-    } 
+    }
 
     public IActionResult ManageRole()
     {
@@ -333,6 +333,49 @@ public class ModuleController : Controller
         {
             _logger.LogError($"Error in AddSubModule: {ex.Message}");
             return Json(new { success = false, message = "ไม่สามารถเพิ่มโมดูลย่อยได้" });
+        }
+    }
+
+    [HttpPost]
+    public IActionResult DeleteModule(int id)
+    {
+        try
+        {
+            var module = _context.sys_module.Find(id);
+            if (module == null || module.RecordStatus != "N")
+            {
+                return Json(new { success = false, message = "ไม่พบข้อมูลโมดูล" });
+            }
+
+            // ถ้าเป็นโมดูลหลัก ให้ลบโมดูลย่อยด้วย
+            if (!module.ParentId.HasValue)
+            {
+                var subModules = _context.sys_module
+                    .Where(m => m.ParentId == id && m.RecordStatus == "N")
+                    .ToList();
+
+                foreach (var subModule in subModules)
+                {
+                    subModule.RecordStatus = "D";
+                    subModule.UpdatedAt = DateTime.Now;
+                    subModule.UpdatedBy = User.Identity?.Name;
+                }
+            }
+
+            // ลบโมดูลหลัก
+            module.RecordStatus = "D";
+            module.UpdatedAt = DateTime.Now;
+            module.UpdatedBy = User.Identity?.Name;
+
+            _context.SaveChanges();
+            _logger.LogInformation($"Module {id} deleted successfully");
+
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error in DeleteModule: {ex.Message}");
+            return Json(new { success = false, message = "ไม่สามารถลบโมดูลได้" });
         }
     }
 

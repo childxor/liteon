@@ -290,7 +290,7 @@ namespace IPS_TH.Controllers.Employee
                     startDate,
                     endDate,
                     shiftFilter
-                );  
+                );
 
                 // 2. ดึงข้อมูลที่จำเป็น
                 var workPlans = await GetWorkPlanData();
@@ -1382,56 +1382,98 @@ namespace IPS_TH.Controllers.Employee
                             resultDataPlan?.break_end_time ?? "13:00"
                         );
 
-                        // แยกเวลาเป็น 2 ช่วง โดยคำนึงถึงวันที่
-                        var morningEvents = eventTimes
-                            .Where(t =>
-                            {
-                                try
+                        // แยกเวลาเป็น 2 ช่วง โดยคำนึงถึงวันที่และกะการทำงาน
+                        List<DateTime> morningEvents = new List<DateTime>();
+                        List<DateTime> eveningEvents = new List<DateTime>();
+
+                        if (shiftCode == "NT1" || shiftCode == "N01")
+                        {
+                            // สำหรับกะดึก: เวลาเข้า >= 18:00 ของวันก่อนหน้า, เวลาออก <= 12:00 ของวันปัจจุบัน
+                            var previousDate = workDate.AddDays(-1);
+
+                            morningEvents = eventTimes
+                                .Where(t =>
                                 {
-                                    var eventDateTime = t;
-                                    // ถ้าเป็นเวลาหลัง 18:00 ให้ถือว่าเป็นวันก่อนหน้า
-                                    if (t.Hour >= 18)
+                                    try
                                     {
-                                        eventDateTime = t.AddDays(-1);
+                                        // เวลาเข้างาน: เวลา >= 18:00 ของวันก่อนหน้า หรือ เวลาของวันปัจจุบัน <= เวลาพักเช้า
+                                        return (t.Date == previousDate.Date && t.Hour >= 18)
+                                            || (
+                                                t.Date == workDate.Date
+                                                && t.TimeOfDay <= breakStartTime
+                                            );
                                     }
-
-                                    return eventDateTime.Date == workDate.Date
-                                        && t.TimeOfDay <= breakStartTime;
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(
-                                        $"Error in morningEvents filter: {ex.Message}"
-                                    );
-                                    return false;
-                                }
-                            })
-                            .ToList();
-
-                        var eveningEvents = eventTimes
-                            .Where(t =>
-                            {
-                                try
-                                {
-                                    var eventDateTime = t;
-                                    // ถ้าเป็นเวลาก่อน 12:00 ให้ถือว่าเป็นวันถัดไป
-                                    if (t.Hour < 12)
+                                    catch (Exception ex)
                                     {
-                                        eventDateTime = t.AddDays(1);
+                                        _logger.LogError(
+                                            $"Error in night shift morningEvents filter: {ex.Message}"
+                                        );
+                                        return false;
                                     }
+                                })
+                                .ToList();
 
-                                    return eventDateTime.Date == workDate.Date
-                                        && t.TimeOfDay > breakEndTime;
-                                }
-                                catch (Exception ex)
+                            eveningEvents = eventTimes
+                                .Where(t =>
                                 {
-                                    _logger.LogError(
-                                        $"Error in eveningEvents filter: {ex.Message}"
-                                    );
-                                    return false;
-                                }
-                            })
-                            .ToList();
+                                    try
+                                    {
+                                        // เวลาออกงาน: เวลา <= 12:00 ของวันปัจจุบัน หรือ เวลาหลังพักกลางวัน
+                                        return (t.Date == workDate.Date && t.Hour <= 12)
+                                            || (
+                                                t.Date == workDate.Date
+                                                && t.TimeOfDay > breakEndTime
+                                            );
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(
+                                            $"Error in night shift eveningEvents filter: {ex.Message}"
+                                        );
+                                        return false;
+                                    }
+                                })
+                                .ToList();
+                        }
+                        else
+                        {
+                            // สำหรับกะปกติ: ใช้ logic เดิม
+                            morningEvents = eventTimes
+                                .Where(t =>
+                                {
+                                    try
+                                    {
+                                        return t.Date == workDate.Date
+                                            && t.TimeOfDay <= breakStartTime;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(
+                                            $"Error in day shift morningEvents filter: {ex.Message}"
+                                        );
+                                        return false;
+                                    }
+                                })
+                                .ToList();
+
+                            eveningEvents = eventTimes
+                                .Where(t =>
+                                {
+                                    try
+                                    {
+                                        return t.Date == workDate.Date
+                                            && t.TimeOfDay > breakEndTime;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(
+                                            $"Error in day shift eveningEvents filter: {ex.Message}"
+                                        );
+                                        return false;
+                                    }
+                                })
+                                .ToList();
+                        }
 
                         // หาเวลาเข้างาน
                         if (morningEvents.Any())
@@ -1445,10 +1487,10 @@ namespace IPS_TH.Controllers.Employee
                             lastTime = eveningEvents.Max();
                         }
 
-                        // ถ้าไม่มีเวลาเข้า หรือไม่มีเวลาออกให้หาว่ามี event กี่อัน ถ้ามีมากกว่า 1 อันให้ใช้ min หรือ max เป็นค่าเข้า หรือออก
+                        // ถ้าไม่มีเวลาเข้า หรือไม่มีเวลาออกให้หาว่ามี event กี่อัน
                         if (firstTime == null || lastTime == null)
                         {
-                            if (personEvents.Count > 1)
+                            if (personEvents.Count >= 1)
                             {
                                 // แปลง dynamic เป็น List<DateTime> ก่อนใช้ LINQ
                                 var eventTimeList = new List<DateTime>();
@@ -1465,12 +1507,76 @@ namespace IPS_TH.Controllers.Employee
                                     var minTime = eventTimeList.Min();
                                     var maxTime = eventTimeList.Max();
 
-                                    // ตรวจสอบว่าเวลาห่างกันมากกว่า 30 นาทีหรือไม่
-                                    var timeDiff = maxTime - minTime;
-                                    if (timeDiff.TotalMinutes >= 30)
+                                    if (personEvents.Count == 1)
                                     {
-                                        firstTime = firstTime ?? minTime;
-                                        lastTime = lastTime ?? maxTime;
+                                        // กรณีมี event เดียว - ตัดสินใจว่าเป็น firstTime หรือ lastTime
+                                        var singleEventTime = eventTimeList.First();
+
+                                        if (shiftCode == "NT1" || shiftCode == "N01")
+                                        {
+                                            // สำหรับกะดึก
+                                            var shiftStartTime = TimeSpan.Parse(
+                                                resultDataPlan?.start_time ?? "20:00"
+                                            );
+                                            var shiftEndTime = TimeSpan.Parse(
+                                                resultDataPlan?.end_time ?? "05:00"
+                                            );
+
+                                            // ถ้าเวลา event ใกล้กับเวลาเข้างาน (18:00-22:00) ให้เป็น firstTime
+                                            if (
+                                                singleEventTime.Hour >= 18
+                                                || singleEventTime.Hour <= 2
+                                            )
+                                            {
+                                                firstTime = firstTime ?? singleEventTime;
+                                            }
+                                            // ถ้าเวลา event ใกล้กับเวลาออกงาน (03:00-07:00) ให้เป็น lastTime
+                                            else if (
+                                                singleEventTime.Hour >= 3
+                                                && singleEventTime.Hour <= 7
+                                            )
+                                            {
+                                                lastTime = lastTime ?? singleEventTime;
+                                            }
+                                            else
+                                            {
+                                                // กรณีไม่แน่ใจ ให้เป็น firstTime
+                                                firstTime = firstTime ?? singleEventTime;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // สำหรับกะปกติ
+                                            var shiftStartTime = TimeSpan.Parse(
+                                                resultDataPlan?.start_time ?? "08:00"
+                                            );
+                                            var shiftEndTime = TimeSpan.Parse(
+                                                resultDataPlan?.end_time ?? "17:00"
+                                            );
+                                            var midPoint = shiftStartTime.Add(
+                                                shiftEndTime.Subtract(shiftStartTime).Divide(2)
+                                            );
+
+                                            // ถ้าเวลา event ก่อนจุดกึ่งกลางให้เป็น firstTime
+                                            if (singleEventTime.TimeOfDay <= midPoint)
+                                            {
+                                                firstTime = firstTime ?? singleEventTime;
+                                            }
+                                            else
+                                            {
+                                                lastTime = lastTime ?? singleEventTime;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // กรณีมี event หลายอัน
+                                        var timeDiff = maxTime - minTime;
+                                        if (timeDiff.TotalMinutes >= 30)
+                                        {
+                                            firstTime = firstTime ?? minTime;
+                                            lastTime = lastTime ?? maxTime;
+                                        }
                                     }
                                 }
                             }
@@ -3310,7 +3416,7 @@ namespace IPS_TH.Controllers.Employee
 
         private async Task SaveEventData(SqlConnection connection, object data)
         {
-            var insertQuery = await BuildInsertQuery("HRM_DEVICE_CONNECTION_LOGS", data);
+            var insertQuery = await BuildInsertQuery("PubEvent", data);
             await connection.ExecuteAsync(insertQuery.query, insertQuery.parameters);
         }
 
@@ -3445,7 +3551,7 @@ namespace IPS_TH.Controllers.Employee
                         DELETE FROM emp_person_shift 
                         WHERE personID = @personID 
                         AND CAST(date AS DATE) = CAST(@date AS DATE)";
- 
+
                     await connection.ExecuteAsync(
                         deleteSql,
                         new { personID = basePersonId, date = date }

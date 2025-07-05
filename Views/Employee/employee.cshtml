@@ -14,7 +14,7 @@
         bool canDelete = permissions?["CanDelete"] ?? false;
         bool canView = permissions?["CanView"] ?? false;
         }
-
+ 
         <div class="container-fluid">
             <!-- div สำหรับเก็บค่า filter -->
             <div id="filter-storage" data-status="active" data-door="" data-department="" data-shift=""
@@ -471,7 +471,7 @@
                             d.shift = $('#filter-storage').data('shift');
                             d.fingerprint = $('#filter-storage').data('fingerprint');
                         }
-                    },
+                    }, 
                     columns: [{
                             data: 'personID',
                             title: '<i class="fas fa-plus"></i>',
@@ -1891,6 +1891,7 @@
                 resetShiftForm();
                 // ดึงข้อมูลพนักงานจากตาราง
                 let row = $('#employeeTable').DataTable().row($(this).closest('tr').prev()).data();
+                console.log(row);
                 if (!row) {
                     // กรณีคลิกจาก child row
                     let parentRow = $(this).closest('.child').parent().prev();
@@ -1909,12 +1910,8 @@
                     // ตั้งค่า select แผนกให้ตรงกับข้อมูลพนักงาน
                     let deptName = row.deptName || row.department || '';
                     $('#shiftDeptName').val(deptName);
-                    // ตรวจสอบและแสดงปุ่มเพิ่มข้อมูล SQL944
-                    if (!row.hasCardData) {
-                        $('#addToSQL944Btn').show();
-                    } else {
-                        $('#addToSQL944Btn').hide();
-                    }
+                    // เก็บข้อมูลสถานะ SQL944 ไว้ใน data attribute
+                    $('#shiftModal').data('hasCardData', row.hasCardData);
                 } else {
                     // กรณีไม่สามารถดึงข้อมูลจากตารางได้
                     $.ajax({
@@ -1936,12 +1933,8 @@
                                 $('#shiftDeptCode').val(response.data.deptCode || response.data
                                     .deptID || '');
                                 $('#shiftDeptName').val(response.data.deptName || '');
-                                // ตรวจสอบและแสดงปุ่มเพิ่มข้อมูล SQL944
-                                if (!response.data.hasCardData) {
-                                    $('#addToSQL944Btn').show();
-                                } else {
-                                    $('#addToSQL944Btn').hide();
-                                }
+                                // เก็บข้อมูลสถานะ SQL944 ไว้ใน data attribute
+                                $('#shiftModal').data('hasCardData', response.data.hasCardData);
                             }
                         }
                     });
@@ -1977,7 +1970,7 @@
                 console.log($(this).data());
                 // กำหนดค่าให้กับฟอร์ม
                 $('#shiftId').val(id);
-                $('#shiftPersonId').val(name); // ใช้ชื่อเต็มเป็น personId
+                $('#shiftPersonId').val(personId || ''); // ใช้ personId ที่ถูกต้อง
                 $('#shiftPersonNameDisplay').text(name || '-');
                 $('#shiftDeptID').val(deptID || '');
                 $('#shiftDeptIDDisplay').val(deptID || '');
@@ -1989,12 +1982,23 @@
                 $('#shiftCardNo').val(cardNumber || '');
                 $('#shiftCardNoDisplay').text(cardNumber || '-');
                 $('#shiftDeptDisplay').text(deptName || '-');
-                $('#shiftPersonId').val(personId || '');
                 $('#shiftModalTitle').html('<i class="fas fa-edit me-2"></i>แก้ไขกะการทำงาน');
+                
+                // อัพเดทเวลาของกะที่เลือกไว้
+                updateShiftTimeDisplay();
+                
                 $('#shiftModal').modal('show');
             });
             // บันทึกข้อมูลกะ
             $('#saveShiftBtn').on('click', function() {
+                // ตรวจสอบ validation ของฟอร์ม
+                let form = $('#shiftForm')[0];
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    showErrorToast('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง');
+                    return;
+                }
+                
                 // สร้างข้อมูลสำหรับส่งไปยัง API
                 let formData = {
                     Id: $('#shiftId').val() ? parseInt($('#shiftId').val()) : 0,
@@ -2006,11 +2010,23 @@
                     ShiftMent: $('#shiftName').val(),
                     Date: $('#shiftDate').val()
                 };
-                // ตรวจสอบข้อมูลที่จำเป็น
+                
+                // Debug: แสดงข้อมูลที่จะส่งไป
+                console.log('FormData:', formData);
+                console.log('Mode:', formData.Id === 0 ? 'Create' : 'Edit');
+                
+                // ตรวจสอบข้อมูลที่จำเป็นอีกครั้ง
                 if (!formData.PersonId || !formData.ShiftMent || !formData.Date || !formData.deptID) {
                     showErrorToast('กรุณากรอกข้อมูลให้ครบถ้วน');
+                    console.log('Missing data:', {
+                        PersonId: formData.PersonId,
+                        ShiftMent: formData.ShiftMent,
+                        Date: formData.Date,
+                        deptID: formData.deptID
+                    });
                     return;
                 }
+                
                 // แสดง loading
                 Swal.fire({
                     title: 'กำลังบันทึกข้อมูล',
@@ -2018,6 +2034,57 @@
                     showConfirmButton: false,
                     allowOutsideClick: false
                 });
+                
+                // เช็คว่าเป็นการสร้างใหม่ (Id = 0) หรือแก้ไข (Id > 0)
+                if (formData.Id === 0) {
+                    // กรณีสร้างใหม่ - เช็คว่าต้องเพิ่มข้อมูล SQL944 หรือไม่
+                    let hasCardData = $('#shiftModal').data('hasCardData');
+                    let cardNumber = $('#shiftCardNo').val();
+                    
+                    if (!hasCardData && cardNumber) {
+                        // เพิ่มข้อมูล SQL944 ก่อน
+                        $.ajax({
+                            url: '/Employee/CreateCardData',
+                            type: 'POST',
+                            data: {
+                                personId: formData.PersonId,
+                                cardNumber: cardNumber,
+                                personName: formatName(formData.name),
+                                deptID: formData.deptID,
+                                deptName: formData.deptName,
+                                shift: formData.ShiftMent,
+                                date: formData.Date
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken", $(
+                                    'input:hidden[name="__RequestVerificationToken"]').val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    // เพิ่มข้อมูล SQL944 สำเร็จ แล้วบันทึกข้อมูลกะ
+                                    saveShiftData(formData);
+                                } else {
+                                    Swal.close();
+                                    showErrorToast(response.message || 'ไม่สามารถเพิ่มข้อมูล SQL944 ได้');
+                                }
+                            },
+                            error: function() {
+                                Swal.close();
+                                showErrorToast('เกิดข้อผิดพลาดในการเพิ่มข้อมูล SQL944');
+                            }
+                        });
+                    } else {
+                        // มีข้อมูลใน SQL944 แล้ว หรือไม่มีเลขบัตร ให้บันทึกข้อมูลกะเลย
+                        saveShiftData(formData);
+                    }
+                } else {
+                    // กรณีแก้ไข - บันทึกข้อมูลกะเลย ไม่ต้องเช็ค SQL944
+                    saveShiftData(formData);
+                }
+            });
+            
+            // ฟังก์ชันสำหรับบันทึกข้อมูลกะ
+            function saveShiftData(formData) {
                 $.ajax({
                     url: '/Employee/SaveShiftHistory',
                     type: 'POST',
@@ -2033,6 +2100,8 @@
                             $('#shiftModal').modal('hide');
                             showSuccessToast(response.message || 'บันทึกข้อมูลสำเร็จ');
                             refreshOpenedChildRow();
+                            // อัพเดทตารางหลัก
+                            $('#employeeTable').DataTable().ajax.reload();
                         } else {
                             showErrorToast(response.message || 'ไม่สามารถบันทึกข้อมูลได้');
                         }
@@ -2043,7 +2112,7 @@
                         showErrorToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error);
                     }
                 });
-            });
+            }
             // รีเซ็ตฟอร์ม
             function resetShiftForm() {
                 $('#shiftId').val(0);
@@ -2057,63 +2126,10 @@
                 $('#shiftDeptCode').val('');
                 $('#shiftStartTimeDisplay').text('-');
                 $('#shiftEndTimeDisplay').text('-');
-                $('#addToSQL944Btn').hide();
+                // ล้างข้อมูล data attribute
+                $('#shiftModal').removeData('hasCardData');
             }
-            // เพิ่มข้อมูลเข้า SQL944
-            $('#addToSQL944Btn').on('click', function() {
-                let personId = $('#shiftPersonId').val();
-                let cardNumber = $('#shiftCardNo').val();
-                let fullName = $('#shiftPersonNameDisplay').text();
-                let deptID = $('#shiftDeptID').val();
-                let deptName = $('#shiftDeptName').val();
-                let shiftGroup = $('#shiftName').val();
-                let date = $('#shiftDate').val();
-                if (!cardNumber || !fullName || !shiftGroup || !date) {
-                    showErrorToast('กรุณากรอกข้อมูลให้ครบถ้วน');
-                    return;
-                }
-                // จัดรูปแบบชื่อ
-                let formattedName = formatName(fullName);
-                // แสดง loading
-                Swal.fire({
-                    title: 'กำลังเพิ่มข้อมูล',
-                    html: '<div class="spinner-border text-primary" role="status"></div>',
-                    showConfirmButton: false,
-                    allowOutsideClick: false
-                });
-                $.ajax({
-                    url: '/Employee/CreateCardData',
-                    type: 'POST',
-                    data: {
-                        personId: personId,
-                        cardNumber: cardNumber,
-                        personName: formattedName,
-                        deptID: deptID,
-                        deptName: deptName,
-                        shift: shiftGroup,
-                        date: date
-                    },
-                    beforeSend: function(xhr) {
-                        xhr.setRequestHeader("RequestVerificationToken", $(
-                            'input:hidden[name="__RequestVerificationToken"]').val());
-                    },
-                    success: function(response) {
-                        Swal.close();
-                        if (response.success) {
-                            showSuccessToast('เพิ่มข้อมูล SQL944 สำเร็จ');
-                            $('#addToSQL944Btn').hide();
-                            // รีโหลดข้อมูลตาราง
-                            $('#employeeTable').DataTable().ajax.reload();
-                        } else {
-                            showErrorToast(response.message || 'ไม่สามารถเพิ่มข้อมูล SQL944 ได้');
-                        }
-                    },
-                    error: function() {
-                        Swal.close();
-                        showErrorToast('เกิดข้อผิดพลาดในการเพิ่มข้อมูล SQL944');
-                    }
-                });
-            });
+
             // ฟังก์ชันจัดรูปแบบชื่อ
             function formatName(fullName) {
                 // ลบคำนำหน้าชื่อ
@@ -2129,6 +2145,21 @@
                 }
                 return name;
             }
+            // เพิ่ม event handler สำหรับการเปลี่ยนกะ
+            $('#shiftName').on('change', function() {
+                updateShiftTimeDisplay();
+            });
+            
+            // ฟังก์ชันอัพเดทเวลาของกะ
+            function updateShiftTimeDisplay() {
+                let selectedOption = $('#shiftName option:selected');
+                let startTime = selectedOption.data('start') || '-';
+                let endTime = selectedOption.data('end') || '-';
+                
+                $('#shiftStartTimeDisplay').text(startTime);
+                $('#shiftEndTimeDisplay').text(endTime);
+            }
+            
             // เพิ่ม event listener สำหรับ input เลขบัตร
             $('#shiftCardNo').on('input', function() {
                 // อนุญาตให้กรอกได้เฉพาะตัวเลข
@@ -2140,6 +2171,7 @@
                 // อัพเดทการแสดงผล
                 $('#shiftCardNoDisplay').text(this.value || '-');
             });
+            
             $('body').on('click', '.view-employee', function() {
                 let personId = $(this).data('person-id');
                 // แสดง Loading
@@ -2576,10 +2608,7 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <button type="button" class="btn btn-sm btn-success rounded-pill shadow-sm"
-                                                id="addToSQL944Btn" style="display: none;">
-                                                <i class="fas fa-database me-1"></i>เพิ่มข้อมูล
-                                            </button>
+                                            <small class="text-muted">ระบบจะเพิ่มข้อมูล SQL944 อัตโนมัติหากจำเป็น</small>
                                         </div>
                                     </div>
                                 </div>
@@ -2665,7 +2694,7 @@
                                 <div class="col-12">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="shiftDate" name="Date" required
-                                            value="@DateTime.Now.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")">
+                                            value="@DateTime.Now.ToString("yyyy-MM-dd")">
                                         <label for="shiftDate">วันที่</label>
                                         <div class="invalid-feedback">กรุณาระบุวันที่</div>
                                     </div>

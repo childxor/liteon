@@ -7,15 +7,13 @@
     ViewData["Title"] = "จัดการโมดูล";
 }
 
-<!-- เพิ่ม Bootstrap Icons CSS -->
-
-<div class="container-fluid mt-5">
+<div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">จัดการโมดูล</h5>
-                    <button type="button" class="btn btn-light" id="addNewModuleButton">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> จัดการโมดูล</h5>
+                    <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addModuleModal">
                         <i class="bi bi-plus-lg"></i> เพิ่มโมดูลหลัก
                     </button>
                 </div>
@@ -26,16 +24,16 @@
                                 <span class="visually-hidden">กำลังโหลด...</span>
                             </div>
                         </div>
-                        <table class="table table-hover" id="moduleTable">
+                        <table class="table table-hover align-middle" id="moduleTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 50px"></th>
-                                    <th class="text-center" style="width: 80px">ลำดับ</th>
+                                    <th style="width: 30px" class="text-center"></th>
+                                    <th style="width: 80px" class="text-center">ลำดับ</th>
                                     <th>ชื่อโมดูล</th>
                                     <th>รายละเอียด</th>
-                                    <th class="text-center" style="width: 100px">ไอคอน</th>
-                                    <th class="text-center" style="width: 100px">สถานะ</th>
-                                    <th class="text-center" style="width: 150px">จัดการ</th>
+                                    <th style="width: 100px" class="text-center">ไอคอน</th>
+                                    <th style="width: 100px" class="text-center">สถานะ</th>
+                                    <th style="width: 150px" class="text-center">จัดการ</th>
                                 </tr>
                             </thead>
                         </table>
@@ -46,15 +44,137 @@
     </div>
 </div>
 
+<!-- Modal เพิ่ม/แก้ไขโมดูลหลัก -->
+<div class="modal fade" id="addModuleModal" tabindex="-1" aria-labelledby="addModuleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addModuleModalLabel">เพิ่มโมดูลหลัก</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="moduleForm">
+                    <input type="hidden" id="moduleId" value="">
+                    <div class="mb-3">
+                        <label for="moduleOrder" class="form-label">ลำดับ <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="moduleOrder" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="moduleName" class="form-label">ชื่อโมดูล <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="moduleName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="moduleDescription" class="form-label">รายละเอียด</label>
+                        <textarea class="form-control" id="moduleDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="moduleIcon" class="form-label">ไอคอน</label>
+                        <select class="form-select" id="moduleIcon">
+                            <option value="">เลือกไอคอน</option>
+                        </select>
+                        <div class="mt-2 text-center">
+                            <span class="fs-2" id="iconPreview"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="moduleStatus" checked>
+                            <label class="form-check-label" for="moduleStatus">เปิดใช้งาน</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="saveModuleBtn">
+                    <i class="bi bi-save"></i> บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal เพิ่ม/แก้ไขโมดูลย่อย -->
+<div class="modal fade" id="addSubModuleModal" tabindex="-1" aria-labelledby="addSubModuleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSubModuleModalLabel">เพิ่มโมดูลย่อย</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="subModuleForm">
+                    <input type="hidden" id="subModuleId" value="">
+                    <input type="hidden" id="subModuleParentId" value="">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subModuleOrder" class="form-label">ลำดับ <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="subModuleOrder" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="subModuleStatus" checked>
+                                    <label class="form-check-label" for="subModuleStatus">เปิดใช้งาน</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subModuleName" class="form-label">ชื่อโมดูลย่อย <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="subModuleName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subModuleDescription" class="form-label">รายละเอียด</label>
+                        <textarea class="form-control" id="subModuleDescription" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subModuleController" class="form-label">Controller</label>
+                                <input type="text" class="form-control" id="subModuleController" placeholder="เช่น Home">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subModuleAction" class="form-label">Action</label>
+                                <input type="text" class="form-control" id="subModuleAction" placeholder="เช่น Index">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subModuleIcon" class="form-label">ไอคอน</label>
+                        <select class="form-select" id="subModuleIcon">
+                            <option value="">เลือกไอคอน</option>
+                        </select>
+                        <div class="mt-2 text-center">
+                            <span class="fs-2" id="subIconPreview"></span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="saveSubModuleBtn">
+                    <i class="bi bi-save"></i> บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         let mainModuleTable;
+        let isEditing = false;
+        let currentParentId = null;
 
         $(document).ready(function () {
             initializeMainModuleTable();
-            handleEditModule();
-            handleToggleMainModuleStatus();
-            handleAddModule();
+            initializeIconOptions();
+            bindEvents();
         });
 
         function showLoading() {
@@ -65,44 +185,134 @@
             $('#loadingSpinner').addClass('d-none');
         }
 
+        function showSuccess(message) {
+            const toast = `
+                <div class="toast show position-fixed top-0 end-0 m-3" role="alert" style="z-index: 1055;">
+                    <div class="toast-header bg-success text-white">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong class="me-auto">สำเร็จ</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>
+            `;
+            $('body').append(toast);
+            setTimeout(() => $('.toast').remove(), 3000);
+        }
+
+        function showError(message) {
+            const toast = `
+                <div class="toast show position-fixed top-0 end-0 m-3" role="alert" style="z-index: 1055;">
+                    <div class="toast-header bg-danger text-white">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <strong class="me-auto">ข้อผิดพลาด</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>
+            `;
+            $('body').append(toast);
+            setTimeout(() => $('.toast').remove(), 5000);
+        }
+
+        function initializeIconOptions() {
+            const icons = [
+                { category: 'ทั่วไป', items: ['bi-house', 'bi-person', 'bi-people', 'bi-gear', 'bi-tools', 'bi-file', 'bi-folder', 'bi-bar-chart', 'bi-calendar', 'bi-clock', 'bi-bell', 'bi-envelope', 'bi-star', 'bi-heart', 'bi-bookmark', 'bi-printer', 'bi-camera', 'bi-search', 'bi-lock', 'bi-key', 'bi-database', 'bi-server', 'bi-pc-display', 'bi-laptop', 'bi-phone', 'bi-tablet'] },
+                { category: 'การเงิน', items: ['bi-cash', 'bi-credit-card', 'bi-wallet', 'bi-coin', 'bi-piggy-bank', 'bi-graph-up', 'bi-pie-chart', 'bi-percent', 'bi-cash-stack'] },
+                { category: 'การจัดการ', items: ['bi-list-task', 'bi-clipboard', 'bi-clipboard-check', 'bi-clipboard-data', 'bi-calendar-check', 'bi-calendar-plus', 'bi-calendar-minus'] },
+                { category: 'การสื่อสาร', items: ['bi-chat', 'bi-chat-left', 'bi-chat-dots', 'bi-chat-right', 'bi-chat-square', 'bi-chat-square-text'] },
+                { category: 'การตั้งค่า', items: ['bi-gear', 'bi-sliders', 'bi-tools', 'bi-wrench', 'bi-screwdriver', 'bi-hammer', 'bi-rulers'] },
+                { category: 'รายงาน', items: ['bi-bar-chart', 'bi-graph-up', 'bi-pie-chart', 'bi-graph-up-arrow', 'bi-diagram-3', 'bi-tree'] },
+                { category: 'ความปลอดภัย', items: ['bi-shield', 'bi-shield-check', 'bi-shield-x', 'bi-shield-exclamation', 'bi-lock', 'bi-unlock', 'bi-key', 'bi-fingerprint'] }
+            ];
+
+            let options = '<option value="">เลือกไอคอน</option>';
+            icons.forEach(category => {
+                options += `<optgroup label="${category.category}">`;
+                category.items.forEach(icon => {
+                    const displayName = icon.replace('bi-', '').replace(/-/g, ' ');
+                    options += `<option value="bi ${icon}">${displayName}</option>`;
+                });
+                options += '</optgroup>';
+            });
+
+            $('#moduleIcon, #subModuleIcon').html(options);
+        }
+
+        function bindEvents() {
+            // Icon preview
+            $('#moduleIcon').on('change', function() {
+                const icon = $(this).val();
+                $('#iconPreview').attr('class', icon);
+            });
+
+            $('#subModuleIcon').on('change', function() {
+                const icon = $(this).val();
+                $('#subIconPreview').attr('class', icon);
+            });
+
+            // Save module
+            $('#saveModuleBtn').on('click', saveModule);
+            
+            // Save sub module
+            $('#saveSubModuleBtn').on('click', saveSubModule);
+
+            // Reset form when modal closes
+            $('#addModuleModal').on('hidden.bs.modal', function() {
+                resetModuleForm();
+            });
+
+            $('#addSubModuleModal').on('hidden.bs.modal', function() {
+                resetSubModuleForm();
+            });
+        }
+
         function formatSubModuleTable(d) {
             if (!d.subModules || d.subModules.length === 0) {
-                return '<div class="p-3 text-center">ไม่มีโมดูลย่อย</div>';
+                return `<div class="p-4 text-center text-muted">
+                    <i class="bi bi-folder2-open fs-1"></i>
+                    <p class="mt-2">ไม่มีโมดูลย่อย</p>
+                    <button type="button" class="btn btn-primary btn-sm add-sub-module" data-parent-id="${d.Id}" data-parent-name="${d.Name}">
+                        <i class="bi bi-plus-lg"></i> เพิ่มโมดูลย่อย
+                    </button>
+                </div>`;
             }
 
             let table = `
                 <div class="p-3">
-                    <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-primary btn-sm add-sub-module" data-parent-id="${d.Id}" data-parent-name="${d.Name}">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 text-primary"><i class="bi bi-arrow-return-right"></i> โมดูลย่อยของ ${d.Name}</h6>
+                        <button type="button" class="btn btn-outline-primary btn-sm add-sub-module" data-parent-id="${d.Id}" data-parent-name="${d.Name}">
                             <i class="bi bi-plus-lg"></i> เพิ่มโมดูลย่อย
                         </button>
                     </div>
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="text-center" style="width: 80px">ลำดับ</th>
-                                <th>ชื่อโมดูลย่อย</th>
-                                <th>รายละเอียด</th>
-                                <th>Controller</th>
-                                <th>Action</th>
-                                <th class="text-center" style="width: 100px">ไอคอน</th>
-                                <th class="text-center" style="width: 100px">สถานะ</th>
-                                <th class="text-center" style="width: 100px">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 60px">ลำดับ</th>
+                                    <th>ชื่อโมดูลย่อย</th>
+                                    <th>รายละเอียด</th>
+                                    <th style="width: 100px">Controller</th>
+                                    <th style="width: 100px">Action</th>
+                                    <th class="text-center" style="width: 60px">ไอคอน</th>
+                                    <th class="text-center" style="width: 80px">สถานะ</th>
+                                    <th class="text-center" style="width: 120px">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
             `;
 
             d.subModules.forEach(subModule => {
                 table += `
                     <tr>
-                        <td class="text-center">${subModule.Order}</td>
-                        <td>${subModule.Name}</td>
-                        <td>${subModule.Description || ''}</td>
-                        <td>${subModule.Controller || ''}</td>
-                        <td>${subModule.Action || ''}</td>
+                        <td class="text-center"><span class="badge bg-secondary">${subModule.Order}</span></td>
+                        <td><strong>${subModule.Name}</strong></td>
+                        <td class="text-muted">${subModule.Description || '-'}</td>
+                        <td><code class="text-info">${subModule.Controller || '-'}</code></td>
+                        <td><code class="text-success">${subModule.Action || '-'}</code></td>
                         <td class="text-center">
-                            ${subModule.Icon ? `<i class="${subModule.Icon}"></i>` : ''}
+                            ${subModule.Icon ? `<i class="${subModule.Icon}" style="font-size: 1.2rem;"></i>` : '<span class="text-muted">-</span>'}
                         </td>
                         <td class="text-center">
                             <div class="form-check form-switch d-flex justify-content-center">
@@ -110,16 +320,15 @@
                                     type="checkbox" id="subSwitch${subModule.Id}" 
                                     ${subModule.IsActive ? 'checked' : ''} 
                                     data-id="${subModule.Id}">
-                                <label class="form-check-label" for="subSwitch${subModule.Id}"></label>
                             </div>
                         </td>
                         <td class="text-center">
-                            <div class="d-flex justify-content-center gap-1">
-                                <button type="button" class="btn btn-warning btn-sm rounded-circle edit-sub-module" data-id="${subModule.Id}" title="แก้ไข">
-                                    <i class="bi bi-pencil fs-6"></i>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-warning edit-sub-module" data-id="${subModule.Id}" title="แก้ไข">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                                <button type="button" class="btn btn-danger btn-sm rounded-circle delete-sub-module" data-id="${subModule.Id}" title="ลบ">
-                                    <i class="bi bi-trash fs-6"></i>
+                                <button type="button" class="btn btn-outline-danger delete-sub-module" data-id="${subModule.Id}" title="ลบ">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </td>
@@ -128,8 +337,9 @@
             });
 
             table += `
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
 
@@ -178,56 +388,64 @@
                     },
                     columns: [
                         {
-                            className: 'dt-control',
+                            className: 'dt-control text-center',
                             orderable: false,
                             data: null,
-                            defaultContent: '<i class="bi bi-plus-circle"></i>'
+                            defaultContent: '<i class="bi bi-plus-circle text-primary expand-icon" style="cursor: pointer; font-size: 1.1rem;" title="ดูโมดูลย่อย"></i>',
+                            width: "30px"
                         },
                         {
                             data: 'Order',
-                            className: 'text-center align-middle'
+                            className: 'text-center',
+                            render: function(data) {
+                                return `<span class="badge bg-primary">${data}</span>`;
+                            }
                         },
                         {
                             data: 'Name',
-                            className: 'align-middle'
+                            render: function(data) {
+                                return `<strong>${data}</strong>`;
+                            }
                         },
                         {
                             data: 'Description',
-                            className: 'align-middle'
+                            className: 'text-muted',
+                            render: function(data) {
+                                return data || '-';
+                            }
                         },
                         {
                             data: 'Icon',
-                            className: 'text-center align-middle',
+                            className: 'text-center',
                             render: function(data) {
-                                return data ? `<i class="${data}"></i>` : '';
+                                return data ? `<i class="${data}" style="font-size: 1.5rem;"></i>` : '<span class="text-muted">-</span>';
                             }
                         },
                         {
                             data: 'IsActive',
-                            className: 'text-center align-middle',
+                            className: 'text-center',
                             render: function(data, type, row) {
                                 return `
                                     <div class="form-check form-switch d-flex justify-content-center">
                                         <input class="form-check-input toggle-status" 
                                             type="checkbox" id="customSwitch${row.Id}" ${data ? 'checked' : ''} 
                                             data-id="${row.Id}">
-                                        <label class="form-check-label" for="customSwitch${row.Id}"></label>
                                     </div>
                                 `;
                             }
                         },
                         {
                             data: null,
-                            className: 'text-center align-middle',
+                            className: 'text-center',
                             orderable: false,
                             render: function(data, type, row) {
                                 return `
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-warning btn-sm edit-module" 
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-warning edit-module" 
                                             data-id="${row.Id}" title="แก้ไข">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button type="button" class="btn btn-danger btn-sm delete-module" 
+                                        <button type="button" class="btn btn-outline-danger delete-module" 
                                             data-id="${row.Id}" title="ลบ">
                                             <i class="bi bi-trash"></i>
                                         </button>
@@ -238,580 +456,365 @@
                     ],
                     order: [[1, 'asc']],
                     drawCallback: function() {
-                        $('[data-toggle="tooltip"]').tooltip();
+                        // Update icon in expand/collapse indicator
+                        const api = this.api();
+                        $('#moduleTable tbody tr').each(function() {
+                            const row = api.row(this);
+                            const $icon = $(this).find('td.dt-control .expand-icon');
+                            if (row.child.isShown()) {
+                                $icon.removeClass('bi-plus-circle text-primary')
+                                     .addClass('bi-dash-circle text-secondary')
+                                     .attr('title', 'ซ่อนโมดูลย่อย');
+                            } else {
+                                $icon.removeClass('bi-dash-circle text-secondary')
+                                     .addClass('bi-plus-circle text-primary')
+                                     .attr('title', 'ดูโมดูลย่อย');
+                            }
+                        });
                     }
                 });
 
-                // เพิ่ม event handler สำหรับปุ่มขยาย/ย่อ
+                // เพิ่ม event handler สำหรับไอคอนขยาย/ย่อ
                 $('#moduleTable tbody').on('click', 'td.dt-control', async function () {
                     const tr = $(this).closest('tr');
                     const row = mainModuleTable.row(tr);
+                    const $icon = $(this).find('.expand-icon');
 
                     if (row.child.isShown()) {
                         row.child.hide();
                         tr.removeClass('shown');
+                        $icon.removeClass('bi-dash-circle text-secondary')
+                             .addClass('bi-plus-circle text-primary')
+                             .attr('title', 'ดูโมดูลย่อย');
                     } else {
                         try {
-                            showLoading();
+                            // แสดงไอคอนโหลด
+                            $icon.removeClass('bi-plus-circle text-primary')
+                                 .addClass('bi-hourglass-split text-warning')
+                                 .attr('title', 'กำลังโหลด...');
+                            
                             const response = await $.get('@Url.Action("GetSubModules", "Module")', { 
                                 parentId: row.data().Id 
                             });
                             row.data().subModules = response;
                             row.child(formatSubModuleTable(row.data())).show();
                             tr.addClass('shown');
+                            
+                            $icon.removeClass('bi-hourglass-split text-warning')
+                                 .addClass('bi-dash-circle text-secondary')
+                                 .attr('title', 'ซ่อนโมดูลย่อย');
                         } catch (error) {
                             console.error('Error loading submodules:', error);
-                            Swal.fire({
-                                title: 'เกิดข้อผิดพลาด!',
-                                text: 'ไม่สามารถโหลดข้อมูลโมดูลย่อยได้',
-                                icon: 'error'
-                            });
-                        } finally {
-                            hideLoading();
+                            showError('ไม่สามารถโหลดข้อมูลโมดูลย่อยได้');
+                            $icon.removeClass('bi-hourglass-split text-warning')
+                                 .addClass('bi-plus-circle text-primary')
+                                 .attr('title', 'ดูโมดูลย่อย');
                         }
                     }
+                });
+
+                // Event handlers for main module actions
+                $('#moduleTable tbody').on('click', '.edit-module', function() {
+                    const id = $(this).data('id');
+                    editModule(id);
+                });
+
+                $('#moduleTable tbody').on('click', '.delete-module', function() {
+                    const id = $(this).data('id');
+                    deleteModule(id);
+                });
+
+                $('#moduleTable tbody').on('change', '.toggle-status', function() {
+                    const id = $(this).data('id');
+                    const isActive = $(this).prop('checked');
+                    toggleModuleStatus(id, isActive, $(this));
                 });
 
             } catch (error) {
                 console.error('Error initializing DataTable:', error);
-                Swal.fire({
-                    title: 'เกิดข้อผิดพลาด!',
-                    text: 'ไม่สามารถโหลดตารางข้อมูลได้',
-                    icon: 'error'
+                showError('ไม่สามารถโหลดตารางข้อมูลได้');
+            }
+        }
+
+        function resetModuleForm() {
+            $('#moduleForm')[0].reset();
+            $('#moduleId').val('');
+            $('#iconPreview').attr('class', '');
+            $('#addModuleModalLabel').text('เพิ่มโมดูลหลัก');
+            isEditing = false;
+        }
+
+        function resetSubModuleForm() {
+            $('#subModuleForm')[0].reset();
+            $('#subModuleId').val('');
+            $('#subModuleParentId').val('');
+            $('#subIconPreview').attr('class', '');
+            $('#addSubModuleModalLabel').text('เพิ่มโมดูลย่อย');
+            isEditing = false;
+        }
+
+        function editModule(id) {
+            $.get('@Url.Action("GetModuleById", "Module")', { id: id })
+                .done(function(response) {
+                    if (response.success) {
+                        const module = response.data;
+                        $('#moduleId').val(module.Id);
+                        $('#moduleOrder').val(module.Order);
+                        $('#moduleName').val(module.Name);
+                        $('#moduleDescription').val(module.Description);
+                        $('#moduleIcon').val(module.Icon);
+                        $('#moduleStatus').prop('checked', module.IsActive);
+                        $('#iconPreview').attr('class', module.Icon || '');
+                        $('#addModuleModalLabel').text('แก้ไขโมดูล');
+                        isEditing = true;
+                        $('#addModuleModal').modal('show');
+                    } else {
+                        showError('ไม่สามารถโหลดข้อมูลโมดูลได้');
+                    }
+                })
+                .fail(function() {
+                    showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
+                });
+        }
+
+        function deleteModule(id) {
+            if (confirm('คุณต้องการลบโมดูลนี้ใช่หรือไม่? (จะลบโมดูลย่อยทั้งหมดด้วย)')) {
+                $.ajax({
+                    url: '@Url.Action("DeleteModule", "Module")',
+                    type: 'POST',
+                    data: { id: id },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess('ลบโมดูลเรียบร้อยแล้ว');
+                            mainModuleTable.ajax.reload();
+                        } else {
+                            showError(response.message || 'ไม่สามารถลบโมดูลได้');
+                        }
+                    },
+                    error: function() {
+                        showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
+                    }
                 });
             }
         }
 
-        function handleEditModule() {
-            $(document).on('click', '.edit-module', async function() {
-                const id = $(this).data('id');
-                
-                try {
-                    const response = await $.get('@Url.Action("GetModuleById", "Module")', { id: id });
-                    
-                    if (!response.success) {
-                        throw new Error(response.message || 'ไม่สามารถโหลดข้อมูลโมดูลได้');
-                    }
-
-                    const module = response.data;
-                    
-                    const result = await Swal.fire({
-                        title: 'แก้ไขโมดูล',
-                        html: `
-                            <form id="editModuleForm" class="text-start">
-                                <div class="mb-3">
-                                    <label class="form-label">ลำดับ</label>
-                                    <input type="number" class="form-control" id="editModuleOrder" 
-                                        value="${module.Order || ''}" min="1">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">ชื่อโมดูล</label>
-                                    <input type="text" class="form-control" id="editModuleName" 
-                                        value="${module.Name || ''}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">รายละเอียด</label>
-                                    <textarea class="form-control" id="editModuleDescription" 
-                                        rows="3">${module.Description || ''}</textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">ไอคอน</label>
-                                    <select class="form-control" id="editModuleIcon">
-                                        <option value="">เลือกไอคอน</option>
-                                        ${generateIconOptions(module.Icon)}
-                                    </select>
-                                    <div class="icon-preview mt-2 text-center">
-                                        <i class="${module.Icon || ''}" id="editIconPreview"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" 
-                                            id="editModuleStatus" ${module.IsActive ? 'checked' : ''}>
-                                        <label class="form-check-label">เปิดใช้งาน</label>
-                                    </div>
-                                </div>
-                            </form>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: 'บันทึก',
-                        cancelButtonText: 'ยกเลิก',
-                        confirmButtonColor: '#28a745',
-                        cancelButtonColor: '#dc3545',
-                        focusConfirm: false,
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            $('#editModuleIcon').on('change', function() {
-                                const selectedIcon = $(this).val();
-                                $('#editIconPreview').attr('class', selectedIcon || '');
-                            });
-                            $('#editModuleOrder').focus();
-                        }
-                    });
-
-                    if (result.isConfirmed) {
-                        const updatedData = {
-                            Id: id,
-                            Order: $('#editModuleOrder').val(),
-                            Name: $('#editModuleName').val(),
-                            Description: $('#editModuleDescription').val(),
-                            Icon: $('#editModuleIcon').val(),
-                            IsActive: $('#editModuleStatus').is(':checked')
-                        };
-
-                        const updateResponse = await $.ajax({
-                            url: '@Url.Action("UpdateModule", "Module")',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify(updatedData)
-                        });
-
-                        if (updateResponse.success) {
-                            await Swal.fire({
-                                title: 'สำเร็จ!',
-                                text: 'แก้ไขโมดูลเรียบร้อยแล้ว',
-                                icon: 'success',
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
-                            mainModuleTable.ajax.reload();
-                        } else {
-                            throw new Error(updateResponse.message || 'ไม่สามารถแก้ไขโมดูลได้');
-                        }
-                    }
-                } catch (error) {
-                    Swal.fire({
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: error.message,
-                        icon: 'error'
-                    });
-                }
-            });
-        }
-
-        function handleToggleMainModuleStatus() {
-            $(document).on('change', '.toggle-status', function() {
-                const id = $(this).data('id');
-                const isActive = $(this).prop('checked');
-                const $switch = $(this);
-
-                Swal.fire({
-                    title: 'ยืนยันการเปลี่ยนสถานะ',
-                    text: `คุณต้องการ${isActive ? 'เปิด' : 'ปิด'}การใช้งานโมดูลนี้ใช่หรือไม่?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก',
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#dc3545'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '@Url.Action("ToggleModuleStatus", "Module")',
-                            type: 'POST',
-                            data: { id: id, isActive: isActive },
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        title: 'สำเร็จ!',
-                                        text: `${isActive ? 'เปิด' : 'ปิด'}การใช้งานโมดูลเรียบร้อยแล้ว`,
-                                        icon: 'success',
-                                        timer: 1500,
-                                        showConfirmButton: false
-                                    });
-                                    mainModuleTable.ajax.reload();
-                                } else {
-                                    $switch.prop('checked', !isActive);
-                                    Swal.fire({
-                                        title: 'เกิดข้อผิดพลาด!',
-                                        text: response.message || 'ไม่สามารถเปลี่ยนสถานะได้',
-                                        icon: 'error'
-                                    });
-                                }
-                            },
-                            error: function() {
-                                $switch.prop('checked', !isActive);
-                                Swal.fire({
-                                    title: 'เกิดข้อผิดพลาด!',
-                                    text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์',
-                                    icon: 'error'
-                                });
-                            }
-                        });
+        function toggleModuleStatus(id, isActive, $switch) {
+            $.ajax({
+                url: '@Url.Action("ToggleModuleStatus", "Module")',
+                type: 'POST',
+                data: { id: id, isActive: isActive },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(`${isActive ? 'เปิด' : 'ปิด'}การใช้งานโมดูลเรียบร้อยแล้ว`);
+                        mainModuleTable.ajax.reload();
                     } else {
                         $switch.prop('checked', !isActive);
+                        showError(response.message || 'ไม่สามารถเปลี่ยนสถานะได้');
                     }
-                });
-            });
-        }
-
-        function handleAddModule() {
-            $(document).on('click', '#addNewModuleButton', async function() {
-                const result = await Swal.fire({
-                    title: 'เพิ่มโมดูลใหม่',
-                    html: `
-                        <form id="addModuleForm" class="text-start">
-                            <div class="mb-3">
-                                <label class="form-label">ลำดับ</label>
-                                <input type="number" class="form-control" id="addModuleOrder" min="1">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ชื่อโมดูล</label>
-                                <input type="text" class="form-control" id="addModuleName">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">รายละเอียด</label>
-                                <textarea class="form-control" id="addModuleDescription" rows="3"></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ไอคอน</label>
-                                <select class="form-control" id="addModuleIcon">
-                                    <option value="">เลือกไอคอน</option>
-                                    ${generateIconOptions()}
-                                </select>
-                                <div class="icon-preview mt-2 text-center">
-                                    <i class="" id="addIconPreview"></i>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="addModuleStatus" checked>
-                                    <label class="form-check-label">เปิดใช้งาน</label>
-                                </div>
-                            </div>
-                        </form>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'บันทึก',
-                    cancelButtonText: 'ยกเลิก',
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#dc3545',
-                    focusConfirm: false,
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        $('#addModuleIcon').on('change', function() {
-                            const selectedIcon = $(this).val();
-                            $('#addIconPreview').attr('class', selectedIcon || '');
-                        });
-                        $('#addModuleOrder').focus();
-                    }
-                });
-
-                if (result.isConfirmed) {
-                    const newData = {
-                        Order: $('#addModuleOrder').val(),
-                        Name: $('#addModuleName').val(),
-                        Description: $('#addModuleDescription').val(),
-                        Icon: $('#addModuleIcon').val(),
-                        IsActive: $('#addModuleStatus').is(':checked')
-                    };
-
-                    try {
-                        const response = await $.ajax({
-                            url: '@Url.Action("AddModule", "Module")',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify(newData)
-                        });
-
-                        if (response.success) {
-                            await Swal.fire({
-                                title: 'สำเร็จ!',
-                                text: 'เพิ่มโมดูลเรียบร้อยแล้ว',
-                                icon: 'success',
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
-                            mainModuleTable.ajax.reload();
-                        } else {
-                            throw new Error(response.message || 'ไม่สามารถเพิ่มโมดูลได้');
-                        }
-                    } catch (error) {
-                        Swal.fire({
-                            title: 'เกิดข้อผิดพลาด!',
-                            text: error.message,
-                            icon: 'error'
-                        });
-                    }
+                },
+                error: function() {
+                    $switch.prop('checked', !isActive);
+                    showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
                 }
             });
         }
 
-        function generateIconOptions(selectedIcon) {
-            const iconCategories = {
-                'ทั่วไป': [
-                    'bi-house', 'bi-person', 'bi-people', 'bi-gear', 'bi-tools', 'bi-file', 
-                    'bi-folder', 'bi-bar-chart', 'bi-calendar', 'bi-clock', 'bi-bell',
-                    'bi-envelope', 'bi-star', 'bi-heart', 'bi-bookmark', 'bi-printer',
-                    'bi-camera', 'bi-camera-video', 'bi-music-note', 'bi-search', 'bi-lock',
-                    'bi-key', 'bi-gear', 'bi-tools', 'bi-database', 'bi-server',
-                    'bi-pc-display', 'bi-laptop', 'bi-phone', 'bi-tablet', 'bi-telephone'
-                ],
-                'การเงิน': [
-                    'bi-cash', 'bi-credit-card', 'bi-wallet', 'bi-coin', 'bi-piggy-bank',
-                    'bi-graph-up', 'bi-pie-chart', 'bi-graph-up-arrow', 'bi-percent',
-                    'bi-currency-dollar', 'bi-currency-yen', 'bi-currency-euro', 'bi-currency-pound',
-                    'bi-cash-stack', 'bi-cash-coin', 'bi-cash'
-                ],
-                'การจัดการ': [
-                    'bi-list-task', 'bi-clipboard', 'bi-clipboard-check', 'bi-clipboard-data',
-                    'bi-calendar-check', 'bi-calendar-plus', 'bi-calendar-minus',
-                    'bi-calendar', 'bi-calendar-day', 'bi-calendar-week',
-                    'bi-calendar-x', 'bi-calendar-clock'
-                ],
-                'การสื่อสาร': [
-                    'bi-chat', 'bi-chat-left', 'bi-chat-dots', 'bi-chat-right',
-                    'bi-chat-square', 'bi-chat-square-text', 'bi-chat-square-quote',
-                    'bi-chat-square-heart', 'bi-chat-square-dots', 'bi-chat-square-text',
-                    'bi-chat-square-plus', 'bi-chat-square-minus', 'bi-chat-square-check',
-                    'bi-chat-square-x', 'bi-chat-square-quote'
-                ],
-                'การตั้งค่า': [
-                    'bi-gear', 'bi-sliders', 'bi-sliders2-vertical', 'bi-tools',
-                    'bi-wrench', 'bi-screwdriver', 'bi-hammer', 'bi-rulers',
-                    'bi-ruler', 'bi-ruler-combined', 'bi-ruler-horizontal', 'bi-ruler-vertical',
-                    'bi-compass', 'bi-compass-fill', 'bi-geo-alt'
-                ],
-                'รายงาน': [
-                    'bi-bar-chart', 'bi-graph-up', 'bi-pie-chart', 'bi-graph-up-arrow',
-                    'bi-scatter-chart', 'bi-bubble-chart', 'bi-gantt-chart',
-                    'bi-diagram-3', 'bi-radar', 'bi-tree',
-                    'bi-waterfall-chart', 'bi-candlestick-chart', 'bi-box-plot',
-                    'bi-bar-chart-line', 'bi-bar-chart-steps'
-                ],
-                'ความปลอดภัย': [
-                    'bi-shield', 'bi-shield-virus', 'bi-shield-check',
-                    'bi-shield-x', 'bi-shield-exclamation', 'bi-shield-heart',
-                    'bi-shield-plus', 'bi-shield-minus', 'bi-shield-slash',
-                    'bi-shield-fill-x', 'bi-shield-fill-check', 'bi-lock', 'bi-unlock',
-                    'bi-key', 'bi-fingerprint'
-                ],
-                'การจัดการไฟล์': [
-                    'bi-file', 'bi-file-text', 'bi-file-zip', 'bi-file-music',
-                    'bi-file-code', 'bi-file-contract', 'bi-file-csv', 'bi-file-download',
-                    'bi-file-excel', 'bi-file-export', 'bi-file-image', 'bi-file-import',
-                    'bi-file-invoice', 'bi-file-invoice-dollar', 'bi-file-medical',
-                    'bi-file-pdf', 'bi-file-powerpoint', 'bi-file-prescription',
-                    'bi-file-signature', 'bi-file-upload', 'bi-file-video', 'bi-file-word'
-                ],
-                'การแจ้งเตือน': [
-                    'bi-bell', 'bi-bell-slash', 'bi-bell-fill', 'bi-bell-school',
-                    'bi-bell-ring', 'bi-bell-plus', 'bi-bell-minus', 'bi-bell-exclamation',
-                    'bi-bell-check', 'bi-bell-x', 'bi-bell-concierge', 'bi-bell-hotel',
-                    'bi-bell-desk', 'bi-bell-schedule', 'bi-bell-curfew'
-                ],
-                'การจัดการผู้ใช้': [
-                    'bi-person', 'bi-person-plus', 'bi-person-minus', 'bi-person-edit',
-                    'bi-person-x', 'bi-person-check', 'bi-person-clock', 'bi-person-gear',
-                    'bi-person-gear', 'bi-person-shield', 'bi-person-lock', 'bi-person-unlock',
-                    'bi-person-slash', 'bi-person-tag', 'bi-person-tie'
-                ]
+        function saveModule() {
+            const moduleData = {
+                Order: $('#moduleOrder').val(),
+                Name: $('#moduleName').val(),
+                Description: $('#moduleDescription').val(),
+                Icon: $('#moduleIcon').val(),
+                IsActive: $('#moduleStatus').is(':checked')
             };
 
-            let options = '<option value="">เลือกไอคอน</option>';
-            
-            for (const [category, icons] of Object.entries(iconCategories)) {
-                options += `<optgroup label="${category}">`;
-                icons.forEach(icon => {
-                    const fullIconClass = `bi ${icon}`;
-                    const isSelected = fullIconClass === selectedIcon;
-                    const displayName = icon.replace('bi-', '').replace(/-/g, ' ');
-                    options += `<option value="${fullIconClass}" ${isSelected ? 'selected' : ''}>
-                        ${displayName}
-                    </option>`;
-                });
-                options += '</optgroup>';
+            if (!moduleData.Name || !moduleData.Order) {
+                showError('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
             }
 
-            return options;
+            if (isEditing) {
+                moduleData.Id = $('#moduleId').val();
+            }
+
+            const url = isEditing ? '@Url.Action("UpdateModule", "Module")' : '@Url.Action("AddModule", "Module")';
+            
+            $.ajax({
+                url: url,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(moduleData),
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(isEditing ? 'แก้ไขโมดูลเรียบร้อยแล้ว' : 'เพิ่มโมดูลเรียบร้อยแล้ว');
+                        $('#addModuleModal').modal('hide');
+                        mainModuleTable.ajax.reload();
+                    } else {
+                        showError(response.message || 'ไม่สามารถบันทึกข้อมูลได้');
+                    }
+                },
+                error: function() {
+                    showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
+                }
+            });
         }
 
-        // Event delegation สำหรับปุ่มแก้ไข/ลบโมดูลย่อยใน child row
-        $(document).on('click', '.edit-sub-module', async function() {
-            const id = $(this).data('id');
-            try {
-                const response = await $.get('@Url.Action("GetModuleById", "Module")', { id: id });
-                if (!response.success) throw new Error(response.message || 'ไม่สามารถโหลดข้อมูลโมดูลย่อยได้');
-                const module = response.data;
-                const result = await Swal.fire({
-                    title: 'แก้ไขโมดูลย่อย',
-                    html: `
-                        <form id="editSubModuleForm" class="text-start">
-                            <div class="mb-3">
-                                <label class="form-label">ลำดับ</label>
-                                <input type="number" class="form-control" id="editSubModuleOrder" value="${module.Order || ''}" min="1">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ชื่อโมดูลย่อย</label>
-                                <input type="text" class="form-control" id="editSubModuleName" value="${module.Name || ''}">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">รายละเอียด</label>
-                                <textarea class="form-control" id="editSubModuleDescription" rows="3">${module.Description || ''}</textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Controller</label>
-                                <input type="text" class="form-control" id="editSubModuleController" value="${module.Controller || ''}">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Action</label>
-                                <input type="text" class="form-control" id="editSubModuleAction" value="${module.Action || ''}">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ไอคอน</label>
-                                <select class="form-control" id="editSubModuleIcon">
-                                    <option value="">เลือกไอคอน</option>
-                                    ${generateIconOptions(module.Icon)}
-                                </select>
-                                <div class="icon-preview mt-2 text-center">
-                                    <i class="${module.Icon || ''}" id="editSubIconPreview"></i>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="editSubModuleStatus" ${module.IsActive ? 'checked' : ''}>
-                                    <label class="form-check-label">เปิดใช้งาน</label>
-                                </div>
-                            </div>
-                        </form>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'บันทึก',
-                    cancelButtonText: 'ยกเลิก',
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#dc3545',
-                    focusConfirm: false,
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        $('#editSubModuleIcon').on('change', function() {
-                            const selectedIcon = $(this).val();
-                            $('#editSubIconPreview').attr('class', selectedIcon || '');
-                        });
-                        $('#editSubModuleOrder').focus();
+        function editSubModule(id) {
+            $.get('@Url.Action("GetModuleById", "Module")', { id: id })
+                .done(function(response) {
+                    if (response.success) {
+                        const module = response.data;
+                        $('#subModuleId').val(module.Id);
+                        $('#subModuleParentId').val(module.ParentId);
+                        $('#subModuleOrder').val(module.Order);
+                        $('#subModuleName').val(module.Name);
+                        $('#subModuleDescription').val(module.Description);
+                        $('#subModuleController').val(module.Controller);
+                        $('#subModuleAction').val(module.Action);
+                        $('#subModuleIcon').val(module.Icon);
+                        $('#subModuleStatus').prop('checked', module.IsActive);
+                        $('#subIconPreview').attr('class', module.Icon || '');
+                        $('#addSubModuleModalLabel').text('แก้ไขโมดูลย่อย');
+                        isEditing = true;
+                        $('#addSubModuleModal').modal('show');
+                    } else {
+                        showError('ไม่สามารถโหลดข้อมูลโมดูลย่อยได้');
+                    }
+                })
+                .fail(function() {
+                    showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
+                });
+        }
+
+        function deleteSubModule(id) {
+            if (confirm('คุณต้องการลบโมดูลย่อยนี้ใช่หรือไม่?')) {
+                $.ajax({
+                    url: '@Url.Action("DeleteModule", "Module")',
+                    type: 'POST',
+                    data: { id: id },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess('ลบโมดูลย่อยเรียบร้อยแล้ว');
+                            mainModuleTable.ajax.reload();
+                        } else {
+                            showError(response.message || 'ไม่สามารถลบโมดูลย่อยได้');
+                        }
+                    },
+                    error: function() {
+                        showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
                     }
                 });
-                if (result.isConfirmed) {
-                    const updatedData = {
-                        Id: id,
-                        Order: $('#editSubModuleOrder').val(),
-                        Name: $('#editSubModuleName').val(),
-                        Description: $('#editSubModuleDescription').val(),
-                        Controller: $('#editSubModuleController').val(),
-                        Action: $('#editSubModuleAction').val(),
-                        Icon: $('#editSubModuleIcon').val(),
-                        IsActive: $('#editSubModuleStatus').is(':checked'),
-                        ParentId: module.ParentId
-                    };
-                    const updateResponse = await $.ajax({
-                        url: '@Url.Action("UpdateSubModule", "Module")',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(updatedData)
-                    });
-                    if (updateResponse.success) {
-                        await Swal.fire({
-                            title: 'สำเร็จ!',
-                            text: 'แก้ไขโมดูลย่อยเรียบร้อยแล้ว',
-                            icon: 'success',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
+            }
+        }
+
+        function toggleSubModuleStatus(id, isActive, $switch) {
+            $.ajax({
+                url: '@Url.Action("ToggleModuleStatus", "Module")',
+                type: 'POST',
+                data: { id: id, isActive: isActive },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(`${isActive ? 'เปิด' : 'ปิด'}การใช้งานโมดูลย่อยเรียบร้อยแล้ว`);
                         mainModuleTable.ajax.reload();
                     } else {
-                        throw new Error(updateResponse.message || 'ไม่สามารถแก้ไขโมดูลย่อยได้');
+                        $switch.prop('checked', !isActive);
+                        showError(response.message || 'ไม่สามารถเปลี่ยนสถานะได้');
                     }
+                },
+                error: function() {
+                    $switch.prop('checked', !isActive);
+                    showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์');
                 }
-            } catch (error) {
-                Swal.fire({
-                    title: 'เกิดข้อผิดพลาด!',
-                    text: error.message,
-                    icon: 'error'
+            });
+        }
+
+        function saveSubModule() {
+            const subModuleData = {
+                Order: $('#subModuleOrder').val(),
+                Name: $('#subModuleName').val(),
+                Description: $('#subModuleDescription').val(),
+                Controller: $('#subModuleController').val(),
+                Action: $('#subModuleAction').val(),
+                Icon: $('#subModuleIcon').val(),
+                IsActive: $('#subModuleStatus').is(':checked'),
+                ParentId: $('#subModuleParentId').val()
+            };
+
+            console.log('Sub Module Data:', subModuleData);
+            console.log('Is Editing:', isEditing);
+
+            if (!subModuleData.Name || !subModuleData.Order || !subModuleData.ParentId) {
+                console.log('Validation failed:', {
+                    Name: subModuleData.Name,
+                    Order: subModuleData.Order,
+                    ParentId: subModuleData.ParentId
                 });
+                showError('กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อโมดูล, ลำดับ)');
+                return;
             }
-        });
 
-        $(document).on('click', '.delete-sub-module', async function() {
-            const id = $(this).data('id');
-            const confirm = await Swal.fire({
-                title: 'ยืนยันการลบ',
-                text: 'คุณต้องการลบโมดูลย่อยนี้ใช่หรือไม่?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'ลบ',
-                cancelButtonText: 'ยกเลิก',
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d'
-            });
-            if (confirm.isConfirmed) {
-                try {
-                    const response = await $.ajax({
-                        url: '@Url.Action("DeleteModule", "Module")',
-                        type: 'POST',
-                        data: { id: id }
-                    });
+            if (isEditing) {
+                subModuleData.Id = $('#subModuleId').val();
+            }
+
+            const url = isEditing ? '@Url.Action("UpdateSubModule", "Module")' : '@Url.Action("AddSubModule", "Module")';
+            console.log('URL:', url);
+            
+            $.ajax({
+                url: url,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(subModuleData),
+                success: function(response) {
+                    console.log('Response:', response);
                     if (response.success) {
-                        await Swal.fire({
-                            title: 'สำเร็จ!',
-                            text: 'ลบโมดูลย่อยเรียบร้อยแล้ว',
-                            icon: 'success',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
+                        showSuccess(isEditing ? 'แก้ไขโมดูลย่อยเรียบร้อยแล้ว' : 'เพิ่มโมดูลย่อยเรียบร้อยแล้ว');
+                        $('#addSubModuleModal').modal('hide');
                         mainModuleTable.ajax.reload();
                     } else {
-                        throw new Error(response.message || 'ไม่สามารถลบโมดูลย่อยได้');
+                        showError(response.message || 'ไม่สามารถบันทึกข้อมูลได้');
                     }
-                } catch (error) {
-                    Swal.fire({
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: error.message,
-                        icon: 'error'
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error details:', {
+                        xhr: xhr,
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText
                     });
+                    showError('เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์: ' + error);
                 }
-            }
+            });
+        }
+
+        // Event handlers for sub module actions
+        $(document).on('click', '.add-sub-module', function() {
+            const parentId = $(this).data('parent-id');
+            const parentName = $(this).data('parent-name');
+            
+            // Reset form ก่อน แล้วค่อยตั้งค่า ParentId
+            resetSubModuleForm();
+            $('#subModuleParentId').val(parentId);
+            $('#addSubModuleModalLabel').text(`เพิ่มโมดูลย่อยใน ${parentName}`);
+            $('#addSubModuleModal').modal('show');
         });
 
-        // ปุ่มลบโมดูลหลัก
-        $(document).on('click', '.delete-module', async function() {
+        $(document).on('click', '.edit-sub-module', function() {
             const id = $(this).data('id');
-            const confirm = await Swal.fire({
-                title: 'ยืนยันการลบ',
-                text: 'คุณต้องการลบโมดูลหลักนี้ (รวมโมดูลย่อย) ใช่หรือไม่?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'ลบ',
-                cancelButtonText: 'ยกเลิก',
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d'
-            });
-            if (confirm.isConfirmed) {
-                try {
-                    const response = await $.ajax({
-                        url: '@Url.Action("DeleteModule", "Module")',
-                        type: 'POST',
-                        data: { id: id }
-                    });
-                    if (response.success) {
-                        await Swal.fire({
-                            title: 'สำเร็จ!',
-                            text: 'ลบโมดูลหลักเรียบร้อยแล้ว',
-                            icon: 'success',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-                        mainModuleTable.ajax.reload();
-                    } else {
-                        throw new Error(response.message || 'ไม่สามารถลบโมดูลหลักได้');
-                    }
-                } catch (error) {
-                    Swal.fire({
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: error.message,
-                        icon: 'error'
-                    });
-                }
-            }
+            editSubModule(id);
         });
+
+        $(document).on('click', '.delete-sub-module', function() {
+            const id = $(this).data('id');
+            deleteSubModule(id);
+        });
+
+        $(document).on('change', '.toggle-sub-status', function() {
+            const id = $(this).data('id');
+            const isActive = $(this).prop('checked');
+            toggleSubModuleStatus(id, isActive, $(this));
+        });
+
     </script>
 }
 

@@ -199,6 +199,278 @@
                 border-bottom-color: #4e73df;
             }
 
+            /* CSS สำหรับการควบคุมคอลัมป์ */
+            #columnControls {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 0.5rem;
+                padding: 1rem;
+                border: 1px solid #dee2e6;
+            }
+
+            #columnControls .form-check {
+                padding: 0.5rem 0.75rem;
+                margin: 0.25rem 0;
+                border-radius: 0.375rem;
+                transition: all 0.2s ease;
+                position: relative;
+            }
+
+            #columnControls .form-check:hover {
+                background-color: rgba(78, 115, 223, 0.05);
+                transform: translateY(-1px);
+            }
+
+            #columnControls .form-check-input {
+                width: 1.125rem;
+                height: 1.125rem;
+                margin-top: 0.125rem;
+                margin-right: 0.5rem;
+                border: 2px solid #dee2e6;
+                border-radius: 0.25rem;
+                transition: all 0.2s ease;
+                cursor: pointer;
+            }
+
+            #columnControls .form-check-input:checked {
+                background-color: #4e73df;
+                border-color: #4e73df;
+                box-shadow: 0 0 0 2px rgba(78, 115, 223, 0.25);
+            }
+
+            #columnControls .form-check-input:focus {
+                border-color: #80bdff;
+                box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+            }
+
+            #columnControls .form-check-input:hover:not(:checked) {
+                border-color: #4e73df;
+                box-shadow: 0 0 0 1px rgba(78, 115, 223, 0.15);
+            }
+
+            #columnControls .form-check-label {
+                color: #5a5c69;
+                font-weight: 500;
+                cursor: pointer;
+                user-select: none;
+                line-height: 1.5;
+                margin-left: 0.25rem;
+                transition: color 0.2s ease;
+            }
+
+            #columnControls .form-check-label:hover {
+                color: #4e73df;
+            }
+
+            #columnControls .form-check-label i {
+                margin-right: 0.375rem;
+                width: 1rem;
+                text-align: center;
+                opacity: 0.7;
+                transition: opacity 0.2s ease;
+            }
+
+            #columnControls .form-check:hover .form-check-label i {
+                opacity: 1;
+            }
+
+            /* CSS สำหรับ badge ตู้เก็บของขนาดเล็ก */
+            .badge-sm {
+                font-size: 0.7rem !important;
+                padding: 0.2rem 0.5rem !important;
+                border-radius: 0.25rem !important;
+                font-weight: 500 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 0.25rem !important;
+                line-height: 1.2 !important;
+            }
+
+            .badge-sm .btn {
+                font-size: 0.65rem !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 1rem !important;
+                height: 1rem !important;
+                border-radius: 50% !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                transition: all 0.2s ease !important;
+            }
+
+            .badge-sm .btn:hover {
+                background-color: rgba(220, 53, 69, 0.1) !important;
+                transform: scale(1.1) !important;
+            }
+
+            /* ปรับปุ่มเพิ่มตู้ให้เล็กและกระชับ */
+            .btn-cabinet-add {
+                font-size: 0.7rem !important;
+                padding: 0.2rem 0.4rem !important;
+                line-height: 1 !important;
+                border-radius: 0.25rem !important;
+                transition: all 0.2s ease !important;
+            }
+
+            .btn-cabinet-add:hover {
+                transform: scale(1.05) !important;
+                box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2) !important;
+            }
+
+            #toggleColumnControls {
+                transition: all 0.3s ease;
+            }
+
+            #toggleColumnControls:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 0.25rem 0.75rem rgba(78, 115, 223, 0.2);
+            }
+
+            /* CSS สำหรับการปรับขนาดตารางให้ responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                max-width: 100%;
+            }
+
+            #mTable {
+                width: 100% !important;
+                table-layout: auto;
+                border-collapse: collapse;
+            }
+
+            #mTable th,
+            #mTable td {
+                white-space: nowrap;
+                padding: 0.5rem 0.75rem;
+                vertical-align: middle;
+            }
+
+            /* ให้คอลัมป์ที่มีเนื้อหายาวสามารถขยายได้ */
+            #mTable th,
+            #mTable td {
+                max-width: none;
+                width: auto;
+            }
+
+            /* คอลัมป์สำคัญกำหนด min-width เท่านั้น เพื่อให้ยืดได้ */
+            #mTable th:nth-child(2), /* รหัสพนักงาน */
+            #mTable td:nth-child(2) {
+                min-width: 100px;
+                width: auto;
+            }
+
+            #mTable th:nth-child(3), /* ชื่อ-นามสกุล */
+            #mTable td:nth-child(3) {
+                min-width: 150px;
+                width: auto;
+                white-space: normal;
+                word-wrap: break-word;
+            }
+
+            /* ปรับคอลัมป์เวลาเข้า-ออกให้ยืดได้ตามเนื้อหา */
+            #mTable th:nth-child(9), /* เวลาเข้า-ออก */
+            #mTable td:nth-child(9) {
+                min-width: 180px;
+                width: auto;
+                white-space: normal;
+            }
+
+            /* ปรับคอลัมป์สถานะ */
+            #mTable th:nth-child(11), /* สถานะ */
+            #mTable td:nth-child(11) {
+                min-width: 100px;
+                width: auto;
+                text-align: center;
+            }
+
+            /* ปรับคอลัมป์จัดการ */
+            #mTable th:nth-child(12), /* จัดการ */
+            #mTable td:nth-child(12) {
+                min-width: 80px;
+                width: auto;
+                text-align: center;
+            }
+
+            /* คอลัมป์อื่นๆ ให้ยืดอัตโนมัติ */
+            #mTable th:nth-child(4), /* แผนก */
+            #mTable td:nth-child(4),
+            #mTable th:nth-child(5), /* วันที่ */
+            #mTable td:nth-child(5),
+            #mTable th:nth-child(6), /* กลุ่มของกะ */
+            #mTable td:nth-child(6),
+            #mTable th:nth-child(7), /* กะ */
+            #mTable td:nth-child(7),
+            #mTable th:nth-child(8), /* ประเภทวันทำงาน */
+            #mTable td:nth-child(8),
+            #mTable th:nth-child(10), /* เวลาทำงาน */
+            #mTable td:nth-child(10) {
+                width: auto;
+                min-width: fit-content;
+            }
+
+            /* สำหรับหน้าจอขนาดเล็ก */
+            @@media (max-width: 768px) {
+                #mTable th,
+                #mTable td {
+                    font-size: 0.875rem;
+                    padding: 0.25rem 0.5rem;
+                }
+
+                .table-responsive {
+                    font-size: 0.875rem;
+                }
+            }
+
+            /* สำหรับหน้าจอขนาดใหญ่ */
+            @@media (min-width: 1200px) {
+                #mTable {
+                    font-size: 0.9rem;
+                }
+            }
+
+            /* ป้องกัน layout shift */
+            #mTable.dataTable {
+                border-collapse: collapse !important;
+            }
+
+            /* ปรับ DataTable responsive controls */
+            table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control,
+            table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control {
+                position: relative;
+                padding-left: 30px;
+                cursor: pointer;
+            }
+
+            table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control:before,
+            table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control:before {
+                top: 50%;
+                left: 5px;
+                height: 1em;
+                width: 1em;
+                margin-top: -9px;
+                display: block;
+                position: absolute;
+                color: #4e73df;
+                border: 2px solid #4e73df;
+                border-radius: 3px;
+                box-shadow: 0 0 3px rgba(78, 115, 223, 0.2);
+                box-sizing: content-box;
+                text-align: center;
+                text-indent: 0 !important;
+                font-family: "FontAwesome";
+                line-height: 1em;
+                content: "\f067";
+                background-color: #fff;
+            }
+
+            table.dataTable.dtr-inline.collapsed > tbody > tr.parent > td.dtr-control:before,
+            table.dataTable.dtr-inline.collapsed > tbody > tr.parent > th.dtr-control:before {
+                content: "\f068";
+                background-color: #4e73df;
+                color: white;
+            }
+
             .tooltip.bs-tooltip-auto[data-popper-placement^=left] .tooltip-arrow::before,
             .tooltip.bs-tooltip-start .tooltip-arrow::before {
                 border-left-color: #4e73df;
@@ -581,6 +853,118 @@
                                 </button>
                                 }
                             </div>
+                            <!-- ส่วนควบคุมการแสดงคอลัมป์ -->
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-columns me-2"></i>ตั้งค่าการแสดงคอลัมป์
+                                        </h6>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="toggleColumnControls">
+                                            <i class="fas fa-cog me-1"></i>ซ่อน/แสดงการตั้งค่า
+                                        </button>
+                                    </div>
+                                    <div id="columnControls" class="row g-2">
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="1" id="col-personID" checked>
+                                                <label class="form-check-label small" for="col-personID">
+                                                    <i class="fas fa-id-card me-1"></i>รหัสพนักงาน
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="2" id="col-personName" checked>
+                                                <label class="form-check-label small" for="col-personName">
+                                                    <i class="fas fa-user me-1"></i>ชื่อ-นามสกุล
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="3" id="col-deptName" checked>
+                                                <label class="form-check-label small" for="col-deptName">
+                                                    <i class="fas fa-building me-1"></i>แผนก
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="4" id="col-rDate" checked>
+                                                <label class="form-check-label small" for="col-rDate">
+                                                    <i class="fas fa-calendar-alt me-1"></i>วันที่
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="5" id="col-shiftGroup">
+                                                <label class="form-check-label small" for="col-shiftGroup">
+                                                    <i class="fas fa-layer-group me-1"></i>กลุ่มของกะ
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="6" id="col-shift" checked>
+                                                <label class="form-check-label small" for="col-shift">
+                                                    <i class="fas fa-clock me-1"></i>กะ
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="7" id="col-dayType">
+                                                <label class="form-check-label small" for="col-dayType">
+                                                    <i class="fas fa-calendar-check me-1"></i>ประเภทวันทำงาน
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="8" id="col-timeInOut" checked>
+                                                <label class="form-check-label small" for="col-timeInOut">
+                                                    <i class="fas fa-sign-in-alt me-1"></i>เวลาเข้า-ออก
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="9" id="col-workHours">
+                                                <label class="form-check-label small" for="col-workHours">
+                                                    <i class="fas fa-business-time me-1"></i>เวลาทำงาน
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="10" id="col-status" checked>
+                                                <label class="form-check-label small" for="col-status">
+                                                    <i class="fas fa-info-circle me-1"></i>สถานะ
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input column-toggle" type="checkbox" value="11" id="col-actions" checked>
+                                                <label class="form-check-label small" for="col-actions">
+                                                    <i class="fas fa-cog me-1"></i>จัดการ
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="button" class="btn btn-sm btn-outline-success me-2" id="selectAllColumns">
+                                            <i class="fas fa-check-square me-1"></i>เลือกทั้งหมด
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="unselectAllColumns">
+                                            <i class="fas fa-square me-1"></i>ไม่เลือกทั้งหมด
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="table-responsive">
                                 <table id="mTable" class="table table-bordered table-striped table-hover table-modern">
                                 </table>
@@ -1242,6 +1626,11 @@
                 };
                 // สร้าง DataTable โดยใช้ค่า filter เริ่มต้น
                 dataTable = createDataTable(initialFilters);
+                
+                // อัพเดตการแสดงคอลัมป์หลังจากสร้างตารางเสร็จ
+                setTimeout(function() {
+                    updateColumnVisibility();
+                }, 500);
                 // จัดการ Date Range Toggle
                 $('#dateRangeToggle').change(function() {
                     const isChecked = $(this).prop('checked');
@@ -2016,17 +2405,19 @@
                             
                             // แสดงข้อมูลตู้เก็บของหรือปุ่มเพิ่มตู้
                             if (row.cabinetInfo && row.cabinetInfo.No) {
-                                    displayText += ' <span class="badge bg-info ms-1">ตู้: ' + row.cabinetInfo.No + 
-                                        ' <button type="button" class="btn btn-sm btn-outline-danger p-0 ms-1 border-0" ' +
+                                    displayText += ' <span class="badge badge-sm bg-secondary bg-opacity-10 text-secondary border border-secondary ms-1 px-2 py-1">' +
+                                        '<i class="fas fa-archive me-1" style="font-size: 0.7rem;"></i>' + row.cabinetInfo.No + 
+                                        '<button type="button" class="btn p-0 ms-1 border-0 bg-transparent text-danger" ' +
                                         'onclick="removeCabinet(\'' + row.personID + '\', \'' + row.cabinetInfo.No + '\')" ' +
-                                        'data-bs-toggle="tooltip" title="ลบตู้">' +
-                                        '<i class="fas fa-times small"></i></button></span>';
+                                        'data-bs-toggle="tooltip" title="ลบตู้" style="font-size: 0.7rem; line-height: 1;">' +
+                                        '<i class="fas fa-times"></i></button></span>';
                             } else {
-                                displayText += ' <button type="button" class="btn btn-sm btn-outline-primary ms-1 p-1" ' +
+                                displayText += ' <button type="button" class="btn btn-outline-primary btn-cabinet-add ms-1" ' +
                                     'data-bs-toggle="modal" data-bs-target="#assignCabinetModal" ' +
                                     'data-person-id="' + row.personID + '" ' +
-                                    'data-person-name="' + row.personName + '">' +
-                                    '<i class="fas fa-plus small"></i></button>';
+                                    'data-person-name="' + row.personName + '" ' +
+                                    'title="เพิ่มตู้เก็บของ">' +
+                                    '<i class="fas fa-plus"></i></button>';
                             }
                             
                             return displayText;
@@ -2358,9 +2749,46 @@
                     ],
                     pageLength: 100,
                     paging: true,
-                    responsive: true,
+                    responsive: {
+                        details: {
+                            type: 'column',
+                            target: 0
+                        }
+                    },
+                    autoWidth: true,
+                    scrollX: true,
+                    columnDefs: [
+                        { responsivePriority: 1, targets: [1, 2] }, // รหัสพนักงาน, ชื่อ - สำคัญสุด
+                        { responsivePriority: 2, targets: [8, 10] }, // เวลาเข้า-ออก, สถานะ - สำคัญรอง
+                        { responsivePriority: 3, targets: [3, 4, 6] }, // แผนก, วันที่, กะ - สำคัญปานกลาง
+                        { responsivePriority: 10, targets: '_all' } // อื่นๆ - ความสำคัญต่ำ
+                    ],
                     rowCallback: function(row, data) {
                         $(row).addClass('align-middle');
+                    },
+                    initComplete: function() {
+                        // ปรับขนาดคอลัมป์หลังจากโหลดเสร็จ
+                        const api = this.api();
+                        try {
+                            api.columns.adjust();
+                            // ตรวจสอบว่า responsive extension มีอยู่หรือไม่
+                            if (api.responsive && typeof api.responsive.recalc === 'function') {
+                                api.responsive.recalc();
+                            }
+                        } catch (e) {
+                            console.log('Table initialization warning:', e);
+                            // ลอง fallback method
+                            setTimeout(function() {
+                                try {
+                                    api.columns.adjust();
+                                    if (api.responsive && typeof api.responsive.recalc === 'function') {
+                                        api.responsive.recalc();
+                                    }
+                                } catch (err) {
+                                    console.log('Table resize fallback failed:', err);
+                                }
+                            }, 500);
+                        }
                     }
                 });
                 return table;
@@ -2398,6 +2826,7 @@
                                     }).then(() => {
                                         // รีโหลดตาราง
                                         table.ajax.reload();
+                                        table.draw();
                                     });
                                 } else {
                                     Swal.fire({
@@ -2869,7 +3298,7 @@
                 if (!row.firstTime || !row.lastTime) {
                     return `<span class="badge bg-warning text-dark">
                 <i class="fas fa-clock me-1"></i>รอการคำนวณ
-            </span>`;
+                </span>`;
                 }
                 let firstTime = moment(row.firstTime);
                 let lastTime = moment(row.lastTime);
@@ -2925,6 +3354,7 @@
             <i class="fas fa-business-time me-1"></i>${hours} ชั่วโมง
         </span>`;
             }
+            
             // ย้าย leaveTypes มาไว้ด้านนอก เพื่อให้ใช้ได้ทั่วไป
             const leaveTypes = {
                 'AAL': {
@@ -3574,5 +4004,208 @@
                     }
                 });
             }
+
+            // ================== ฟังก์ชันสำหรับการซ่อน/แสดงคอลัมป์ ==================
+            
+            // ตัวแปรเก็บสถานะของการแสดงคอลัมป์
+            let columnVisibility = {
+                0: true,  // expand button
+                1: true,  // รหัสพนักงาน
+                2: true,  // ชื่อ-นามสกุล
+                3: true,  // แผนก
+                4: true,  // วันที่
+                5: false, // กลุ่มของกะ
+                6: true,  // กะ
+                7: false, // ประเภทวันทำงาน
+                8: true,  // เวลาเข้า-ออก
+                9: false, // เวลาทำงาน
+                10: true, // สถานะ
+                11: true  // จัดการ
+            };
+
+            // ฟังก์ชันโหลดสถานะคอลัมป์จาก localStorage
+            function loadColumnVisibility() {
+                const saved = localStorage.getItem('checkinTableColumnVisibility');
+                if (saved) {
+                    columnVisibility = JSON.parse(saved);
+                }
+                
+                // อัพเดต checkbox ตามสถานะที่โหลดมา
+                $('.column-toggle').each(function() {
+                    const columnIndex = parseInt($(this).val());
+                    $(this).prop('checked', columnVisibility[columnIndex]);
+                });
+            }
+
+            // ฟังก์ชันบันทึกสถานะคอลัมป์ลง localStorage
+            function saveColumnVisibility() {
+                localStorage.setItem('checkinTableColumnVisibility', JSON.stringify(columnVisibility));
+            }
+
+            // ฟังก์ชันอัพเดตการแสดงคอลัมป์ในตาราง
+            function updateColumnVisibility() {
+                if (dataTable && dataTable.column) {
+                    try {
+                        Object.keys(columnVisibility).forEach(function(columnIndex) {
+                            const column = dataTable.column(parseInt(columnIndex));
+                            if (column && typeof column.visible === 'function') {
+                                column.visible(columnVisibility[columnIndex]);
+                            }
+                        });
+                        
+                        // ปรับขนาดตารางหลังจากเปลี่ยนการแสดงคอลัมป์
+                        setTimeout(function() {
+                            resizeTable();
+                        }, 100);
+                        
+                    } catch (e) {
+                        console.log('Column visibility update error:', e);
+                    }
+                }
+            }
+
+            // เหตุการณ์เมื่อคลิกปุ่มซ่อน/แสดงการตั้งค่า
+            $('#toggleColumnControls').click(function() {
+                $('#columnControls').toggle();
+                const isVisible = $('#columnControls').is(':visible');
+                $(this).html(isVisible ? 
+                    '<i class="fas fa-eye-slash me-1"></i>ซ่อนการตั้งค่า' : 
+                    '<i class="fas fa-eye me-1"></i>แสดงการตั้งค่า'
+                );
+            });
+
+            // เหตุการณ์เมื่อเปลี่ยนแปลงสถานะ checkbox
+            $(document).on('change', '.column-toggle', function() {
+                const columnIndex = parseInt($(this).val());
+                const isChecked = $(this).prop('checked');
+                
+                columnVisibility[columnIndex] = isChecked;
+                saveColumnVisibility();
+                updateColumnVisibility();
+            });
+
+            // เหตุการณ์เมื่อคลิกปุ่มเลือกทั้งหมด
+            $('#selectAllColumns').click(function() {
+                $('.column-toggle').prop('checked', true);
+                $('.column-toggle').each(function() {
+                    const columnIndex = parseInt($(this).val());
+                    columnVisibility[columnIndex] = true;
+                });
+                saveColumnVisibility();
+                updateColumnVisibility();
+            });
+
+            // เหตุการณ์เมื่อคลิกปุ่มไม่เลือกทั้งหมด
+            $('#unselectAllColumns').click(function() {
+                $('.column-toggle').prop('checked', false);
+                $('.column-toggle').each(function() {
+                    const columnIndex = parseInt($(this).val());
+                    columnVisibility[columnIndex] = false;
+                });
+                // เสมอแสดงคอลัมป์รหัสพนักงานและชื่อ (จำเป็น)
+                columnVisibility[1] = true;
+                columnVisibility[2] = true;
+                $('#col-personID, #col-personName').prop('checked', true);
+                
+                saveColumnVisibility();
+                updateColumnVisibility();
+            });
+
+            // โหลดสถานะคอลัมป์เมื่อเริ่มต้น
+            $(document).ready(function() {
+                loadColumnVisibility();
+                
+                // ซ่อนส่วนควบคุมคอลัมป์ตอนเริ่มต้น
+                $('#columnControls').hide();
+                
+                // รอให้ตารางโหลดเสร็จก่อนอัพเดตการแสดงคอลัมป์
+                if (typeof dataTable !== 'undefined' && dataTable) {
+                    updateColumnVisibility();
+                }
+            });
+
+            // อัพเดตการแสดงคอลัมป์หลังจากตารางโหลดเสร็จ
+            $('#mTable').on('init.dt', function() {
+                setTimeout(function() {
+                    updateColumnVisibility();
+                }, 100);
+            });
+
+            // ================== ฟังก์ชันสำหรับการปรับขนาดตารางตามหน้าจอ ==================
+            
+            // ฟังก์ชันปรับขนาดตาราง
+            function resizeTable() {
+                if (dataTable && dataTable.columns) {
+                    try {
+                        // ปรับขนาดคอลัมป์
+                        dataTable.columns.adjust();
+                        
+                        // ตรวจสอบว่า responsive extension มีอยู่และพร้อมใช้งาน
+                        if (dataTable.responsive && typeof dataTable.responsive.recalc === 'function') {
+                            dataTable.responsive.recalc();
+                        }
+                        
+                        // วาดตารางใหม่โดยไม่ reset pagination
+                        dataTable.draw(false);
+                        
+                    } catch (e) {
+                        console.log('Table resize error:', e);
+                        // ลองใช้วิธีง่ายๆ
+                        try {
+                            dataTable.columns.adjust();
+                            dataTable.draw(false);
+                        } catch (fallbackError) {
+                            console.log('Table resize fallback error:', fallbackError);
+                        }
+                    }
+                }
+            }
+
+            // เพิ่ม event listener สำหรับการเปลี่ยนขนาดหน้าจอ
+            let resizeTimeout;
+            $(window).on('resize', function() {
+                // ใช้ debounce เพื่อไม่ให้เรียกบ่อยเกินไป
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    resizeTable();
+                }, 250);
+            });
+
+            // เพิ่ม event listener สำหรับการเปลี่ยน orientation (หมุนหน้าจอ)
+            $(window).on('orientationchange', function() {
+                setTimeout(function() {
+                    resizeTable();
+                }, 500);
+            });
+
+            // เพิ่ม event listener สำหรับการซ่อน/แสดง sidebar หรือ elements อื่นๆ
+            $(document).on('shown.bs.collapse hidden.bs.collapse', function() {
+                setTimeout(function() {
+                    resizeTable();
+                }, 300);
+            });
+
+            // เพิ่ม event listener สำหรับการเปิด/ปิด modal ที่อาจจะกระทบต่อขนาดหน้าจอ
+            $('.modal').on('shown.bs.modal hidden.bs.modal', function() {
+                setTimeout(function() {
+                    resizeTable();
+                }, 300);
+            });
+
+            // เพิ่ม ResizeObserver สำหรับ browser ที่รองรับ (วิธีใหม่ที่แม่นยำกว่า)
+            if (window.ResizeObserver) {
+                const tableContainer = document.querySelector('.table-responsive');
+                if (tableContainer) {
+                    const resizeObserver = new ResizeObserver(function(entries) {
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(function() {
+                            resizeTable();
+                        }, 100);
+                    });
+                    
+                    resizeObserver.observe(tableContainer);
+                }
+            }
+
         </script>
         }

@@ -946,14 +946,15 @@ namespace IPS_TH.Controllers.Employee
                 var nameDict = new Dictionary<string, string>();
                 var deptNameDict = new Dictionary<string, string>();
                 var deptIDDict = new Dictionary<string, string>();
+                var cardNumberDict = new Dictionary<string, string>(); // เพิ่ม Dictionary สำหรับ cardNumber
                 var accessCountDict = new Dictionary<string, int>();
                 var fingerprintDataIds = new HashSet<string>();
 
                 using (var sql944Connection = new SqlConnection(_sql944ConnectionString))
                 {
-                    // ดึงข้อมูลบัตร (-1)
+                    // ดึงข้อมูลบัตร (-1) รวมทั้ง cardNumber
                     var cardSql =
-                        @"SELECT personID, Name, DeptName, DeptID FROM Person WHERE personID LIKE '%-1'";
+                        @"SELECT personID, Name, DeptName, DeptID, CardNumber FROM Person WHERE personID LIKE '%-1'";
                     var cardData = await sql944Connection.QueryAsync<dynamic>(cardSql);
                     foreach (var card in cardData)
                     {
@@ -966,6 +967,9 @@ namespace IPS_TH.Controllers.Employee
                             deptNameDict[baseId] = card.DeptName;
                         if (!string.IsNullOrEmpty(card.DeptID))
                             deptIDDict[baseId] = card.DeptID;
+                        // เก็บ cardNumber จาก SQL944
+                        if (!string.IsNullOrEmpty(card.CardNumber))
+                            cardNumberDict[baseId] = card.CardNumber;
                     }
 
                     // ดึงข้อมูลลายนิ้วมือ (-2)
@@ -1028,7 +1032,7 @@ namespace IPS_TH.Controllers.Employee
                 {
                     string id = kvp.Key;
                     var emp = kvp.Value;
-                    processedIds.Add(id);
+                    processedIds.Add(id); 
 
                     bool inSql944 = sql944Employees.Contains(id);
                     var cardData = cardDict.GetValueOrDefault(id);
@@ -1056,7 +1060,7 @@ namespace IPS_TH.Controllers.Employee
                             phone = emp.MobilePhone ?? "",
                             email = emp.eMailAdd ?? "",
                             gender = emp.Gender ?? "",
-                            cardNumber = emp.PersonalID ?? "",
+                            cardNumber = cardNumberDict.GetValueOrDefault(id, ""), // ใช้ cardNumber จาก SQL944
                             hasCardData = cardDict.ContainsKey(id),
                             hasFingerprintData = fingerprintDict.ContainsKey(id),
                             accessCount = accessCountDict.GetValueOrDefault(id, 0),
@@ -1093,7 +1097,7 @@ namespace IPS_TH.Controllers.Employee
                                 phone = "",
                                 email = "",
                                 gender = "",
-                                cardNumber = "",
+                                cardNumber = cardNumberDict.GetValueOrDefault(id, ""), // ใช้ cardNumber จาก SQL944
                                 hasCardData = cardDict.ContainsKey(id),
                                 hasFingerprintData = fingerprintDict.ContainsKey(id),
                                 accessCount = accessCountDict.GetValueOrDefault(id, 0),
@@ -2565,7 +2569,7 @@ namespace IPS_TH.Controllers.Employee
 
                     // อัพเดทข้อมูล
                     existingShift.personID = request.PersonId;
-                    existingShift.name = request.name;
+                    existingShift.name = FormatEmployeeName(request.name); // ใช้ชื่อที่ตัดแล้ว
                     existingShift.deptID = request.deptID;
                     existingShift.deptName = request.deptName;
                     existingShift.deptCode = request.deptCode;
@@ -2598,7 +2602,7 @@ namespace IPS_TH.Controllers.Employee
                         }
 
                         // กำหนดค่าข้อมูลที่จำเป็น
-                        request.name = request.name ?? employee.name;
+                        request.name = request.name ?? FormatEmployeeName(employee.name); // ใช้ชื่อที่ตัดแล้ว
                         request.deptID = request.deptID ?? employee.deptID;
                         request.deptName = request.deptName ?? employee.deptName;
                         request.deptCode = request.deptCode ?? employee.deptID;
@@ -2608,7 +2612,7 @@ namespace IPS_TH.Controllers.Employee
                     var newShift = new emp_person_shift
                     {
                         personID = request.PersonId,
-                        name = request.name,
+                        name = FormatEmployeeName(request.name), // ใช้ชื่อที่ตัดแล้ว
                         deptID = request.deptID,
                         deptName = request.deptName,
                         deptCode = request.deptCode ?? request.deptID,
@@ -3245,33 +3249,8 @@ namespace IPS_TH.Controllers.Employee
                         }
                     );
 
-                    // เพิ่มข้อมูลลงใน emp_person_shift
-                    var insertShiftSql =
-                        @"
-                        INSERT INTO emp_person_shift (
-                            personID, date, shiftMent, 
-                            deptID, deptName, deptCode,
-                            name, isActive
-                        )
-                        VALUES (
-                            @personID, @date, @shiftMent,
-                            @deptID, @deptName, @deptID, 
-                            @personName, @isActive
-                        )";
-
-                    await mainConnection.ExecuteAsync(
-                        insertShiftSql,
-                        new
-                        {
-                            personID = personId.Split('-')[0],
-                            date = date,
-                            shiftMent = shift,
-                            deptID = deptID,
-                            deptName = deptName,
-                            personName = personName,
-                            isActive = 1,
-                        }
-                    );
+                    // ไม่ต้องเพิ่มข้อมูลลงใน emp_person_shift ที่นี่ 
+                    // เพราะ SaveShiftHistory จะจัดการเองแล้ว
                 }
 
                 // เพิ่มสิทธิ์ประตูพื้นฐาน
@@ -3298,6 +3277,30 @@ namespace IPS_TH.Controllers.Employee
         {
             public bool Success { get; set; }
             public string Message { get; set; }
+        }
+
+        // ฟังก์ชันจัดรูปแบบชื่อพนักงาน
+        private string FormatEmployeeName(string fullName)
+        {
+            if (string.IsNullOrEmpty(fullName))
+                return fullName;
+                
+            // ลบคำนำหน้าชื่อ
+            string name = System.Text.RegularExpressions.Regex.Replace(fullName, 
+                @"^(Mr\.|Mrs\.|Miss|Ms\.|Dr\.|Prof\.)\s+", "", 
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // แยกชื่อและนามสกุล
+            string[] nameParts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (nameParts.Length >= 2)
+            {
+                // เอาเฉพาะตัวอักษรแรกของนามสกุล
+                string lastName = nameParts[nameParts.Length - 1];
+                string lastNameInitial = lastName.Substring(0, 1);
+                // รวมชื่อและตัวอักษรแรกของนามสกุล
+                return nameParts[0] + " " + lastNameInitial + ".";
+            }
+            return name;
         }
 
         [HttpPost]
