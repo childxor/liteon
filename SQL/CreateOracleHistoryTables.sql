@@ -194,3 +194,23 @@ SELECT
     'OracleSystemSettings' as TableName,
     COUNT(*) as RecordCount
 FROM OracleSystemSettings; 
+
+-- ตารางสำหรับบันทึกประวัติการลบประวัติการสแกน
+CREATE TABLE emp_scan_delete_log (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    row_auto_id INT NOT NULL,
+    person_id NVARCHAR(50),
+    person_name NVARCHAR(100),
+    event_time DATETIME,
+    device_name NVARCHAR(100),
+    event_code NVARCHAR(10),
+    deleted_by NVARCHAR(100),
+    deleted_at DATETIME DEFAULT GETDATE(),
+    original_data NVARCHAR(MAX),
+    created_at DATETIME DEFAULT GETDATE()
+);
+
+-- สร้าง index สำหรับการค้นหา
+CREATE INDEX IX_emp_scan_delete_log_person_id ON emp_scan_delete_log(person_id);
+CREATE INDEX IX_emp_scan_delete_log_deleted_at ON emp_scan_delete_log(deleted_at);
+CREATE INDEX IX_emp_scan_delete_log_deleted_by ON emp_scan_delete_log(deleted_by); 

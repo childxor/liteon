@@ -38,7 +38,7 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                LoadPermissions("ListOvertime", "Index");
+                await LoadPermissions("ListOvertime", "Index");
                 return View("~/Views/Employee/ListOvertime.cshtml");
             }
             catch (Exception ex)
@@ -61,7 +61,7 @@ namespace IPS_TH.Controllers.Employee
             try
             {
                 // ตรวจสอบสิทธิ์การแก้ไข
-                LoadPermissions("ListOvertime", "Index");
+                await LoadPermissions("ListOvertime", "Index");
                 var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
                 var canEdit = permissions?["CanEdit"] ?? false;
 
@@ -290,7 +290,7 @@ namespace IPS_TH.Controllers.Employee
             try
             {
                 // ตรวจสอบสิทธิ์
-                LoadPermissions("ListOvertime", "Index");
+                await LoadPermissions("ListOvertime", "Index");
                 var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
                 var canEdit = permissions?["CanEdit"] ?? false;
 

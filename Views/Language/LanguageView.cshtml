@@ -101,8 +101,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/th.min.js"></script>
+    <!-- Moment.js ถูกโหลดใน Layout แล้ว -->
 
     <script>
         let table;
@@ -175,7 +174,7 @@
                 return;
             }
 
-            const url = data.Id > 0 ? '/Language/Update' : '/Language/Create';
+            const url = data.Id > 0 ? appBasePath + 'Language/Update' : appBasePath + 'Language/Create';
 
             $.ajax({
                 url: url,
@@ -235,7 +234,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '/Language/Delete',
+                        url: appBasePath + 'Language/Delete',
                         type: 'POST',
                         data: { id: id },
                         success: function (response) {
@@ -286,7 +285,7 @@
             });
 
             $.ajax({
-                url: '/Language/TranslateText',
+                url: appBasePath + 'Language/TranslateText',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({

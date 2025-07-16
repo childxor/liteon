@@ -267,9 +267,12 @@
 
 @section Scripts {
     <!-- เพิ่ม Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js ถูกโหลดใน Layout แล้ว -->
     
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         $(document).ready(function () {
             const leaveTypes = {
                 'AAL': { 
@@ -433,7 +436,7 @@
                     </div>`
                 },
                 ajax: {
-                    url: '@Url.Action("GetLeaveSummary", "Leave")',
+                    url: appBasePath + 'Leave/GetLeaveSummary',
                     type: 'GET',
                     data: function(d) {
                         return {
@@ -668,7 +671,7 @@
                 const container = $('#leaveBalanceContainer');
                 container.empty();
 
-                $.get('@Url.Action("GetLeaveBalance", "Leave")', { empNo: empNo })
+                $.get(appBasePath + 'Leave/GetLeaveBalance', { empNo: empNo })
                     .done(function (response) {
                         if (response && response.data && Array.isArray(response.data)) {
                             response.data.forEach(item => {

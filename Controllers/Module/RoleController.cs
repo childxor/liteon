@@ -16,8 +16,8 @@ public class RoleController : Controller
     {
         _context = context;
         _logger = logger;
-    }
-
+    } 
+ 
     public IActionResult Index()
     {
         return View();
@@ -62,25 +62,25 @@ public class RoleController : Controller
             var query =
                 @"
                 SELECT 
-                    m.Id as id,
-                    m.Name as name,
-                    m.Description as description,
-                    m.Controller as controller,
-                    m.Action as action,
-                    m.ParentId as parentId,
-                    m.IsActive as isActive,
-                    m.[Order] as [order],
-                    m.Icon as icon,
-                    ISNULL(rd.IsView, 0) as isView,
-                    ISNULL(rd.IsAdd, 0) as isAdd,
-                    ISNULL(rd.IsEdit, 0) as isEdit,
-                    ISNULL(rd.IsDelete, 0) as isDelete,
-                    ISNULL(rd.IsApprove, 0) as isApprove,
-                    ISNULL(rd.IsReport, 0) as isReport,
+                    m.Id as Id,
+                    m.Name as Name,
+                    m.Description as Description,
+                    m.Controller as Controller,
+                    m.Action as Action,
+                    m.ParentId as ParentId,
+                    m.IsActive as IsActive,
+                    m.[Order] as [Order],
+                    m.Icon as Icon,
+                    ISNULL(rd.IsView, 0) as IsView,
+                    ISNULL(rd.IsAdd, 0) as IsAdd,
+                    ISNULL(rd.IsEdit, 0) as IsEdit,
+                    ISNULL(rd.IsDelete, 0) as IsDelete,
+                    ISNULL(rd.IsApprove, 0) as IsApprove,
+                    ISNULL(rd.IsReport, 0) as IsReport,
                     CASE 
                         WHEN EXISTS (SELECT 1 FROM sys_module sm WHERE sm.ParentId = m.Id) THEN 1 
                         ELSE 0 
-                    END as hasChildren
+                    END as HasChildren
                 FROM sys_module m
                 LEFT JOIN sys_role_detail rd ON m.Id = rd.ModuleId AND rd.RoleId = @roleId
                 WHERE m.ParentId IS NULL 
@@ -104,25 +104,25 @@ public class RoleController : Controller
                     {
                         var module = new
                         {
-                            id = result.GetInt32(0),
-                            name = result.GetString(1),
-                            description = result.IsDBNull(2) ? null : result.GetString(2),
-                            controller = result.IsDBNull(3) ? null : result.GetString(3),
-                            action = result.IsDBNull(4) ? null : result.GetString(4),
-                            parentId = result.IsDBNull(5) ? (int?)null : result.GetInt32(5),
-                            isActive = result.GetBoolean(6),
-                            order = result.GetInt32(7),
-                            icon = result.IsDBNull(8) ? null : result.GetString(8),
-                            permissions = new
+                            Id = result.GetInt32(0),
+                            Name = result.GetString(1),
+                            Description = result.IsDBNull(2) ? null : result.GetString(2),
+                            Controller = result.IsDBNull(3) ? null : result.GetString(3),
+                            Action = result.IsDBNull(4) ? null : result.GetString(4),
+                            ParentId = result.IsDBNull(5) ? (int?)null : result.GetInt32(5),
+                            IsActive = result.GetBoolean(6),
+                            Order = result.GetInt32(7),
+                            Icon = result.IsDBNull(8) ? null : result.GetString(8),
+                            Permissions = new
                             {
-                                isView = result.GetBoolean(9),
-                                isAdd = result.GetBoolean(10),
-                                isEdit = result.GetBoolean(11),
-                                isDelete = result.GetBoolean(12),
-                                isApprove = result.GetBoolean(13),
-                                isReport = result.GetBoolean(14),
+                                IsView = result.GetBoolean(9),
+                                IsAdd = result.GetBoolean(10),
+                                IsEdit = result.GetBoolean(11),
+                                IsDelete = result.GetBoolean(12),
+                                IsApprove = result.GetBoolean(13),
+                                IsReport = result.GetBoolean(14),
                             },
-                            hasChildren = result.GetInt32(15) == 1,
+                            HasChildren = result.GetInt32(15) == 1,
                         };
                         modules.Add(module);
                     }

@@ -38,7 +38,7 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                LoadPermissions("Departments", "Index");
+                await LoadPermissions("Departments", "Index");
                 return View("~/Views/Employee/DepartmentList.cshtml");
             }
             catch (Exception ex)

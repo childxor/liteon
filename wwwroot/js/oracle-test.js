@@ -1,6 +1,6 @@
 // Oracle Test Application - ใช้ Controller สำหรับ HTML Generation
 const OracleTestApp = {
-    baseUrl: '/OracleTest',
+    baseUrl: typeof appBasePath !== 'undefined' ? appBasePath + 'OracleTest' : '/OracleTest',
     
     init() {
         console.log('OracleTestApp initializing...');
@@ -25,7 +25,7 @@ const OracleTestApp = {
                 hasCurrentDataTable: !!this.currentDataTable,
                 hasHistoryDataTable: !!this.historyDataTable,
                 dataTableVisible: $('#dataTableContainer').is(':visible'),
-                isDataTable: $.fn.DataTable.isDataTable('#oracleDataTable'),
+                isDataTable: $.fn.DataTable.isDataTable('#oracleDataTable'), 
                 dataTablesWrapperCount: $('.dataTables_wrapper').length,
                 tableElementExists: $('#oracleDataTable').length > 0,
                 columnsInfo: {
@@ -204,7 +204,7 @@ const OracleTestApp = {
                                 <button class="btn btn-outline-warning btn-sm" onclick="location.reload()">
                                     <i class="fas fa-sync-alt me-1"></i>รีเฟรชหน้า
                                 </button>
-                                <button class="btn btn-outline-info btn-sm ms-2" onclick="window.open('/SQL/CreateOracleHistoryTables.sql', '_blank')">
+                                <button class="btn btn-outline-info btn-sm ms-2" onclick="window.open((typeof appBasePath !== 'undefined' ? appBasePath : '/') + 'SQL/CreateOracleHistoryTables.sql', '_blank')">
                                     <i class="fas fa-download me-1"></i>ดาวน์โหลด SQL Script
                                 </button>
                             </div>

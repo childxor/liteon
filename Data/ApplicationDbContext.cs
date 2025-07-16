@@ -3,6 +3,7 @@ using System.Data.SqlClient;
 using Dapper;
 using IPS_TH.Models; // ตรวจสอบให้แน่ใจว่ามีการนำเข้า Models
 using IPS_TH.Models.Employee;
+using IPS_TH.Models.AssetFactory;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPS_TH.Data
@@ -21,7 +22,7 @@ namespace IPS_TH.Data
         public DbSet<sys_role_detail> sys_role_detail { get; set; }
 
         public DbSet<sys_user_role> sys_user_role { get; set; }
- 
+
         // Layout
         public DbSet<sys_module> sys_module { get; set; } // เพิ่ม DbSet สำหรับ sys_module
 
@@ -47,6 +48,8 @@ namespace IPS_TH.Data
 
         // Asset
         public DbSet<Asset> Asset { get; set; }
+        public DbSet<AssetMacAddress> AssetMacAddress { get; set; }
+        public DbSet<AssetHistory> AssetHistory { get; set; }
 
         // Dept
         public DbSet<Dept> Dept { get; set; }
@@ -58,8 +61,6 @@ namespace IPS_TH.Data
 
         public DbSet<sys_user_feedback_like> sys_user_feedback_like { get; set; }
     }
-
-
 
     // Oracle DbContext (สำหรับเชื่อมต่อ Oracle Database)
     public class OracleDbContext : DbContext

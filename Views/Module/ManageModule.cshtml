@@ -167,6 +167,9 @@
 
 @section Scripts {
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         let mainModuleTable;
         let isEditing = false;
         let currentParentId = null;
@@ -376,7 +379,7 @@
                         }
                     },
                     ajax: {
-                        url: '@Url.Action("GetModules", "Module")',
+                        url: appBasePath + 'Module/GetModules',
                         type: 'GET',
                         dataSrc: '',
                         beforeSend: function() {
@@ -493,7 +496,7 @@
                                  .addClass('bi-hourglass-split text-warning')
                                  .attr('title', 'กำลังโหลด...');
                             
-                            const response = await $.get('@Url.Action("GetSubModules", "Module")', { 
+                            const response = await $.get(appBasePath + 'Module/GetSubModules', { 
                                 parentId: row.data().Id 
                             });
                             row.data().subModules = response;
@@ -554,7 +557,7 @@
         }
 
         function editModule(id) {
-            $.get('@Url.Action("GetModuleById", "Module")', { id: id })
+            $.get(appBasePath + 'Module/GetModuleById', { id: id })
                 .done(function(response) {
                     if (response.success) {
                         const module = response.data;
@@ -580,7 +583,7 @@
         function deleteModule(id) {
             if (confirm('คุณต้องการลบโมดูลนี้ใช่หรือไม่? (จะลบโมดูลย่อยทั้งหมดด้วย)')) {
                 $.ajax({
-                    url: '@Url.Action("DeleteModule", "Module")',
+                    url: appBasePath + 'Module/DeleteModule',
                     type: 'POST',
                     data: { id: id },
                     success: function(response) {
@@ -600,7 +603,7 @@
 
         function toggleModuleStatus(id, isActive, $switch) {
             $.ajax({
-                url: '@Url.Action("ToggleModuleStatus", "Module")',
+                url: appBasePath + 'Module/ToggleModuleStatus',
                 type: 'POST',
                 data: { id: id, isActive: isActive },
                 success: function(response) {
@@ -637,7 +640,7 @@
                 moduleData.Id = $('#moduleId').val();
             }
 
-            const url = isEditing ? '@Url.Action("UpdateModule", "Module")' : '@Url.Action("AddModule", "Module")';
+            const url = isEditing ? appBasePath + 'Module/UpdateModule' : appBasePath + 'Module/AddModule';
             
             $.ajax({
                 url: url,
@@ -660,7 +663,7 @@
         }
 
         function editSubModule(id) {
-            $.get('@Url.Action("GetModuleById", "Module")', { id: id })
+            $.get(appBasePath + 'Module/GetModuleById', { id: id })
                 .done(function(response) {
                     if (response.success) {
                         const module = response.data;
@@ -689,7 +692,7 @@
         function deleteSubModule(id) {
             if (confirm('คุณต้องการลบโมดูลย่อยนี้ใช่หรือไม่?')) {
                 $.ajax({
-                    url: '@Url.Action("DeleteModule", "Module")',
+                    url: appBasePath + 'Module/DeleteModule',
                     type: 'POST',
                     data: { id: id },
                     success: function(response) {
@@ -709,7 +712,7 @@
 
         function toggleSubModuleStatus(id, isActive, $switch) {
             $.ajax({
-                url: '@Url.Action("ToggleModuleStatus", "Module")',
+                url: appBasePath + 'Module/ToggleModuleStatus',
                 type: 'POST',
                 data: { id: id, isActive: isActive },
                 success: function(response) {
@@ -757,7 +760,7 @@
                 subModuleData.Id = $('#subModuleId').val();
             }
 
-            const url = isEditing ? '@Url.Action("UpdateSubModule", "Module")' : '@Url.Action("AddSubModule", "Module")';
+            const url = isEditing ? appBasePath + 'Module/UpdateSubModule' : appBasePath + 'Module/AddSubModule';
             console.log('URL:', url);
             
             $.ajax({

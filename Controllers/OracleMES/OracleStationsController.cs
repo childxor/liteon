@@ -17,7 +17,7 @@ namespace IPS_TH.Controllers
         private readonly IConfiguration _configuration;
         private readonly IOracleHistoryService _historyService;
 
-        public OracleStationsController( 
+        public OracleStationsController(
             OracleHistoryDbContext context,
             IConfiguration configuration,
             IOracleHistoryService historyService
@@ -46,12 +46,13 @@ namespace IPS_TH.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPallets(string yyyymm = null)
         {
-            try 
+            try
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT 
                         p.PALLET_NO as PalletId,
                         p.WORK_ORDER as WorkOrder,
@@ -79,7 +80,8 @@ namespace IPS_TH.Controllers
                     sql += " AND TO_CHAR(p.CREATE_TIME, 'YYYY-MM') = :yyyymm";
                 }
 
-                sql += @"
+                sql +=
+                    @"
                     GROUP BY 
                         p.PALLET_NO, p.WORK_ORDER, p.PART_ID, p.CLOSE_FLAG, 
                         p.TERMINAL_ID, p.CREATE_EMP_ID, p.CREATE_TIME, p.CLOSE_TIME,
@@ -103,8 +105,9 @@ namespace IPS_TH.Controllers
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT 
                         c.CARTON_NO as CartonId,
                         c.WORK_ORDER as WorkOrder,
@@ -129,7 +132,8 @@ namespace IPS_TH.Controllers
                     sql += " WHERE g.PALLET_NO = :palletNo";
                 }
 
-                sql += @" GROUP BY 
+                sql +=
+                    @" GROUP BY 
                             c.CARTON_NO, c.WORK_ORDER, c.PART_ID, c.CLOSE_FLAG, 
                             c.TERMINAL_ID, c.CREATE_EMP_ID, c.CREATE_TIME, c.CLOSE_TIME,
                             c.CLOSE_EMP_ID, c.QC_FLAG, c.MIX_FLAG, c.FULL_FLAG, t.TERMINAL_NAME
@@ -149,11 +153,24 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                // Debug: แสดงข้อมูลที่ได้รับ
+                Console.WriteLine($"GetPalletDetails - palletNo received: '{palletNo}'");
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
+
+                // ตรวจสอบว่าพาเลทมีอยู่ในฐานข้อมูลหรือไม่
+                var checkPalletSql =
+                    "SELECT COUNT(*) FROM g_pack_pallet WHERE PALLET_NO = :palletNo";
+                var palletCount = await connection.QueryFirstOrDefaultAsync<int>(
+                    checkPalletSql,
+                    new { palletNo }
+                );
+                Console.WriteLine($"GetPalletDetails - Pallet count in database: {palletCount}");
+
                 // ข้อมูลพาเลท
-                var palletSql = @"
+                var palletSql =
+                    @"
                     SELECT 
                         p.PALLET_NO as PalletId,
                         p.WORK_ORDER as WorkOrder,
@@ -173,15 +190,25 @@ namespace IPS_TH.Controllers
                     LEFT JOIN sys_terminal t ON p.TERMINAL_ID = t.TERMINAL_ID
                     WHERE p.PALLET_NO = :palletNo";
 
-                var pallet = await connection.QueryFirstOrDefaultAsync<PalletInfo>(palletSql, new { palletNo });
+                Console.WriteLine($"GetPalletDetails - SQL: {palletSql}");
+                Console.WriteLine($"GetPalletDetails - Parameters: {{ palletNo: '{palletNo}' }}");
+
+                var pallet = await connection.QueryFirstOrDefaultAsync<PalletInfo>(
+                    palletSql,
+                    new { palletNo }
+                );
 
                 if (pallet == null)
                 {
+                    Console.WriteLine(
+                        $"GetPalletDetails - No pallet found for palletNo: '{palletNo}'"
+                    );
                     return Json(new { success = false, message = "ไม่พบข้อมูลพาเลท" });
                 }
 
                 // ข้อมูล Serial Numbers ในพาเลท
-                var serialsSql = @"
+                var serialsSql =
+                    @"
                     SELECT 
                         SERIAL_NUMBER as SerialNumber,
                         WORK_ORDER as WorkOrder,
@@ -198,7 +225,8 @@ namespace IPS_TH.Controllers
                 var serials = await connection.QueryAsync<SerialInfo>(serialsSql, new { palletNo });
 
                 // ข้อมูลกล่องในพาเลท
-                var cartonsSql = @"
+                var cartonsSql =
+                    @"
                     SELECT DISTINCT
                         c.CARTON_NO as CartonId,
                         c.WORK_ORDER as WorkOrder,
@@ -211,14 +239,24 @@ namespace IPS_TH.Controllers
                     GROUP BY c.CARTON_NO, c.WORK_ORDER, c.CLOSE_FLAG, c.CREATE_TIME
                     ORDER BY c.CREATE_TIME DESC";
 
+                Console.WriteLine($"GetPalletDetails - Cartons SQL: {cartonsSql}");
+                Console.WriteLine(
+                    $"GetPalletDetails - Cartons Parameters: {{ palletNo: '{palletNo}' }}"
+                );
+
                 var cartons = await connection.QueryAsync<CartonInfo>(cartonsSql, new { palletNo });
 
-                return Json(new { 
-                    success = true, 
-                    pallet = pallet, 
-                    serials = serials, 
-                    cartons = cartons 
-                });
+                Console.WriteLine($"GetPalletDetails - Cartons found: {cartons.Count()}");
+
+                return Json(
+                    new
+                    {
+                        success = true,
+                        pallet = pallet,
+                        serials = serials,
+                        cartons = cartons,
+                    }
+                );
             }
             catch (Exception ex)
             {
@@ -231,12 +269,43 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                // ตรวจสอบ request และข้อมูลที่จำเป็น
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "ข้อมูลคำขอไม่ถูกต้อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.PalletNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขพาเลท" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.WorkOrder))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุ Work Order" });
+                }
+
+                if (request.PartId <= 0)
+                {
+                    return Json(new { success = false, message = "กรุณาระบุ Part ID ที่ถูกต้อง" });
+                }
+
+                if (request.TerminalId <= 0)
+                {
+                    return Json(
+                        new { success = false, message = "กรุณาระบุ Terminal ID ที่ถูกต้อง" }
+                    );
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
+
                 // ตรวจสอบว่าพาเลทมีอยู่แล้วหรือไม่
                 var checkSql = "SELECT COUNT(*) FROM g_pack_pallet WHERE PALLET_NO = :palletNo";
-                var count = await connection.QueryFirstOrDefaultAsync<int>(checkSql, new { palletNo = request.PalletNo });
+                var count = await connection.QueryFirstOrDefaultAsync<int>(
+                    checkSql,
+                    new { palletNo = request.PalletNo }
+                );
 
                 if (count > 0)
                 {
@@ -244,7 +313,8 @@ namespace IPS_TH.Controllers
                 }
 
                 // สร้างพาเลทใหม่
-                var insertSql = @"
+                var insertSql =
+                    @"
                     INSERT INTO g_pack_pallet (
                         PALLET_NO, WORK_ORDER, PART_ID, CLOSE_FLAG, TERMINAL_ID, 
                         CREATE_EMP_ID, CREATE_TIME, QC_FLAG, MIX_FLAG, FULL_FLAG
@@ -261,7 +331,7 @@ namespace IPS_TH.Controllers
                     terminalId = request.TerminalId,
                     createEmpId = request.CreateEmpId,
                     qcFlag = request.QcFlag,
-                    mixFlag = request.MixFlag
+                    mixFlag = request.MixFlag,
                 };
 
                 await connection.ExecuteAsync(insertSql, parameters);
@@ -279,10 +349,22 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                // ตรวจสอบ request และ PalletNo
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "ข้อมูลคำขอไม่ถูกต้อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.PalletNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขพาเลท" });
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var updateSql = @"
+
+                var updateSql =
+                    @"
                     UPDATE g_pack_pallet 
                     SET CLOSE_FLAG = 'Y',
                         CLOSE_TIME = SYSDATE,
@@ -294,7 +376,7 @@ namespace IPS_TH.Controllers
                 {
                     palletNo = request.PalletNo,
                     closeEmpId = request.CloseEmpId,
-                    fullFlag = request.FullFlag
+                    fullFlag = request.FullFlag,
                 };
 
                 var rowsAffected = await connection.ExecuteAsync(updateSql, parameters);
@@ -321,8 +403,9 @@ namespace IPS_TH.Controllers
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT FACTORY_ID as Id, 
                            FACTORY_NAME as Name, 
                            FACTORY_DESC as Description 
@@ -346,8 +429,9 @@ namespace IPS_TH.Controllers
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT STAGE_ID as Id, 
                            STAGE_NAME as Name, 
                            STAGE_DESC as Description,
@@ -378,8 +462,9 @@ namespace IPS_TH.Controllers
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT PDLINE_ID as Id, 
                            PDLINE_NAME as Name, 
                            PDLINE_DESC as Description,
@@ -411,8 +496,9 @@ namespace IPS_TH.Controllers
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT PROCESS_ID as Id, 
                            PROCESS_NAME as Name, 
                            PROCESS_DESC as Description,
@@ -437,14 +523,19 @@ namespace IPS_TH.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetTerminals(decimal? processId = null, decimal? pdlineId = null, decimal? stageId = null)
+        public async Task<IActionResult> GetTerminals(
+            decimal? processId = null,
+            decimal? pdlineId = null,
+            decimal? stageId = null
+        )
         {
             try
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT t.TERMINAL_ID as Id, 
                            t.TERMINAL_NAME as Name, 
                            p.PROCESS_NAME as Description,
@@ -493,8 +584,9 @@ namespace IPS_TH.Controllers
             {
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
-                var sql = @"
+
+                var sql =
+                    @"
                     SELECT ROUTE_ID as Id, 
                            ROUTE_NAME as Name, 
                            ROUTE_DESC as Description,
@@ -519,20 +611,29 @@ namespace IPS_TH.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ValidateSerialNumbers([FromBody] List<string> serialNumbers)
+        public async Task<IActionResult> ValidateSerialNumbers(
+            [FromBody] List<string> serialNumbers
+        )
         {
             try
             {
+                // ตรวจสอบ serialNumbers
+                if (serialNumbers == null || serialNumbers.Count == 0)
+                {
+                    return Json(new { success = false, message = "กรุณาระบุ Serial Numbers" });
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
+
                 var response = new List<object>();
 
                 foreach (var serialNumber in serialNumbers)
                 {
                     try
                     {
-                        var sql = @"
+                        var sql =
+                            @"
                             SELECT 
                                 g.SERIAL_NUMBER,
                                 g.WORK_ORDER,
@@ -573,65 +674,78 @@ namespace IPS_TH.Controllers
                             LEFT JOIN sys_route r ON g.ROUTE_ID = r.ROUTE_ID
                             WHERE g.SERIAL_NUMBER = :serialNumber";
 
-                        var result = await connection.QueryFirstOrDefaultAsync(sql, new { serialNumber });
+                        var result = await connection.QueryFirstOrDefaultAsync(
+                            sql,
+                            new { serialNumber }
+                        );
 
                         if (result != null)
                         {
-                            response.Add(new
-                            {
-                                SerialNumber = result.SERIAL_NUMBER,
-                                WorkOrder = result.WORK_ORDER,
-                                PartId = result.PART_ID,
-                                CurrentStatus = result.CURRENT_STATUS_DESC,
-                                WorkFlag = result.WORK_FLAG_DESC,
-                                CurrentProcess = result.CURRENT_PROCESS_NAME ?? "ไม่ระบุ",
-                                CurrentTerminal = result.CURRENT_TERMINAL_NAME ?? "ไม่ระบุ",
-                                CurrentStage = result.CURRENT_STAGE_NAME ?? "ไม่ระบุ",
-                                CurrentPdline = result.CURRENT_PDLINE_NAME ?? "ไม่ระบุ",
-                                CurrentRoute = result.CURRENT_ROUTE_NAME ?? "ไม่ระบุ",
-                                InProcessTime = result.IN_PROCESS_TIME?.ToString("dd/MM/yyyy HH:mm:ss") ?? "ไม่ระบุ",
-                                OutProcessTime = result.OUT_PROCESS_TIME?.ToString("dd/MM/yyyy HH:mm:ss") ?? "ไม่ระบุ",
-                                Found = true
-                            });
+                            response.Add(
+                                new
+                                {
+                                    SerialNumber = result.SERIAL_NUMBER,
+                                    WorkOrder = result.WORK_ORDER,
+                                    PartId = result.PART_ID,
+                                    CurrentStatus = result.CURRENT_STATUS_DESC,
+                                    WorkFlag = result.WORK_FLAG_DESC,
+                                    CurrentProcess = result.CURRENT_PROCESS_NAME ?? "ไม่ระบุ",
+                                    CurrentTerminal = result.CURRENT_TERMINAL_NAME ?? "ไม่ระบุ",
+                                    CurrentStage = result.CURRENT_STAGE_NAME ?? "ไม่ระบุ",
+                                    CurrentPdline = result.CURRENT_PDLINE_NAME ?? "ไม่ระบุ",
+                                    CurrentRoute = result.CURRENT_ROUTE_NAME ?? "ไม่ระบุ",
+                                    InProcessTime = result.IN_PROCESS_TIME?.ToString(
+                                        "dd/MM/yyyy HH:mm:ss"
+                                    ) ?? "ไม่ระบุ",
+                                    OutProcessTime = result.OUT_PROCESS_TIME?.ToString(
+                                        "dd/MM/yyyy HH:mm:ss"
+                                    ) ?? "ไม่ระบุ",
+                                    Found = true,
+                                }
+                            );
                         }
                         else
                         {
-                            response.Add(new
-                            {
-                                SerialNumber = serialNumber,
-                                WorkOrder = "ไม่พบ",
-                                PartId = "ไม่พบ",
-                                CurrentStatus = "ไม่พบในระบบ",
-                                WorkFlag = "ไม่พบ",
-                                CurrentProcess = "ไม่พบ",
-                                CurrentTerminal = "ไม่พบ",
-                                CurrentStage = "ไม่พบ",
-                                CurrentPdline = "ไม่พบ",
-                                CurrentRoute = "ไม่พบ",
-                                InProcessTime = "ไม่พบ",
-                                OutProcessTime = "ไม่พบ",
-                                Found = false
-                            });
+                            response.Add(
+                                new
+                                {
+                                    SerialNumber = serialNumber,
+                                    WorkOrder = "ไม่พบ",
+                                    PartId = "ไม่พบ",
+                                    CurrentStatus = "ไม่พบในระบบ",
+                                    WorkFlag = "ไม่พบ",
+                                    CurrentProcess = "ไม่พบ",
+                                    CurrentTerminal = "ไม่พบ",
+                                    CurrentStage = "ไม่พบ",
+                                    CurrentPdline = "ไม่พบ",
+                                    CurrentRoute = "ไม่พบ",
+                                    InProcessTime = "ไม่พบ",
+                                    OutProcessTime = "ไม่พบ",
+                                    Found = false,
+                                }
+                            );
                         }
                     }
                     catch (Exception ex)
                     {
-                        response.Add(new
-                        {
-                            SerialNumber = serialNumber,
-                            WorkOrder = "Error",
-                            PartId = "Error",
-                            CurrentStatus = $"ข้อผิดพลาด: {ex.Message}",
-                            WorkFlag = "Error",
-                            CurrentProcess = "Error",
-                            CurrentTerminal = "Error",
-                            CurrentStage = "Error",
-                            CurrentPdline = "Error",
-                            CurrentRoute = "Error",
-                            InProcessTime = "Error",
-                            OutProcessTime = "Error",
-                            Found = false
-                        });
+                        response.Add(
+                            new
+                            {
+                                SerialNumber = serialNumber,
+                                WorkOrder = "Error",
+                                PartId = "Error",
+                                CurrentStatus = $"ข้อผิดพลาด: {ex.Message}",
+                                WorkFlag = "Error",
+                                CurrentProcess = "Error",
+                                CurrentTerminal = "Error",
+                                CurrentStage = "Error",
+                                CurrentPdline = "Error",
+                                CurrentRoute = "Error",
+                                InProcessTime = "Error",
+                                OutProcessTime = "Error",
+                                Found = false,
+                            }
+                        );
                     }
                 }
 
@@ -648,9 +762,39 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                // ตรวจสอบ request และข้อมูลที่จำเป็น
+                if (request == null)
+                {
+                    return Json(
+                        new SetProcessResponse { Success = false, Message = "ข้อมูลคำขอไม่ถูกต้อง" }
+                    );
+                }
+
+                if (request.SerialNumbers == null || request.SerialNumbers.Count == 0)
+                {
+                    return Json(
+                        new SetProcessResponse
+                        {
+                            Success = false,
+                            Message = "กรุณาระบุ Serial Numbers",
+                        }
+                    );
+                }
+
+                if (request.ProcessId <= 0)
+                {
+                    return Json(
+                        new SetProcessResponse
+                        {
+                            Success = false,
+                            Message = "กรุณาระบุ Process ID ที่ถูกต้อง",
+                        }
+                    );
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
-                
+
                 var response = new SetProcessResponse { Success = true };
 
                 foreach (var serialNumber in request.SerialNumbers)
@@ -658,28 +802,93 @@ namespace IPS_TH.Controllers
                     try
                     {
                         // ตรวจสอบว่า Serial Number มีอยู่ใน g_sn_status หรือไม่
-                        var checkSql = "SELECT COUNT(*) FROM g_sn_status WHERE SERIAL_NUMBER = :serialNumber";
-                        var count = await connection.QueryFirstOrDefaultAsync<int>(checkSql, new { serialNumber });
+                        var checkSql =
+                            "SELECT COUNT(*) FROM g_sn_status WHERE SERIAL_NUMBER = :serialNumber";
+                        var count = await connection.QueryFirstOrDefaultAsync<int>(
+                            checkSql,
+                            new { serialNumber }
+                        );
 
                         if (count == 0)
                         {
-                            response.Results.Add(new ProcessResult
-                            {
-                                SerialNumber = serialNumber,
-                                Success = false,
-                                Message = "Serial Number ไม่พบในระบบ"
-                            });
+                            response.Results.Add(
+                                new ProcessResult
+                                {
+                                    SerialNumber = serialNumber,
+                                    Success = false,
+                                    Message = "Serial Number ไม่พบในระบบ",
+                                }
+                            );
                             continue;
                         }
 
+                        // อ่านข้อมูลปัจจุบันของ serial เพื่อตรวจสอบ current_status และ terminal
+                        var currentDataSql =
+                            @"
+                            SELECT g.CURRENT_STATUS, g.TERMINAL_ID, t.TERMINAL_NAME
+                            FROM g_sn_status g
+                            LEFT JOIN sys_terminal t ON g.TERMINAL_ID = t.TERMINAL_ID
+                            WHERE g.SERIAL_NUMBER = :serialNumber";
+
+                        var currentData = await connection.QueryFirstOrDefaultAsync(
+                            currentDataSql,
+                            new { serialNumber }
+                        );
+
+                        // ตรวจสอบว่าสถานีที่เลือกเป็นสถานีซ่อมหรือไม่
+                        var isRepairStation = false;
+                        if (request.TerminalId.HasValue)
+                        {
+                            var terminalInfoSql =
+                                "SELECT TERMINAL_NAME FROM sys_terminal WHERE TERMINAL_ID = :terminalId";
+                            var terminalName = await connection.QueryFirstOrDefaultAsync<string>(
+                                terminalInfoSql,
+                                new { terminalId = request.TerminalId }
+                            );
+
+                            // ตรวจสอบว่าชื่อสถานีมีคำว่า "ซ่อม" หรือ "repair" หรือไม่
+                            if (!string.IsNullOrEmpty(terminalName))
+                            {
+                                isRepairStation =
+                                    terminalName.ToLower().Contains("ซ่อม")
+                                    || terminalName.ToLower().Contains("repair")
+                                    || terminalName.ToLower().Contains("fix")
+                                    || terminalName.ToLower().Contains("maintenance");
+                            }
+                        }
+
+                        // กำหนดค่า current_status ใหม่
+                        string newCurrentStatus = "0"; // ค่าเริ่มต้น
+                        if (currentData != null && currentData.CURRENT_STATUS == "1")
+                        {
+                            // ถ้าเดิมเป็นสถานะซ่อม (1) และไม่ได้ไปสถานีซ่อม ให้เปลี่ยนเป็นปกติ (0)
+                            if (!isRepairStation)
+                            {
+                                newCurrentStatus = "0";
+                            }
+                            else
+                            {
+                                // ถ้าไปสถานีซ่อม ให้คงสถานะซ่อมไว้
+                                newCurrentStatus = "1";
+                            }
+                        }
+                        else if (currentData != null)
+                        {
+                            // คงสถานะเดิมไว้
+                            newCurrentStatus = currentData.CURRENT_STATUS ?? "0";
+                        }
+
                         // Update g_sn_status
-                        var updateSql = @"
+                        var updateSql =
+                            @"
                             UPDATE g_sn_status 
                             SET PROCESS_ID = :processId,
                                 TERMINAL_ID = :terminalId,
                                 ROUTE_ID = :routeId,
                                 STAGE_ID = :stageId,
                                 PDLINE_ID = :pdlineId,
+                                NEXT_PROCESS = :processId,
+                                CURRENT_STATUS = :currentStatus,
                                 IN_PROCESS_TIME = SYSDATE,
                                 OUT_PROCESS_TIME = NULL
                             WHERE SERIAL_NUMBER = :serialNumber";
@@ -691,68 +900,95 @@ namespace IPS_TH.Controllers
                             routeId = request.RouteId,
                             stageId = request.StageId,
                             pdlineId = request.PdlineId,
-                            serialNumber = serialNumber
+                            currentStatus = newCurrentStatus,
+                            serialNumber = serialNumber,
                         };
 
                         var rowsAffected = await connection.ExecuteAsync(updateSql, parameters);
 
                         if (rowsAffected > 0)
                         {
-                            response.Results.Add(new ProcessResult
-                            {
-                                SerialNumber = serialNumber,
-                                Success = true,
-                                Message = "อัพเดทสำเร็จ"
-                            });
+                            response.Results.Add(
+                                new ProcessResult
+                                {
+                                    SerialNumber = serialNumber,
+                                    Success = true,
+                                    Message = "อัพเดทสำเร็จ",
+                                }
+                            );
                         }
                         else
                         {
-                            response.Results.Add(new ProcessResult
-                            {
-                                SerialNumber = serialNumber,
-                                Success = false,
-                                Message = "ไม่สามารถอัพเดทได้"
-                            });
+                            response.Results.Add(
+                                new ProcessResult
+                                {
+                                    SerialNumber = serialNumber,
+                                    Success = false,
+                                    Message = "ไม่สามารถอัพเดทได้",
+                                }
+                            );
                         }
                     }
                     catch (Exception ex)
                     {
-                        response.Results.Add(new ProcessResult
-                        {
-                            SerialNumber = serialNumber,
-                            Success = false,
-                            Message = ex.Message
-                        });
+                        response.Results.Add(
+                            new ProcessResult
+                            {
+                                SerialNumber = serialNumber,
+                                Success = false,
+                                Message = ex.Message,
+                            }
+                        );
                     }
                 }
 
                 var failedCount = response.Results.Count(r => !r.Success);
                 var successCount = response.Results.Count(r => r.Success);
 
-                response.Message = $"อัพเดทสำเร็จ {successCount} รายการ, ล้มเหลว {failedCount} รายการ";
+                response.Message =
+                    $"อัพเดทสำเร็จ {successCount} รายการ, ล้มเหลว {failedCount} รายการ";
                 response.Success = failedCount == 0;
 
                 return Json(response);
             }
             catch (Exception ex)
             {
-                return Json(new SetProcessResponse 
-                { 
-                    Success = false, 
-                    Message = ex.Message 
-                });
+                return Json(new SetProcessResponse { Success = false, Message = ex.Message });
             }
         }
 
         [HttpPost]
+        [Consumes("application/json")]
         public async Task<IActionResult> CloseCarton([FromBody] CloseCartonDto request)
         {
             try
             {
+                // Debug: แสดงข้อมูลที่ได้รับ
+                Console.WriteLine(
+                    $"CloseCarton - Request received: {JsonConvert.SerializeObject(request)}"
+                );
+
+                // ตรวจสอบ request และ CartonNo
+                if (request == null)
+                {
+                    Console.WriteLine("CloseCarton - Request is null");
+                    return Json(new { success = false, message = "ข้อมูลคำขอไม่ถูกต้อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.CartonNo))
+                {
+                    Console.WriteLine(
+                        $"CloseCarton - CartonNo is null or empty: '{request.CartonNo}'"
+                    );
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่อง" });
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
 
-                var updateSql = @"
+                // Debug: แสดง SQL และ parameters
+                var updateSql =
+                    @"
                     UPDATE g_pack_carton 
                     SET CLOSE_FLAG = 'Y',
                         CLOSE_TIME = SYSDATE,
@@ -762,10 +998,17 @@ namespace IPS_TH.Controllers
                 var parameters = new
                 {
                     cartonNo = request.CartonNo,
-                    closeEmpId = request.CloseEmpId
+                    closeEmpId = request.CloseEmpId,
                 };
 
+                Console.WriteLine($"CloseCarton - SQL: {updateSql}");
+                Console.WriteLine(
+                    $"CloseCarton - Parameters: {JsonConvert.SerializeObject(parameters)}"
+                );
+
                 var rowsAffected = await connection.ExecuteAsync(updateSql, parameters);
+
+                Console.WriteLine($"CloseCarton - Rows affected: {rowsAffected}");
 
                 if (rowsAffected > 0)
                     return Json(new { success = true, message = "ปิดกล่องสำเร็จ" });
@@ -783,11 +1026,25 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                // ตรวจสอบ request และ CartonNo
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "ข้อมูลคำขอไม่ถูกต้อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.CartonNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่อง" });
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
 
                 var deleteSql = "DELETE FROM g_pack_carton WHERE CARTON_NO = :cartonNo";
-                var rowsAffected = await connection.ExecuteAsync(deleteSql, new { cartonNo = request.CartonNo });
+                var rowsAffected = await connection.ExecuteAsync(
+                    deleteSql,
+                    new { cartonNo = request.CartonNo }
+                );
 
                 if (rowsAffected > 0)
                     return Json(new { success = true, message = "ลบกล่องสำเร็จ" });
@@ -805,11 +1062,25 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                // ตรวจสอบ request และ PalletNo
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "ข้อมูลคำขอไม่ถูกต้อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.PalletNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขพาเลท" });
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
 
                 var deleteSql = "DELETE FROM g_pack_pallet WHERE PALLET_NO = :palletNo";
-                var rowsAffected = await connection.ExecuteAsync(deleteSql, new { palletNo = request.PalletNo });
+                var rowsAffected = await connection.ExecuteAsync(
+                    deleteSql,
+                    new { palletNo = request.PalletNo }
+                );
 
                 if (rowsAffected > 0)
                     return Json(new { success = true, message = "ลบพาเลทสำเร็จ" });
@@ -823,24 +1094,36 @@ namespace IPS_TH.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> OpenCarton([FromBody] OpenCartonDto request)
+        public async Task<IActionResult> OpenCarton(string cartonNo, string openEmpId)
         {
             try
             {
+                // Debug: แสดงข้อมูลที่ได้รับ
+                Console.WriteLine($"OpenCarton - cartonNo received: '{cartonNo}'");
+                Console.WriteLine($"OpenCarton - openEmpId received: '{openEmpId}'");
+                Console.WriteLine($"OpenCarton - Content-Type: {Request.ContentType}");
+
+                // ตรวจสอบข้อมูล
+                if (string.IsNullOrWhiteSpace(cartonNo))
+                {
+                    Console.WriteLine("OpenCarton - cartonNo is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่อง" });
+                }
+
+                var request = new OpenCartonDto { CartonNo = cartonNo };
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
 
-                var updateSql = @"
+                // Debug: แสดง SQL และ parameters
+                var updateSql =
+                    @"
                     UPDATE g_pack_carton 
                     SET CLOSE_FLAG = 'N',
                         CLOSE_TIME = NULL,
                         CLOSE_EMP_ID = NULL
                     WHERE CARTON_NO = :cartonNo";
 
-                var parameters = new
-                {
-                    cartonNo = request.CartonNo
-                };
+                var parameters = new { cartonNo = request.CartonNo };
 
                 var rowsAffected = await connection.ExecuteAsync(updateSql, parameters);
 
@@ -856,14 +1139,27 @@ namespace IPS_TH.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> OpenPallet([FromBody] OpenPalletDto request)
+        public async Task<IActionResult> OpenPallet(string palletNo, string openEmpId)
         {
             try
             {
+                // Debug: แสดงข้อมูลที่ได้รับ
+                Console.WriteLine($"OpenPallet - palletNo received: '{palletNo}'");
+                Console.WriteLine($"OpenPallet - openEmpId received: '{openEmpId}'");
+                Console.WriteLine($"OpenPallet - Content-Type: {Request.ContentType}");
+                
+                // ตรวจสอบข้อมูล
+                if (string.IsNullOrWhiteSpace(palletNo))
+                {
+                    Console.WriteLine("OpenPallet - palletNo is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขพาเลท" });
+                }
+
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
 
-                var updateSql = @"
+                var updateSql =
+                    @"
                     UPDATE g_pack_pallet 
                     SET CLOSE_FLAG = 'N',
                         CLOSE_TIME = NULL,
@@ -871,10 +1167,7 @@ namespace IPS_TH.Controllers
                         FULL_FLAG = 'N'
                     WHERE PALLET_NO = :palletNo";
 
-                var parameters = new
-                {
-                    palletNo = request.PalletNo
-                };
+                var parameters = new { palletNo = palletNo };
 
                 var rowsAffected = await connection.ExecuteAsync(updateSql, parameters);
 
@@ -882,6 +1175,131 @@ namespace IPS_TH.Controllers
                     return Json(new { success = true, message = "เปิดพาเลทสำเร็จ" });
                 else
                     return Json(new { success = false, message = "ไม่พบพาเลทที่ต้องการเปิด" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับตรวจสอบข้อมูลในฐานข้อมูล
+        [HttpGet]
+        public async Task<IActionResult> CheckData(
+            string tableName,
+            string columnName,
+            string value
+        )
+        {
+            try
+            {
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                var sql = $"SELECT COUNT(*) FROM {tableName} WHERE {columnName} = :value";
+                var count = await connection.QueryFirstOrDefaultAsync<int>(sql, new { value });
+
+                return Json(
+                    new
+                    {
+                        success = true,
+                        tableName = tableName,
+                        columnName = columnName,
+                        value = value,
+                        count = count,
+                        message = $"พบข้อมูล {count} รายการในตาราง {tableName} ที่ {columnName} = '{value}'",
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับทดสอบ API โดยตรง
+        [HttpPost]
+        [Consumes("application/json")]
+        public async Task<IActionResult> TestOpenCarton([FromBody] object requestData)
+        {
+            try
+            {
+                Console.WriteLine(
+                    $"TestOpenCarton - Raw request data: {JsonConvert.SerializeObject(requestData)}"
+                );
+                Console.WriteLine($"TestOpenCarton - Request type: {requestData?.GetType().Name}");
+                Console.WriteLine($"TestOpenCarton - Content-Type: {Request.ContentType}");
+
+                // ลองแปลงเป็น OpenCartonDto
+                var jsonString = JsonConvert.SerializeObject(requestData);
+                var openCartonDto = JsonConvert.DeserializeObject<OpenCartonDto>(jsonString);
+
+                Console.WriteLine(
+                    $"TestOpenCarton - Deserialized DTO: {JsonConvert.SerializeObject(openCartonDto)}"
+                );
+
+                return Json(
+                    new
+                    {
+                        success = true,
+                        message = "ทดสอบสำเร็จ",
+                        originalData = requestData,
+                        deserializedDto = openCartonDto,
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับทดสอบ Model Binding
+        [HttpPost]
+        [Consumes("application/json")]
+        public async Task<IActionResult> TestModelBinding([FromBody] OpenCartonDto request)
+        {
+            try
+            {
+                Console.WriteLine(
+                    $"TestModelBinding - Request received: {JsonConvert.SerializeObject(request)}"
+                );
+                Console.WriteLine($"TestModelBinding - Request is null: {request == null}");
+                Console.WriteLine($"TestModelBinding - CartonNo: '{request?.CartonNo}'");
+                Console.WriteLine($"TestModelBinding - OpenEmpId: {request?.OpenEmpId}");
+                Console.WriteLine($"TestModelBinding - Content-Type: {Request.ContentType}");
+                Console.WriteLine($"TestModelBinding - Content-Length: {Request.ContentLength}");
+
+                // ตรวจสอบ Model State
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Values.SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    Console.WriteLine(
+                        $"TestModelBinding - Model State Errors: {string.Join(", ", errors)}"
+                    );
+                }
+
+                // อ่าน Request Body โดยตรง
+                Request.Body.Position = 0;
+                using var reader = new StreamReader(Request.Body);
+                var bodyContent = await reader.ReadToEndAsync();
+                Console.WriteLine($"TestModelBinding - Raw body: {bodyContent}");
+
+                return Json(
+                    new
+                    {
+                        success = true,
+                        message = "ทดสอบ Model Binding สำเร็จ",
+                        request = request,
+                        modelStateValid = ModelState.IsValid,
+                        modelStateErrors = ModelState
+                            .Values.SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                            .ToList(),
+                        rawBody = bodyContent,
+                    }
+                );
             }
             catch (Exception ex)
             {

@@ -74,6 +74,9 @@
 
 @section Scripts {
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         let table;
         $(document).ready(function () {
             initializeDataTable();
@@ -132,7 +135,7 @@
                 Cn: $('#Cn').val()
             };
 
-            const url = data.Id ? '/Language/Update' : '/Language/Create';
+            const url = data.Id ? appBasePath + 'Language/Update' : appBasePath + 'Language/Create';
 
             $.ajax({
                 url: url,
@@ -185,7 +188,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '/Language/Delete',
+                        url: appBasePath + 'Language/Delete',
                         type: 'POST',
                         data: { id: id },
                         success: function (response) {

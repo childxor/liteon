@@ -368,9 +368,7 @@
 
 @section Scripts {
     <!-- นำเข้า Select2 CSS และ JS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Select2 ถูกโหลดใน Layout แล้ว -->
     
     <style>
         /* ปรับตำแหน่ง Modal ให้อยู่ด้านบนกึ่งกลาง */
@@ -552,6 +550,9 @@
     </style>
     
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+
         $(document).ready(function() {
             // ตั้งค่าสิทธิ์การใช้งาน
             const canEdit = @Json.Serialize(canEdit);
@@ -566,7 +567,7 @@
             // โหลดข้อมูลพนักงานครั้งเดียวตอนเริ่มต้น
             function loadEmployeesOnce() {
                 $.ajax({
-                    url: '/Cabinet/GetEmployees',
+                    url: appBasePath + 'Cabinet/GetEmployees',
                     type: 'GET',
                     success: function(data) {
                         employeesData = data;
@@ -610,7 +611,7 @@
                 
                 // เรียกใช้ API GetReportHtml
                 $.ajax({
-                    url: '/Cabinet/GetReportHtml',
+                    url: appBasePath + 'Cabinet/GetReportHtml',
                     type: 'GET',
                     success: function(response) {
                         Swal.close();
@@ -659,7 +660,7 @@
             // ปุ่มพิมพ์รายงาน HTML
             $(document).on('click', '#btnPrintHTMLReport', function() {
                 // เปิดรายงานแบบเต็มหน้าใน tab ใหม่เพื่อพิมพ์
-                const printWindow = window.open('/Cabinet/GetFullPageReport?print=true', '_blank');
+                const printWindow = window.open(appBasePath + 'Cabinet/GetFullPageReport?print=true', '_blank');
                 
                 // แสดงแจ้งเตือน
                 const Toast = Swal.mixin({
@@ -688,7 +689,7 @@
                 $('#btnDownloadHTMLReport').html('<i class="fas fa-spinner fa-spin me-1"></i>กำลังสร้าง...').prop('disabled', true);
                 
                 $.ajax({
-                    url: '/Cabinet/GetFullPageReport',
+                    url: appBasePath + 'Cabinet/GetFullPageReport',
                     type: 'GET',
                     success: function(htmlContent) {
                         // สร้าง blob และดาวน์โหลด
@@ -739,7 +740,7 @@
                 
                 // โหลดรายงานใหม่
                 $.ajax({
-                    url: '/Cabinet/GetReportHtml',
+                    url: appBasePath + 'Cabinet/GetReportHtml',
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {
@@ -865,7 +866,7 @@
             // DataTable
             const table = $('#cabinetTable').DataTable({
                 ajax: {
-                    url: '/Cabinet/GetAll',
+                    url: appBasePath + 'Cabinet/GetAll',
                     type: 'GET',
                     dataSrc: ''
                 },
@@ -1037,7 +1038,7 @@
                 });
                 
                 $.ajax({
-                    url: '/api/Cabinet/BatchCreate',
+                    url: appBasePath + 'api/Cabinet/BatchCreate',
                     type: 'POST',
                     data: JSON.stringify(jsonData),
                     contentType: 'application/json',
@@ -1137,7 +1138,7 @@
                 const no = $(this).closest('tr').find('td:eq(0)').text();
                 
                 $.ajax({
-                    url: `/Cabinet/Get/${id}`,
+                    url: appBasePath + 'Cabinet/Get/' + id,
                     type: 'GET',
                     success: function(data) {
                         try {
@@ -1206,7 +1207,7 @@
                 }
                 
                 const isNew = !formData.Id || formData.Id == "0" || formData.Id == 0;
-                const url = isNew ? '/Cabinet/Create' : '/Cabinet/Update';
+                const url = isNew ? appBasePath + 'Cabinet/Create' : appBasePath + 'Cabinet/Update';
                 const method = isNew ? 'POST' : 'PUT';
                 
                 $.ajax({
@@ -1251,7 +1252,7 @@
                 const id = $(this).data('id');
                 
                 $.ajax({
-                    url: `/Cabinet/Delete/${id}`,
+                    url: appBasePath + 'Cabinet/Delete/' + id,
                     type: 'DELETE',
                     success: function() {
                         table.ajax.reload();
@@ -1320,7 +1321,7 @@
             // ฟังก์ชันอัปเดตสถานะตู้
             function updateCabinetStatus(id, newStatus, no) {
                 $.ajax({
-                    url: `/Cabinet/Get/${id}`,
+                    url: appBasePath + 'Cabinet/Get/' + id,
                     type: 'GET',
                     success: function(data) {
                         // ถ้าต้องการเปลี่ยนเป็นไม่ว่าง (1) แต่ยังไม่มีผู้ครอบครอง
@@ -1356,7 +1357,7 @@
                         }
 
                         $.ajax({
-                            url: '/Cabinet/Update',
+                            url: appBasePath + 'Cabinet/Update',
                             type: 'PUT',
                             data: JSON.stringify(data),
                             contentType: 'application/json',
@@ -1630,7 +1631,7 @@
             // ปุ่มดาวน์โหลด HTML (fallback)
             $('#btnDownloadHTML').on('click', function() {
                 $.ajax({
-                    url: '/Cabinet/GetAll',
+                    url: appBasePath + 'Cabinet/GetAll',
                     type: 'GET',
                     success: function(data) {
                         // สร้าง HTML content
@@ -1714,7 +1715,7 @@
                 
                 // เรียกใช้ API เพื่อสร้างรายงานแบบเต็มหน้า
                 $.ajax({
-                    url: '/Cabinet/GetAll',
+                    url: appBasePath + 'Cabinet/GetAll',
                     type: 'GET',
                     success: function(data) {
                         Swal.close();
@@ -1757,7 +1758,7 @@
                 });
                 
                 // เรียกใช้ API เพื่อสร้าง PDF
-                fetch('/Cabinet/ExportPDF', {
+                fetch(appBasePath + 'Cabinet/ExportPDF', {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/pdf, application/json'
@@ -1835,7 +1836,7 @@
             // ฟังก์ชันดาวน์โหลดเป็น HTML
             function downloadAsHTML() {
                 $.ajax({
-                    url: '/Cabinet/GetAll',
+                    url: appBasePath + 'Cabinet/GetAll',
                     type: 'GET',
                     success: function(data) {
                         const htmlContent = generateFullPageReport(data);
@@ -1880,10 +1881,8 @@
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>รายงานข้อมูลตู้เก็บของพนักงาน</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-                <style>
-                    @@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+                <!-- Bootstrap, Font Awesome, และ Sarabun font ถูกโหลดใน Layout แล้ว -->
+<style>
                     
                     body {
                         font-family: 'Sarabun', sans-serif;
@@ -2088,7 +2087,7 @@
                 
                 // เรียกใช้ API GetReportHtml เพื่อดึงเนื้อหา HTML โดยตรง
                 $.ajax({
-                    url: '/Cabinet/GetReportHtml',
+                    url: appBasePath + 'Cabinet/GetReportHtml',
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {
@@ -2157,7 +2156,7 @@
             // ฟังก์ชันตรวจสอบสถานะ PDF service
             function checkPDFServiceStatus() {
                 $.ajax({
-                    url: '/Cabinet/CheckPDFStatus',
+                    url: appBasePath + 'Cabinet/CheckPDFStatus',
                     type: 'GET',
                     timeout: 5000,
                     success: function(response) {
@@ -2320,7 +2319,7 @@
             // ฟังก์ชันแสดงรายงาน HTML ใน modal
             function showHTMLReportInModal() {
                 $.ajax({
-                    url: '/Cabinet/GetReportHtml',
+                    url: appBasePath + 'Cabinet/GetReportHtml',
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {
@@ -2400,7 +2399,7 @@
                     window.open(currentPdfUrl, '_blank');
                 } else {
                     // สร้าง PDF ใหม่สำหรับดาวน์โหลด
-                    fetch('/Cabinet/DownloadPDF', {
+                    fetch(appBasePath + 'Cabinet/DownloadPDF', {
                         method: 'GET',
                         headers: { 'Accept': 'application/pdf' }
                     })

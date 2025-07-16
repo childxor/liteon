@@ -47,7 +47,9 @@ namespace IPS_TH.Controllers
             _configuration = configuration;
             _environment = environment;
             _passwordHasher = new PasswordHasher<sys_user>(); // สร้าง instance ของ PasswordHasher
-            _sql944ConnectionString = _configuration.GetConnectionString("SQL944") ?? _configuration["SQL944ConnectionString"];
+            _sql944ConnectionString =
+                _configuration.GetConnectionString("SQL944")
+                ?? _configuration["SQL944ConnectionString"];
             _defaultConnectionString = _configuration.GetConnectionString("DefaultConnection");
             _employeeController = employeeController;
         }
@@ -796,10 +798,10 @@ namespace IPS_TH.Controllers
             {
                 var departments = new List<object>();
 
-                var connectionString = !string.IsNullOrEmpty(_sql944ConnectionString) 
-                    ? _sql944ConnectionString 
+                var connectionString = !string.IsNullOrEmpty(_sql944ConnectionString)
+                    ? _sql944ConnectionString
                     : _defaultConnectionString;
-                
+
                 if (string.IsNullOrEmpty(connectionString))
                 {
                     return Json(new { success = false, message = "ไม่พบการตั้งค่าฐานข้อมูล" });
@@ -812,7 +814,7 @@ namespace IPS_TH.Controllers
                         @"SELECT TOP (200) rowAutoID, code, name, deptLevel 
                                  FROM Dept 
                                  ORDER BY name";
-                    
+
                     using (var command = new SqlCommand(query, connection))
                     {
                         using (var reader = command.ExecuteReader())

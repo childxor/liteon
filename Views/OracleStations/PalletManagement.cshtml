@@ -37,8 +37,8 @@
                                             <i class="fas fa-barcode me-1"></i>
                                             Pallet ID หรือ Serial Number
                                         </label>
-                                        <input type="text" class="form-control" id="palletSearch" 
-                                               placeholder="กรอก Pallet ID หรือ Serial Number">
+                                        <input type="text" class="form-control" id="palletSearch"
+                                            placeholder="กรอก Pallet ID หรือ Serial Number">
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <button type="button" class="btn btn-info" id="searchPallet">
@@ -49,11 +49,15 @@
                                             <i class="fas fa-times me-1"></i>
                                             ล้าง
                                         </button>
+                                        <button type="button" class="btn btn-warning" id="debugData">
+                                            <i class="fas fa-bug me-1"></i>
+                                            Debug
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <div class="card border-success">
                                 <div class="card-header bg-success text-white">
@@ -69,16 +73,16 @@
                                                 <i class="fas fa-tag me-1"></i>
                                                 Pallet ID *
                                             </label>
-                                            <input type="text" class="form-control" id="newPalletId" 
-                                                   placeholder="กรอก Pallet ID" required>
+                                            <input type="text" class="form-control" id="newPalletId"
+                                                placeholder="กรอก Pallet ID" required>
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="workOrder" class="form-label">
                                                 <i class="fas fa-file-alt me-1"></i>
                                                 Work Order *
                                             </label>
-                                            <input type="text" class="form-control" id="workOrder" 
-                                                   placeholder="กรอก Work Order" required>
+                                            <input type="text" class="form-control" id="workOrder"
+                                                placeholder="กรอก Work Order" required>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -87,19 +91,69 @@
                                                 <i class="fas fa-microchip me-1"></i>
                                                 Part ID *
                                             </label>
-                                            <input type="number" class="form-control" id="partId" 
-                                                   placeholder="กรอก Part ID" required>
+                                            <input type="number" class="form-control" id="partId"
+                                                placeholder="กรอก Part ID" required>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label for="terminalId" class="form-label">
-                                                <i class="fas fa-desktop me-1"></i>
-                                                Terminal ID *
+                                            <label for="factorySelect" class="form-label">
+                                                <i class="fas fa-building me-1"></i>
+                                                โรงงาน (Factory)
                                             </label>
-                                            <input type="number" class="form-control" id="terminalId" 
-                                                   placeholder="กรอก Terminal ID" required>
+                                            <select class="form-select" id="factorySelect">
+                                                <option value="">-- เลือกโรงงาน --</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="stageSelect" class="form-label">
+                                                <i class="fas fa-layer-group me-1"></i>
+                                                ขั้นตอน (Stage)
+                                            </label>
+                                            <select class="form-select" id="stageSelect">
+                                                <option value="">-- เลือกขั้นตอน --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="processSelect" class="form-label">
+                                                <i class="fas fa-play me-1"></i>
+                                                กระบวนการ (Process)
+                                            </label>
+                                            <select class="form-select" id="processSelect">
+                                                <option value="">-- เลือกกระบวนการ --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="pdlineSelect" class="form-label">
+                                                <i class="fas fa-industry me-1"></i>
+                                                สายการผลิต (PDLine)
+                                            </label>
+                                            <select class="form-select" id="pdlineSelect">
+                                                <option value="">-- เลือกสายการผลิต --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="terminalSelect" class="form-label">
+                                                <i class="fas fa-desktop me-1"></i>
+                                                สถานี (Terminal) *
+                                            </label>
+                                            <select class="form-select" id="terminalSelect" required>
+                                                <option value="">-- เลือกสถานี --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="routeSelect" class="form-label">
+                                                <i class="fas fa-route me-1"></i>
+                                                เส้นทาง (Route)
+                                            </label>
+                                            <select class="form-select" id="routeSelect">
+                                                <option value="">-- เลือกเส้นทาง --</option>
+                                            </select>
+                                        </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="qcFlag" class="form-label">
                                                 <i class="fas fa-check-circle me-1"></i>
@@ -110,6 +164,8 @@
                                                 <option value="N">ไม่ต้องตรวจสอบ QC</option>
                                             </select>
                                         </div>
+                                    </div>
+                                    <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label for="mixFlag" class="form-label">
                                                 <i class="fas fa-random me-1"></i>
@@ -120,11 +176,13 @@
                                                 <option value="Y">ผสม Work Order</option>
                                             </select>
                                         </div>
+                                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                                            <button type="button" class="btn btn-success w-100" id="createPallet">
+                                                <i class="fas fa-plus me-1"></i>
+                                                สร้างพาเลท
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button type="button" class="btn btn-success" id="createPallet">
-                                        <i class="fas fa-plus me-1"></i>
-                                        สร้างพาเลท
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -133,7 +191,8 @@
                     <div class="row mb-3">
                         <div class="col-md-3">
                             <label for="filterMonth" class="form-label">เลือกเดือน</label>
-                            <input type="month" class="form-control" id="filterMonth" value="@DateTime.Now.ToString("yyyy-MM")">
+                            <input type="month" class="form-control" id="filterMonth"
+                                value="@DateTime.Now.ToString("yyyy-MM")">
                         </div>
                     </div>
 
@@ -148,7 +207,8 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table id="palletTable" class="table table-striped table-hover" style="width:100%">
+                                        <table id="palletTable" class="table table-striped table-hover"
+                                            style="width:100%">
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th>ลำดับ</th>
@@ -178,7 +238,8 @@
 </div>
 
 <!-- Modal สำหรับแสดงรายละเอียด -->
-<div class="modal fade" id="palletDetailModal" tabindex="-1" aria-labelledby="palletDetailModalLabel" aria-hidden="true">
+<div class="modal fade" id="palletDetailModal" tabindex="-1" aria-labelledby="palletDetailModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-xl" style="max-width: auto;">
         <div class="modal-content">
             <div class="modal-header">
@@ -204,27 +265,1498 @@
 
 @section Scripts {
     <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
-    
+    <!-- DataTables CSS ถูกโหลดใน Layout แล้ว -->
+
+    <style>
+        /* Toast notification styles */
+        .toast-container {
+            z-index: 9999;
+        }
+
+        .toast {
+            min-width: 300px;
+        }
+
+        .toast .toast-body {
+            font-size: 0.9rem;
+        }
+
+        /* Auto-select animation */
+        .form-select:focus {
+            border-color: #0dcaf0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
+        }
+
+        .form-select.auto-selected {
+            border-color: #0dcaf0;
+            background-color: #f8f9fa;
+        }
+
+        /* Card hover effects */
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Button hover effects */
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Table improvements */
+        .table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        /* Badge improvements */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+
+        /* Modal improvements */
+        .modal-xl {
+            max-width: 95%;
+        }
+
+        .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+    </style>
+
     <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="~/js/pallet-management.js"></script>
-    
+    <!-- DataTables JS และ SweetAlert2 ถูกโหลดใน Layout แล้ว -->
     <script>
-        $(document).ready(function () {
+        var appBasePath = '@Url.Content("~/")';
+        
+        // Pallet Management Application
+        var PalletManagementApp = {
+            // กำหนดค่าเริ่มต้น
+            config: {
+                baseUrl: typeof appBasePath !== 'undefined' ? appBasePath + 'OracleStations' : '/OracleStations',
+                serialDelimiters: ['\n', '\r\n', ',', ';'],
+                maxSerialNumbers: 1000,
+                defaultEmpId: 'ADMIN' // กำหนดค่าเริ่มต้นสำหรับ Employee ID
+            },
+
+            // เริ่มต้นแอพ
+            init: function() {
+                console.log('PalletManagementApp initialized');
+                this.bindEvents();
+                this.loadDropdownData();
+                this.loadPallets();
+            },
+
+            // ผูกเหตุการณ์ต่างๆ 
+            bindEvents: function() {
+                var self = this; // เก็บ reference ของ this
+                
+                // โหลดใหม่เมื่อเปลี่ยนเดือน 
+                $('#filterMonth').on('change', function() { 
+                    self.loadPallets();
+                });
+
+                // ปุ่มค้นหา
+                $('#searchPallet').click(function() {
+                    self.searchPallet(); 
+                });
+
+                // ปุ่มล้างการค้นหา
+                $('#clearSearch').click(function() {
+                    self.clearSearch();
+                });
+
+                // ปุ่มสร้างพาเลท
+                $('#createPallet').click(function() {
+                    self.createPallet();
+                });
+
+                // ปุ่ม Debug
+                $('#debugData').click(function() {
+                    var searchTerm = $('#palletSearch').val();
+                    if (searchTerm) {
+                        // ตรวจสอบในตาราง g_pack_pallet
+                        self.checkData('g_pack_pallet', 'PALLET_NO', searchTerm);
+                        // ตรวจสอบในตาราง g_pack_carton
+                        self.checkData('g_pack_carton', 'CARTON_NO', searchTerm);
+                        // ตรวจสอบในตาราง g_sn_status
+                        self.checkData('g_sn_status', 'SERIAL_NUMBER', searchTerm);
+                        
+                        // ทดสอบ API
+                        self.testApi(searchTerm);
+                        
+                        // ทดสอบ Model Binding
+                        self.testModelBinding(searchTerm);
+                    } else {
+                        self.showWarning('กรุณากรอกข้อมูลที่ต้องการตรวจสอบ');
+                    }
+                });
+
+                // Event handlers สำหรับตาราง
+                $('#palletTable').on('click', '.btn-view', function(e) {
+                    var palletId = $(this).data('pallet');
+                    self.viewPalletDetails(palletId);
+                });
+
+                $('#palletTable').on('click', '.btn-close', function(e) {
+                    var palletId = $(this).data('pallet');
+                    self.closePallet(palletId);
+                });
+
+                $('#palletTable').on('click', '.btn-open', function(e) {
+                    var palletId = $(this).data('pallet');
+                    self.openPallet(palletId);
+                });
+
+                $('#palletTable').on('click', '.btn-delete', function(e) {
+                    var palletId = $(this).data('pallet');
+                    self.deletePallet(palletId);
+                });
+
+                // Event handlers สำหรับกล่องใน modal
+                $('#palletDetailContent').on('click', '.btn-close-carton', function(e) {
+                    var cartonId = $(this).data('carton');
+                    self.closeCarton(cartonId);
+                });
+
+                $('#palletDetailContent').on('click', '.btn-open-carton', function(e) {
+                    var cartonId = $(this).data('carton');
+                    self.openCarton(cartonId);
+                });
+
+                $('#palletDetailContent').on('click', '.btn-delete-carton', function(e) {
+                    var cartonId = $(this).data('carton');
+                    self.deleteCarton(cartonId);
+                });
+
+                // Cascading dropdown events สำหรับฟอร์มสร้างพาเลท
+                $('#factorySelect').change(function() {
+                    self.onFactoryChange();
+                });
+
+                $('#stageSelect').change(function() {
+                    self.onStageChange();
+                });
+
+                $('#processSelect').change(function() {
+                    self.onProcessChange();
+                });
+
+                $('#pdlineSelect').change(function() {
+                    self.onPdlineChange();
+                });
+
+                // Modal events
+                $('#palletDetailModal').on('hidden.bs.modal', function() {
+                    self.cleanupPalletDetailModal();
+                });
+            },
+
+            // โหลดข้อมูลสำหรับ dropdown
+            loadDropdownData: function() {
+                var self = this;
+                
+                // โหลด factories
+                $.get(this.config.baseUrl + '/GetFactories')
+                    .done(function(data) {
+                        self.populateDropdown('#factorySelect', data);
+                    })
+                    .fail(function(error) {
+                        console.error('Error loading factories:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลโรงงานได้');
+                    });
+
+                // โหลด stages (ทั้งหมด)
+                $.get(this.config.baseUrl + '/GetStages')
+                    .done(function(data) {
+                        self.populateDropdown('#stageSelect', data);
+                    })
+                    .fail(function(error) {
+                        console.error('Error loading stages:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลขั้นตอนได้');
+                    });
+
+                // โหลด processes (ทั้งหมด)
+                $.get(this.config.baseUrl + '/GetProcesses')
+                    .done(function(data) {
+                        self.populateDropdown('#processSelect', data);
+                    })
+                    .fail(function(error) {
+                        console.error('Error loading processes:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลกระบวนการได้');
+                    });
+
+                // โหลด pdlines (ทั้งหมด)
+                $.get(this.config.baseUrl + '/GetPdlines')
+                    .done(function(data) {
+                        self.populateDropdown('#pdlineSelect', data);
+                    })
+                    .fail(function(error) {
+                        console.error('Error loading pdlines:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลสายการผลิตได้');
+                    });
+
+                // โหลด terminals (ทั้งหมด)
+                $.get(this.config.baseUrl + '/GetTerminals')
+                    .done(function(data) {
+                        self.populateDropdown('#terminalSelect', data);
+                    })
+                    .fail(function(error) {
+                        console.error('Error loading terminals:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลสถานีได้');
+                    });
+
+                // โหลด routes (ทั้งหมด)
+                $.get(this.config.baseUrl + '/GetRoutes')
+                    .done(function(data) {
+                        self.populateDropdown('#routeSelect', data);
+                    })
+                    .fail(function(error) {
+                        console.error('Error loading routes:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลเส้นทางได้');
+                    });
+            },
+
+            // เติมข้อมูลใน dropdown
+            populateDropdown: function(selector, data) {
+                var self = this;
+                var $select = $(selector);
+                var defaultOption = $select.find('option').first();
+                
+                $select.empty().append(defaultOption);
+
+                if (data && data.length > 0) {
+                    data.forEach(function(item) {
+                        var option = $('<option>')
+                            .val(item.Id)
+                            .text(item.Name + (item.Description ? ' - ' + item.Description : ''));
+                        $select.append(option);
+                    });
+
+                    // แสดงจำนวนตัวเลือก
+                    this.updateDropdownCount(selector, data.length);
+                    
+                    // ถ้ามีตัวเลือกเพียงตัวเดียว ให้เลือกตัวเลือกนั้นทันที
+                    if (data.length === 1) {
+                        $select.val(data[0].Id);
+                        
+                        // เพิ่ม visual feedback
+                        $select.addClass('auto-selected');
+                        setTimeout(function() {
+                            $select.removeClass('auto-selected');
+                        }, 2000);
+                        
+                        // Trigger change event เพื่อให้ cascading dropdown ทำงาน
+                        $select.trigger('change');
+                        
+                        // แสดงข้อความแจ้งเตือน
+                        var optionText = data[0].Name + (data[0].Description ? ' - ' + data[0].Description : '');
+                        self.showAutoSelectMessage(selector, optionText);
+                    }
+                }
+            },
+
+            // แสดงข้อความแจ้งเตือนเมื่อเลือกอัตโนมัติ
+            showAutoSelectMessage: function(selector, optionText) {
+                var self = this;
+                var fieldName = this.getFieldName(selector);
+                
+                // สร้าง toast notification
+                var toastHtml = 
+                    '<div class="toast align-items-center text-white bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">' +
+                        '<div class="d-flex">' +
+                            '<div class="toast-body">' +
+                                '<i class="fas fa-magic me-2"></i>' +
+                                '<strong>' + fieldName + '</strong> เลือกอัตโนมัติ: <strong>' + optionText + '</strong>' +
+                            '</div>' +
+                            '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                        '</div>' +
+                    '</div>';
+
+                // เพิ่ม toast container ถ้ายังไม่มี
+                if ($('#toastContainer').length === 0) {
+                    $('body').append('<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>');
+                }
+
+                // เพิ่ม toast และแสดง
+                $('#toastContainer').append(toastHtml);
+                var toastElement = $('#toastContainer .toast').last();
+                var toast = new bootstrap.Toast(toastElement);
+                toast.show();
+
+                // ลบ toast หลังจาก 3 วินาที
+                setTimeout(function() {
+                    toastElement.remove();
+                }, 3000);
+            },
+
+            // รับชื่อฟิลด์จาก selector
+            getFieldName: function(selector) {
+                var fieldNames = {
+                    '#factorySelect': 'โรงงาน',
+                    '#stageSelect': 'ขั้นตอน', 
+                    '#processSelect': 'กระบวนการ',
+                    '#pdlineSelect': 'สายการผลิต',
+                    '#terminalSelect': 'สถานี',
+                    '#routeSelect': 'เส้นทาง'
+                };
+                return fieldNames[selector] || 'ฟิลด์';
+            },
+
+            // อัพเดทจำนวนตัวเลือกใน dropdown
+            updateDropdownCount: function(selector, count) {
+                var $select = $(selector);
+                var $label = $select.closest('.mb-3').find('.form-label');
+                
+                // ลบ badge เดิม
+                $label.find('.badge').remove();
+                
+                // เพิ่ม badge ใหม่
+                var badgeClass = count === 0 ? 'bg-secondary' : count === 1 ? 'bg-success' : 'bg-primary';
+                var badgeText = count === 0 ? 'ไม่มีตัวเลือก' : count === 1 ? '1 ตัวเลือก' : count + ' ตัวเลือก';
+                
+                $label.append(' <span class="badge ' + badgeClass + ' ms-2">' + badgeText + '</span>');
+            },
+
+            // โหลดข้อมูลพาเลท
+            loadPallets: function() {
+                var self = this;
+                var yyyymm = $('#filterMonth').val();
+                
+                // แสดง loading
+                this.showLoading('กำลังโหลดข้อมูลพาเลท...');
+                
+                $.get(this.config.baseUrl + '/GetPallets', { yyyymm: yyyymm }) 
+                    .done(function(data) {
+                        Swal.close();
+                        if (data && data.length > 0) {
+                            self.updatePalletTable(data);
+                            self.showSuccess('โหลดข้อมูลพาเลทสำเร็จ: ' + data.length + ' รายการ');
+                        } else {
+                            $('#palletTable tbody').html('<tr><td colspan="9" class="text-center">ไม่พบข้อมูลพาเลท</td></tr>');
+                            self.showWarning('ไม่พบข้อมูลพาเลทในเดือนที่เลือก');
+                        }
+                    })
+                    .fail(function(error) {
+                        Swal.close();
+                        console.error('Error loading pallets:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลพาเลทได้');
+                    });
+            },
+
+            // อัปเดตตารางพาเลท
+            updatePalletTable: function(data) {
+                var self = this;
+                var table = $('#palletTable').DataTable();
+                if (table) {
+                    table.destroy();
+                }
+
+                $('#palletTable').DataTable({
+                    data: data,
+                    columns: [
+                        { 
+                            data: null,
+                            render: function(data, type, row, meta) {
+                                return meta.row + 1;
+                            }
+                        },
+                        { data: 'PalletId' },
+                        { data: 'WorkOrder' },
+                        { data: 'PartId' },
+                        { 
+                            data: 'CloseFlag',
+                            render: function(data) {
+                                if (data === 'Y') {
+                                    return '<span class="badge bg-success"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>';
+                                } else {
+                                    return '<span class="badge bg-warning"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>';
+                                }
+                            }
+                        },
+                        { data: 'TerminalName' },
+                        { 
+                            data: 'SerialCount',
+                            render: function(data) {
+                                return '<span class="badge bg-info"><i class="fas fa-barcode me-1"></i>' + data + '</span>';
+                            }
+                        },
+                        { 
+                            data: 'CreateTime',
+                            render: function(data) {
+                                return new Date(data).toLocaleDateString('th-TH');
+                            }
+                        },
+                        {
+                            data: null,
+                            render: function(data, type, row) {
+                                var buttons = 
+                                '<div class="btn-group btn-group-sm" role="group">' +
+                                    '<button type="button" class="btn btn-info btn-view" data-pallet="' + row.PalletId + '" title="ดูรายละเอียด">' +
+                                        '<i class="fas fa-eye"></i>' +
+                                    '</button>';
+                                
+                                if (row.CloseFlag === 'N') { 
+                                    buttons += 
+                                    '<button type="button" class="btn btn-warning btn-close" data-pallet="' + row.PalletId + '" title="ปิดพาเลท">' +
+                                        '<i class="fas fa-lock"></i>' +
+                                    '</button>';
+                                } else {
+                                    buttons += 
+                                    '<button type="button" class="btn btn-success btn-open" data-pallet="' + row.PalletId + '" title="เปิดพาเลท">' +
+                                        '<i class="fas fa-unlock"></i>' +
+                                    '</button>';
+                                }
+                                
+                                buttons += 
+                                        '<button type="button" class="btn btn-danger btn-delete" data-pallet="' + row.PalletId + '" title="ลบพาเลท">' +
+                                            '<i class="fas fa-trash"></i>' +
+                                        '</button>' +
+                                    '</div>';
+                                
+                                return buttons;
+                            }
+                        }
+                    ],
+                    responsive: true,
+                    pageLength: 10,
+                    lengthMenu: [5, 10, 25, 50],
+                    order: [[6, 'desc']], // เรียงตามวันที่สร้าง
+                    language: {
+                        url: appBasePath + 'js/datatables/i18n/th.json'
+                    },
+                    initComplete: function() {
+                        console.log('DataTable initialized successfully');
+                    },
+                    dom: 'Bfrtip',
+                    buttons: [
+                        {
+                            extend: 'excel',
+                            text: '<i class="fas fa-file-excel me-1"></i>Export Excel',
+                            className: 'btn btn-success btn-sm',
+                            title: 'Pallet Management - ' + new Date().toLocaleDateString('th-TH')
+                        },
+                        {
+                            extend: 'print',
+                            text: '<i class="fas fa-print me-1"></i>Print',
+                            className: 'btn btn-info btn-sm',
+                            title: 'Pallet Management'
+                        },
+                        {
+                            text: '<i class="fas fa-sync me-1"></i>Refresh',
+                            className: 'btn btn-secondary btn-sm',
+                            action: function() {
+                                self.loadPallets();
+                            }
+                        }
+                    ]
+                });
+            },
+
+            // เปิดพาเลท
+            openPallet: function(palletId) {
+                var self = this;
+                
+                // ตรวจสอบ palletId
+                if (!palletId || palletId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขพาเลท');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการเปิดพาเลท',
+                    text: 'คุณต้องการเปิดพาเลท ' + palletId + ' หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'เปิดพาเลท',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#198754'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // ตรวจสอบข้อมูลก่อนส่ง
+                        console.log('PalletId original:', palletId);
+                        console.log('PalletId trimmed:', palletId.trim());
+                        console.log('DefaultEmpId:', self.config.defaultEmpId);
+                        
+                        // ตรวจสอบว่าข้อมูลถูกต้องหรือไม่
+                        if (!palletId || palletId.trim() === '') {
+                            self.showError('ข้อมูล palletNo ไม่ถูกต้อง');
+                            return;
+                        }
+
+                        // แสดง loading
+                        self.showLoading('กำลังเปิดพาเลท...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/OpenPallet',
+                            type: 'POST',
+                            contentType: 'application/x-www-form-urlencoded',
+                            dataType: 'json',
+                            data: {
+                                palletNo: palletId.trim(),
+                                openEmpId: self.config.defaultEmpId
+                            },
+                            beforeSend: function(xhr) {
+                                console.log('AJAX beforeSend - Content-Type: application/x-www-form-urlencoded');
+                                console.log('AJAX beforeSend - Data:', { palletNo: palletId.trim(), openEmpId: self.config.defaultEmpId });
+                                console.log('AJAX beforeSend - URL:', self.config.baseUrl + '/OpenPallet');
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    self.loadPallets();
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error opening pallet:', error);
+                                console.error('Status:', status);
+                                console.error('Response Text:', xhr.responseText);
+                                console.error('Status Code:', xhr.status);
+                                console.error('Response Headers:', xhr.getAllResponseHeaders());
+                                
+                                // ตรวจสอบประเภทของ error
+                                var errorMessage = 'เกิดข้อผิดพลาดในการเปิดพาเลท';
+                                if (xhr.status === 400) {
+                                    errorMessage = 'ข้อมูลที่ส่งไม่ถูกต้อง (Bad Request)';
+                                } else if (xhr.status === 500) {
+                                    errorMessage = 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (Server Error)';
+                                } else if (xhr.status === 0) {
+                                    errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
+                                } else if (xhr.responseText) {
+                                    try {
+                                        var errorResponse = JSON.parse(xhr.responseText);
+                                        if (errorResponse.message) {
+                                            errorMessage = errorResponse.message;
+                                        }
+                                    } catch (e) {
+                                        errorMessage = 'เกิดข้อผิดพลาด: ' + error;
+                                    }
+                                }
+                                
+                                self.showError(errorMessage);
+                            }
+                        });
+                    }
+                });
+            },
+
+            // ปิดพาเลท
+            closePallet: function(palletId) {
+                var self = this;
+                
+                // ตรวจสอบ palletId
+                if (!palletId || palletId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขพาเลท');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการปิดพาเลท',
+                    text: 'คุณต้องการปิดพาเลท ' + palletId + ' หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ปิดพาเลท',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#ffc107'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var data = {
+                            palletNo: palletId.trim(),
+                            closeEmpId: self.config.defaultEmpId,
+                            fullFlag: 'Y'
+                        };
+
+                        // แสดง loading
+                        self.showLoading('กำลังปิดพาเลท...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/ClosePallet',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    self.loadPallets();
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error closing pallet:', error);
+                                self.showError('เกิดข้อผิดพลาดในการปิดพาเลท');
+                            }
+                        });
+                    }
+                });
+            },
+
+            // เปิดกล่อง
+            openCarton: function(cartonId) {
+                var self = this;
+                var palletId = $('#palletDetailModal').data('pallet-id');
+
+                // ตรวจสอบ cartonId
+                if (!cartonId || cartonId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขกล่อง');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการเปิดกล่อง',
+                    text: 'คุณต้องการเปิดกล่อง ' + cartonId + ' หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'เปิดกล่อง',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#198754'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // ตรวจสอบข้อมูลก่อนส่ง
+                        console.log('CartonId original:', cartonId);
+                        console.log('CartonId trimmed:', cartonId.trim());
+                        console.log('DefaultEmpId:', self.config.defaultEmpId);
+                        
+                        // ตรวจสอบว่าข้อมูลถูกต้องหรือไม่
+                        if (!cartonId || cartonId.trim() === '') {
+                            self.showError('ข้อมูล cartonNo ไม่ถูกต้อง');
+                            return;
+                        }
+
+                        // แสดง loading
+                        self.showLoading('กำลังเปิดกล่อง...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/OpenCarton',
+                            type: 'POST',
+                            contentType: 'application/x-www-form-urlencoded',
+                            dataType: 'json',
+                            data: {
+                                cartonNo: cartonId.trim(),
+                                openEmpId: self.config.defaultEmpId
+                            },
+                            beforeSend: function(xhr) {
+                                console.log('AJAX beforeSend - Content-Type: application/x-www-form-urlencoded');
+                                console.log('AJAX beforeSend - Data:', { cartonNo: cartonId.trim(), openEmpId: self.config.defaultEmpId });
+                                console.log('AJAX beforeSend - URL:', self.config.baseUrl + '/OpenCarton');
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    // รีเฟรช modal
+                                    $('#palletDetailModal').modal('hide');
+                                    // เปิด modal ใหม่เพื่อแสดงข้อมูลที่อัปเดต
+                                    setTimeout(function() {
+                                        $('[data-pallet="' + palletId + '"]').click();
+                                    }, 500);
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error opening carton:', error);
+                                console.error('Status:', status);
+                                console.error('Response Text:', xhr.responseText);
+                                console.error('Status Code:', xhr.status);
+                                console.error('Response Headers:', xhr.getAllResponseHeaders());
+                                
+                                // ตรวจสอบประเภทของ error
+                                var errorMessage = 'เกิดข้อผิดพลาดในการเปิดกล่อง';
+                                if (xhr.status === 400) {
+                                    errorMessage = 'ข้อมูลที่ส่งไม่ถูกต้อง (Bad Request)';
+                                } else if (xhr.status === 500) {
+                                    errorMessage = 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (Server Error)';
+                                } else if (xhr.status === 0) {
+                                    errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
+                                } else if (xhr.responseText) {
+                                    try {
+                                        var errorResponse = JSON.parse(xhr.responseText);
+                                        if (errorResponse.message) {
+                                            errorMessage = errorResponse.message;
+                                        }
+                                    } catch (e) {
+                                        errorMessage = 'เกิดข้อผิดพลาด: ' + error;
+                                    }
+                                }
+                                
+                                self.showError(errorMessage);
+                            }
+                        });
+                    }
+                });
+            },
+
+            // ปิดกล่อง
+            closeCarton: function(cartonId) {
+                var self = this;
+                var palletId = $('#palletDetailModal').data('pallet-id');
+
+                // ตรวจสอบ cartonId
+                if (!cartonId || cartonId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขกล่อง');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการปิดกล่อง',
+                    text: 'คุณต้องการปิดกล่อง ' + cartonId + ' หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ปิดกล่อง',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#ffc107'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var data = {
+                            cartonNo: cartonId.trim(),
+                            closeEmpId: self.config.defaultEmpId
+                        };
+
+                        // Debug: แสดงข้อมูลที่ส่ง
+                        console.log('Data being sent to CloseCarton:', data);
+                        console.log('Data JSON stringified:', JSON.stringify(data));
+                        console.log('URL:', self.config.baseUrl + '/CloseCarton');
+                        
+                        // ตรวจสอบว่าข้อมูลถูกต้องหรือไม่
+                        if (!data.cartonNo || data.cartonNo.trim() === '') {
+                            self.showError('ข้อมูล cartonNo ไม่ถูกต้อง');
+                            return;
+                        }
+
+                        // แสดง loading
+                        self.showLoading('กำลังปิดกล่อง...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/CloseCarton',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            dataType: 'json',
+                            data: JSON.stringify(data),
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    // รีเฟรช modal
+                                    $('#palletDetailModal').modal('hide');
+                                    // เปิด modal ใหม่เพื่อแสดงข้อมูลที่อัปเดต
+                                    setTimeout(function() {
+                                        $('[data-pallet="' + palletId + '"]').click();
+                                    }, 500);
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error closing carton:', error);
+                                console.error('Status:', status);
+                                console.error('Response Text:', xhr.responseText);
+                                console.error('Status Code:', xhr.status);
+                                self.showError('เกิดข้อผิดพลาดในการปิดกล่อง: ' + error);
+                            }
+                        });
+                    }
+                });
+            },
+
+            // ดูรายละเอียดพาเลท
+            viewPalletDetails: function(palletId) {
+                var self = this;
+                // เก็บ palletId ไว้ใน modal
+                $('#palletDetailModal').data('pallet-id', palletId);
+                
+                // Debug: แสดงข้อมูลที่ส่ง
+                console.log('viewPalletDetails - palletId:', palletId);
+                console.log('viewPalletDetails - URL:', this.config.baseUrl + '/GetPalletDetails');
+                console.log('viewPalletDetails - Parameters:', { palletNo: palletId });
+                
+                // แสดง loading
+                this.showLoading('กำลังโหลดข้อมูล...');
+
+                $.get(this.config.baseUrl + '/GetPalletDetails', { palletNo: palletId })
+                    .done(function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            self.showPalletDetails(response);
+                        } else {
+                            self.showError(response.message);
+                        }
+                    })
+                    .fail(function(xhr, status, error) {
+                        Swal.close();
+                        console.error('Error loading pallet details:', error);
+                        self.showError('ไม่สามารถโหลดข้อมูลรายละเอียดได้');
+                    });
+            },
+
+            // แสดงรายละเอียดพาเลทใน modal
+            showPalletDetails: function(response) {
+                var pallet = response.pallet;
+                var serials = response.serials;
+                var cartons = response.cartons;
+
+                var detailHtml = 
+                '<div class="row">' +
+                    '<div class="col-md-6">' +
+                        '<h6><i class="fas fa-info-circle me-2"></i>ข้อมูลพาเลท</h6>' +
+                        '<table class="table table-sm">' +
+                            '<tr><td>Pallet ID:</td><td><strong>' + pallet.PalletId + '</strong></td></tr>' +
+                            '<tr><td>Work Order:</td><td>' + pallet.WorkOrder + '</td></tr>' +
+                            '<tr><td>Part ID:</td><td>' + pallet.PartId + '</td></tr>' +
+                            '<tr><td>สถานะ:</td><td>' + (pallet.CloseFlag === 'Y' ? '<span class="badge bg-success"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>' : '<span class="badge bg-warning"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>') + '</td></tr>' +
+                            '<tr><td>Terminal:</td><td>' + (pallet.TerminalName || 'ไม่ระบุ') + '</td></tr>' +
+                            '<tr><td>QC Flag:</td><td>' + (pallet.QcFlag === 'Y' ? '<span class="badge bg-warning">ต้องตรวจสอบ</span>' : '<span class="badge bg-success">ไม่ต้องตรวจสอบ</span>') + '</td></tr>' +
+                            '<tr><td>Mix Flag:</td><td>' + (pallet.MixFlag === 'Y' ? '<span class="badge bg-info">ผสม Work Order</span>' : '<span class="badge bg-secondary">ไม่ผสม</span>') + '</td></tr>' +
+                            '<tr><td>วันที่สร้าง:</td><td>' + new Date(pallet.CreateTime).toLocaleString('th-TH') + '</td></tr>' +
+                            (pallet.CloseTime ? '<tr><td>วันที่ปิด:</td><td>' + new Date(pallet.CloseTime).toLocaleString('th-TH') + '</td></tr>' : '') +
+                        '</table>' +
+                    '</div>' +
+                    '<div class="col-md-6">' +
+                        '<h6><i class="fas fa-chart-pie me-2"></i>สรุปข้อมูล</h6>' +
+                        '<div class="row">' +
+                            '<div class="col-6">' +
+                                '<div class="card bg-primary text-white">' +
+                                    '<div class="card-body text-center">' +
+                                        '<h4><i class="fas fa-barcode me-2"></i>' + serials.length + '</h4>' +
+                                        '<small>Serial Numbers</small>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="col-6">' +
+                                '<div class="card bg-success text-white">' +
+                                    '<div class="card-body text-center">' +
+                                        '<h4><i class="fas fa-boxes me-2"></i>' + cartons.length + '</h4>' +
+                                        '<small>กล่อง</small>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+
+                if (serials.length > 0) {
+                    detailHtml += 
+                    '<div class="row mt-3">' +
+                        '<div class="col-12">' +
+                            '<h6><i class="fas fa-list me-2"></i>Serial Numbers (' + serials.length + ' รายการ)</h6>' +
+                            '<div class="table-responsive" style="max-height: 200px;">' +
+                                '<table class="table table-sm table-striped">' +
+                                    '<thead class="table-dark">' +
+                                        '<tr>' +
+                                            '<th>Serial Number</th>' +
+                                            '<th>Work Order</th>' +
+                                            '<th>Carton No</th>' +
+                                            '<th>สถานะ</th>' +
+                                            '<th>เข้าระบบ</th>' +
+                                        '</tr>' +
+                                    '</thead>' +
+                                    '<tbody>';
+
+                    serials.forEach(function(serial) {
+                        detailHtml += 
+                        '<tr>' +
+                            '<td><code>' + serial.SerialNumber + '</code></td>' +
+                            '<td>' + serial.WorkOrder + '</td>' +
+                            '<td>' + (serial.CartonNo || 'ไม่ระบุ') + '</td>' +
+                            '<td><span class="badge bg-info">' + serial.CurrentStatus + '</span></td>' +
+                            '<td>' + (serial.InProcessTime ? new Date(serial.InProcessTime).toLocaleString('th-TH') : 'ไม่ระบุ') + '</td>' +
+                        '</tr>';
+                    });
+
+                    detailHtml += 
+                                    '</tbody>' +
+                                '</table>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }
+
+                if (cartons.length > 0) {
+                    detailHtml += 
+                    '<div class="row mt-3">' +
+                        '<div class="col-12">' +
+                            '<h6><i class="fas fa-boxes me-2"></i>กล่องในพาเลท (' + cartons.length + ' รายการ)</h6>' +
+                            '<div class="table-responsive">' +
+                                '<table class="table table-sm table-striped">' +
+                                    '<thead class="table-dark">' +
+                                        '<tr>' +
+                                            '<th>Carton No</th>' +
+                                            '<th>Work Order</th>' +
+                                            '<th>สถานะ</th>' +
+                                            '<th>จำนวน Serial</th>' +
+                                            '<th>วันที่สร้าง</th>' +
+                                            '<th>การดำเนินการ</th>' +
+                                        '</tr>' +
+                                    '</thead>' +
+                                    '<tbody>';
+
+                    cartons.forEach(function(carton) {
+                        detailHtml += 
+                        '<tr>' +
+                            '<td><code>' + carton.CartonId + '</code></td>' +
+                            '<td>' + carton.WorkOrder + '</td>' +
+                            '<td>' + (carton.CloseFlag === 'Y' ? '<span class="badge bg-success"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>' : '<span class="badge bg-warning"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>') + '</td>' +
+                            '<td><span class="badge bg-info"><i class="fas fa-barcode me-1"></i>' + carton.SerialCount + '</span></td>' +
+                            '<td>' + new Date(carton.CreateTime).toLocaleDateString('th-TH') + '</td>' +
+                            '<td>' +
+                                (carton.CloseFlag === 'N' ?
+                                '<button class="btn btn-warning btn-sm btn-close-carton" data-carton="' + carton.CartonId + '" title="ปิดกล่อง">' +
+                                        '<i class="fas fa-lock"></i> ปิด' +
+                                    '</button>' :
+                                '<button class="btn btn-success btn-sm btn-open-carton" data-carton="' + carton.CartonId + '" title="เปิดกล่อง">' +
+                                        '<i class="fas fa-unlock"></i> เปิด' +
+                                    '</button>'
+                            ) +
+                                '<button class="btn btn-danger btn-sm btn-delete-carton" data-carton="' + carton.CartonId + '" title="ลบกล่อง">' +
+                                    '<i class="fas fa-trash"></i> ลบ' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                    });
+
+                    detailHtml += 
+                                    '</tbody>' +
+                                '</table>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }
+
+                $('#palletDetailContent').html(detailHtml);
+                $('#palletDetailModal').modal('show');
+            },
+
+            // ค้นหาพาเลท
+            searchPallet: function() {
+                var searchTerm = $('#palletSearch').val();
+                if (searchTerm) {
+                    var table = $('#palletTable').DataTable();
+                    table.search(searchTerm).draw();
+                    this.showSuccess('ค้นหา: "' + searchTerm + '"');
+                } else {
+                    this.showWarning('กรุณากรอกคำค้นหา');
+                }
+            },
+
+            // ล้างการค้นหา
+            clearSearch: function() {
+                $('#palletSearch').val('');
+                var table = $('#palletTable').DataTable();
+                table.search('').draw();
+                this.showSuccess('ล้างการค้นหาเรียบร้อย');
+            },
+
+            // สร้างพาเลทใหม่
+            createPallet: function() {
+                var self = this;
+                var palletId = $('#newPalletId').val();
+                var workOrder = $('#workOrder').val();
+                var partId = $('#partId').val();
+                var terminalId = $('#terminalSelect').val();
+                var qcFlag = $('#qcFlag').val();
+                var mixFlag = $('#mixFlag').val();
+                
+                // ตรวจสอบข้อมูลที่จำเป็น
+                if (!palletId || palletId.trim() === '') {
+                    this.showWarning('กรุณาระบุหมายเลขพาเลท');
+                    return;
+                }
+                
+                if (!workOrder || workOrder.trim() === '') {
+                    this.showWarning('กรุณาระบุ Work Order');
+                    return;
+                }
+                
+                if (!partId || isNaN(parseInt(partId)) || parseInt(partId) <= 0) {
+                    this.showWarning('กรุณาระบุ Part ID ที่ถูกต้อง');
+                    return;
+                }
+                
+                if (!terminalId || isNaN(parseInt(terminalId)) || parseInt(terminalId) <= 0) {
+                    this.showWarning('กรุณาระบุ Terminal ที่ถูกต้อง');
+                    return;
+                }
+
+                var data = {
+                    palletNo: palletId.trim(),
+                    workOrder: workOrder.trim(),
+                    partId: parseInt(partId),
+                    terminalId: parseInt(terminalId),
+                    createEmpId: this.config.defaultEmpId,
+                    qcFlag: qcFlag,
+                    mixFlag: mixFlag
+                };
+
+                Swal.fire({
+                    title: 'ยืนยันการสร้าง',
+                    text: 'คุณต้องการสร้างพาเลท ' + palletId + ' หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'สร้าง',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        self.showLoading('กำลังสร้างพาเลท...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/CreatePallet',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    // ล้างฟอร์ม
+                                    self.clearCreateForm();
+                                    // โหลดข้อมูลใหม่
+                                    self.loadPallets();
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error creating pallet:', error);
+                                self.showError('เกิดข้อผิดพลาดในการสร้างพาเลท');
+                            }
+                        });
+                    }
+                });
+            },
+
+            // ล้างฟอร์มสร้างพาเลท
+            clearCreateForm: function() {
+                $('#newPalletId').val('');
+                $('#workOrder').val('');
+                $('#partId').val('');
+                $('#factorySelect').val('');
+                $('#stageSelect').val('');
+                $('#processSelect').val('');
+                $('#pdlineSelect').val('');
+                $('#terminalSelect').val('');
+                $('#routeSelect').val('');
+                $('#qcFlag').val('Y');
+                $('#mixFlag').val('N');
+            },
+ 
+            // ลบพาเลท
+            deletePallet: function(palletId) {
+                var self = this;
+                
+                // ตรวจสอบ palletId
+                if (!palletId || palletId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขพาเลท');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการลบ',
+                    text: 'คุณต้องการลบพาเลท ' + palletId + ' หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ลบ',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var data = {
+                            palletNo: palletId.trim()
+                        };
+
+                        // แสดง loading
+                        self.showLoading('กำลังลบพาเลท...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/DeletePallet',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    self.loadPallets();
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error deleting pallet:', error);
+                                self.showError('เกิดข้อผิดพลาดในการลบพาเลท');
+                            }
+                        });
+                    }
+                });
+            },
+
+            // ลบกล่อง
+            deleteCarton: function(cartonId) {
+                var self = this;
+                var palletId = $('#palletDetailModal').data('pallet-id');
+                
+                // ตรวจสอบ cartonId
+                if (!cartonId || cartonId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขกล่อง');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการลบ',
+                    text: 'คุณต้องการลบกล่อง ' + cartonId + ' หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ลบ',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var data = {
+                            cartonNo: cartonId.trim()
+                        };
+
+                        // แสดง loading
+                        self.showLoading('กำลังลบกล่อง...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/DeleteCarton',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    self.showSuccess(response.message);
+                                    // รีเฟรช modal
+                                    $('#palletDetailModal').modal('hide');
+                                    // เปิด modal ใหม่เพื่อแสดงข้อมูลที่อัปเดต
+                                    setTimeout(function() {
+                                        $('[data-pallet="' + palletId + '"]').click();
+                                    }, 500);
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                console.error('Error deleting carton:', error);
+                                self.showError('เกิดข้อผิดพลาดในการลบกล่อง');
+                            }
+                        });
+                    }
+                });
+            },
+
+            // Cascading dropdown functions
+            onFactoryChange: function() {
+                var self = this;
+                var factoryId = $('#factorySelect').val();
+                
+                // ล้างและโหลด stages ที่เกี่ยวข้อง
+                this.clearDropdown('#stageSelect');
+                this.clearDropdown('#processSelect');
+                this.clearDropdown('#pdlineSelect');
+                this.clearDropdown('#terminalSelect');
+                this.clearDropdown('#routeSelect');
+
+                if (factoryId) {
+                    // โหลด stages ของ factory นี้
+                    $.get(this.config.baseUrl + '/GetStages', { factoryId: factoryId })
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#stageSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading stages:', error);
+                        });
+
+                    // โหลด pdlines ของ factory นี้
+                    $.get(this.config.baseUrl + '/GetPdlines', { factoryId: factoryId })
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#pdlineSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading pdlines:', error);
+                        });
+
+                    // โหลด routes ของ factory นี้
+                    $.get(this.config.baseUrl + '/GetRoutes', { factoryId: factoryId })
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#routeSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading routes:', error);
+                        });
+                }
+            },
+
+            onStageChange: function() {
+                var self = this;
+                var stageId = $('#stageSelect').val();
+                var factoryId = $('#factorySelect').val();
+                
+                // ล้างและโหลด processes ที่เกี่ยวข้อง
+                this.clearDropdown('#processSelect');
+                this.clearDropdown('#terminalSelect');
+
+                if (stageId) {
+                    // โหลด processes ของ stage นี้
+                    $.get(this.config.baseUrl + '/GetProcesses', { stageId: stageId })
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#processSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading processes:', error);
+                        });
+
+                    // โหลด terminals ของ stage นี้
+                    $.get(this.config.baseUrl + '/GetTerminals', { stageId: stageId })
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#terminalSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading terminals:', error);
+                        });
+
+                    // โหลด pdlines ของ factory (ไม่ filter ด้วย stage)
+                    if (factoryId) {
+                        $.get(this.config.baseUrl + '/GetPdlines', { factoryId: factoryId })
+                            .done(function(data) {
+                                self.clearAndPopulateDropdown('#pdlineSelect', data);
+                            })
+                            .fail(function(error) {
+                                console.error('Error loading pdlines:', error);
+                        });
+                    }
+                }
+            },
+
+            onProcessChange: function() {
+                var self = this;
+                var processId = $('#processSelect').val();
+                var stageId = $('#stageSelect').val();
+                var pdlineId = $('#pdlineSelect').val();
+                
+                // ล้างและโหลด terminals ที่เกี่ยวข้อง
+                this.clearDropdown('#terminalSelect');
+
+                if (processId) {
+                    // โหลด terminals ของ process นี้
+                    var params = { processId: processId };
+                    
+                    if (stageId) params.stageId = stageId;
+                    if (pdlineId) params.pdlineId = pdlineId;
+
+                    $.get(this.config.baseUrl + '/GetTerminals', params)
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#terminalSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading terminals:', error);
+                        });
+                }
+            },
+
+            onPdlineChange: function() {
+                var self = this;
+                var pdlineId = $('#pdlineSelect').val();
+                var processId = $('#processSelect').val();
+                var stageId = $('#stageSelect').val();
+                
+                // ล้างและโหลด terminals ที่เกี่ยวข้อง
+                this.clearDropdown('#terminalSelect');
+
+                if (pdlineId) {
+                    // โหลด terminals ของ pdline นี้
+                    var params = { pdlineId: pdlineId };
+                    
+                    if (processId) params.processId = processId;
+                    if (stageId) params.stageId = stageId;
+
+                    $.get(this.config.baseUrl + '/GetTerminals', params)
+                        .done(function(data) {
+                            self.clearAndPopulateDropdown('#terminalSelect', data);
+                        })
+                        .fail(function(error) {
+                            console.error('Error loading terminals:', error);
+                        });
+                }
+            },
+
+            // ล้าง dropdown
+            clearDropdown: function(selector) {
+                var $select = $(selector);
+                var defaultOption = $select.find('option').first();
+                $select.empty().append(defaultOption);
+                
+                // ล้าง badge จำนวนตัวเลือก
+                this.updateDropdownCount(selector, 0);
+            },
+
+            // ล้าง dropdown และเลือกอัตโนมัติถ้ามีตัวเลือกเดียว
+            clearAndPopulateDropdown: function(selector, data) {
+                this.clearDropdown(selector);
+                this.populateDropdown(selector, data);
+            },
+
+            // Clean up pallet detail modal
+            cleanupPalletDetailModal: function() {
+                // เคลียร์ข้อมูล
+                $('#palletDetailContent').empty();
+                $('#palletDetailModal').removeData('pallet-id');
+            },
+
+            // แสดงข้อความแจ้งเตือน
+            showSuccess: function(message) {
+                Swal.fire({
+                    title: 'สำเร็จ',
+                    text: message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            },
+
+            showError: function(message) {
+                Swal.fire({
+                    title: 'ข้อผิดพลาด',
+                    text: message,
+                    icon: 'error',
+                    confirmButtonText: 'ตกลง'
+                });
+            },
+
+            showWarning: function(message) {
+                Swal.fire({
+                    title: 'คำเตือน',
+                    text: message,
+                    icon: 'warning',
+                    confirmButtonText: 'ตกลง'
+                });
+            },
+
+            showLoading: function(message) {
+                Swal.fire({
+                    title: message,
+                    allowOutsideClick: false,
+                    didOpen: function() {
+                        Swal.showLoading();
+                    }
+                });
+            },
+
+            // ฟังก์ชันสำหรับตรวจสอบข้อมูลในฐานข้อมูล
+            checkData: function(tableName, columnName, value) {
+                var self = this;
+                console.log(`Checking data: ${tableName}.${columnName} = '${value}'`);
+                
+                $.get(this.config.baseUrl + '/CheckData', { 
+                    tableName: tableName, 
+                    columnName: columnName, 
+                    value: value 
+                })
+                .done(function(response) {
+                    console.log('CheckData response:', response);
+                    if (response.success) {
+                        self.showSuccess(response.message);
+                    } else {
+                        self.showError(response.message);
+                    }
+                })
+                .fail(function(error) {
+                    console.error('Error checking data:', error);
+                    self.showError('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล');
+                });
+            },
+
+            // ฟังก์ชันสำหรับทดสอบ API
+            testApi: function(value) {
+                var self = this;
+                var testData = {
+                    cartonNo: value,
+                    openEmpId: this.config.defaultEmpId
+                };
+                
+                console.log('Testing API with data:', testData);
+                console.log('Test data JSON:', JSON.stringify(testData));
+                
+                $.ajax({
+                    url: this.config.baseUrl + '/TestOpenCarton',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: JSON.stringify(testData),
+                    success: function(response) {
+                        console.log('Test API response:', response);
+                        self.showSuccess('ทดสอบ API สำเร็จ - ดูรายละเอียดใน Console');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Test API error:', error);
+                        console.error('Status:', status);
+                        console.error('Response Text:', xhr.responseText);
+                        self.showError('ทดสอบ API ล้มเหลว: ' + error);
+                    }
+                });
+            },
+
+            // ฟังก์ชันสำหรับทดสอบ Model Binding
+            testModelBinding: function(value) {
+                var self = this;
+                var testData = {
+                    cartonNo: value,
+                    openEmpId: this.config.defaultEmpId
+                };
+                
+                console.log('Testing Model Binding with data:', testData);
+                console.log('Test data JSON:', JSON.stringify(testData));
+                
+                $.ajax({
+                    url: this.config.baseUrl + '/TestModelBinding',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: JSON.stringify(testData),
+                    success: function(response) {
+                        console.log('Test Model Binding response:', response);
+                        self.showSuccess('ทดสอบ Model Binding สำเร็จ - ดูรายละเอียดใน Console');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Test Model Binding error:', error);
+                        console.error('Status:', status);
+                        console.error('Response Text:', xhr.responseText);
+                        self.showError('ทดสอบ Model Binding ล้มเหลว: ' + error);
+                    }
+                });
+            }
+        };
+
+        // เริ่มต้นแอพพลิเคชันเมื่อหน้าโหลดเสร็จ
+        $(document).ready(function() {
             PalletManagementApp.init();
         });
     </script>
-} 
+}

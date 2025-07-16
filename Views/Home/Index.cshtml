@@ -1,22 +1,104 @@
 @{
-ViewData["Title"] = "Welcome to LITEON";
-var username = ViewBag.Username;
-var moduleId = ViewBag.ModuleId;
+    ViewData["Title"] = "Welcome to LITEON";
+    var username = ViewBag.Username;
+    var moduleId = ViewBag.ModuleId;
 }
 
-@using IPS_TH.Extensions 
+@using IPS_TH.Extensions
 
 <!-- Required Libraries -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Font Awesome, jQuery, และ Chart.js ถูกโหลดใน Layout แล้ว -->
+
+<style>
+    /* CSS สำหรับปุ่มซ่อน/ขยายรายละเอียด */
+    #btnToggleCabinetDetails,
+    #btnToggleComputerDetails {
+        transition: all 0.3s ease;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+    }
+
+    #btnToggleCabinetDetails:hover,
+    #btnToggleComputerDetails:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #btnToggleCabinetDetails:active,
+    #btnToggleComputerDetails:active {
+        transform: translateY(0);
+    }
+
+    /* Animation สำหรับการซ่อน/ขยาย */
+    #cabinetDetailsSection,
+    #computerDetailsSection {
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* ปรับแต่งการ์ดในส่วนรายละเอียด */
+    #cabinetDetailsSection .card,
+    #computerDetailsSection .card {
+        transition: all 0.3s ease;
+    }
+
+    #cabinetDetailsSection .card:hover,
+    #computerDetailsSection .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* ปรับแต่ง section header */
+    .section-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+        border-radius: 15px;
+        padding: 1rem 1.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* ปรับแต่งปุ่มให้ดูทันสมัย */
+    .btn-outline-primary {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+
+    .btn-outline-info {
+        border-color: #06b6d4;
+        color: #06b6d4;
+    }
+
+    .btn-outline-info:hover {
+        background-color: #06b6d4;
+        border-color: #06b6d4;
+        color: white;
+    }
+
+    /* Animation สำหรับ icon ในปุ่ม */
+    #btnToggleCabinetDetails i,
+    #btnToggleComputerDetails i {
+        transition: transform 0.3s ease;
+    }
+
+    #btnToggleCabinetDetails.active i,
+    #btnToggleComputerDetails.active i {
+        transform: rotate(180deg);
+    }
+</style>
 
 <!-- Main Container -->
 <div class="bg-rainy-gradient min-vh-100">
     <div class="container-fluid py-4">
         <!-- Header Section -->
         <div class="text-center text-dark mb-5">
-            <img src="/image/logo-text.png" alt="LITEON" class="img-fluid mb-3" style="max-width: 200px;">
+            <img src="~/image/logo-text.png" alt="LITEON" class="img-fluid mb-3" style="max-width: 200px;">
             <h1 class="display-4 fw-bold mb-3 text-rainy-dark">
                 <span data-translate="welcome_to">@Context.Session.GetTranslation("welcome_to")</span> LITEON IPS,
                 @username! 👋
@@ -26,127 +108,376 @@ var moduleId = ViewBag.ModuleId;
             </p>
         </div>
 
-        <!-- Stats Cards Row -->
-        <div class="row g-4 mb-5">
-            <div class="col-lg-3 col-md-6">
-                <div class="card shadow-rainy border-0 h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-users fa-2x mb-3 text-rainy-primary"></i>
-                        <h3 class="display-6 fw-bold text-rainy-dark" id="totalEmployees">0</h3>
-                        <p class="card-text text-rainy-muted" data-translate="total_employees">
-                            @Context.Session.GetTranslation("total_employees")</p>
+        <!-- Employee Statistics Section -->
+        <div class="stats-section mb-4">
+            <div class="section-header mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="section-icon me-3">
+                        <i class="fas fa-users fa-2x text-rainy-primary"></i>
+                    </div>
+                    <div>
+                        <h4 class="section-title mb-1">สรุปข้อมูลพนักงาน</h4>
+                        <p class="section-subtitle mb-0">Employee Statistics Overview</p>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card shadow-rainy border-0 h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-user-check fa-2x mb-3 text-rainy-success"></i>
-                        <h3 class="display-6 fw-bold text-rainy-dark" id="activeEmployees">0</h3>
-                        <p class="card-text text-rainy-muted" data-translate="current_employees">
-                            @Context.Session.GetTranslation("current_employees")</p>
+            <div class="row g-3">
+                <div class="col-lg-3 col-md-6">
+                    <div class="card shadow-rainy border-0 h-100">
+                        <div class="card-body text-center py-3">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-users fa-lg text-rainy-primary me-2"></i>
+                                <span class="badge bg-rainy-primary rounded-pill small">ทั้งหมด</span>
+                            </div>
+                            <h4 class="fw-bold text-rainy-dark mb-1" id="totalEmployees">0</h4>
+                            <p class="card-text text-rainy-muted small mb-0">พนักงานทั้งหมด</p>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar bg-rainy-primary" style="width: 100%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card shadow-rainy border-0 h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-user-plus fa-2x mb-3 text-rainy-warning"></i>
-                        <h3 class="display-6 fw-bold text-rainy-dark" id="newEmployees">0</h3>
-                        <p class="card-text text-rainy-muted" data-translate="new_employees_month">
-                            @Context.Session.GetTranslation("new_employees_month")</p>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card shadow-rainy border-0 h-100">
+                        <div class="card-body text-center py-3">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-user-check fa-lg text-rainy-success me-2"></i>
+                                <span class="badge bg-rainy-success rounded-pill small" id="activePercent">0%</span>
+                            </div>
+                            <h4 class="fw-bold text-rainy-dark mb-1" id="activeEmployees">0</h4>
+                            <p class="card-text text-rainy-muted small mb-0">พนักงานปัจจุบัน</p>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar bg-rainy-success" id="activeProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card shadow-rainy border-0 h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-user-minus fa-2x mb-3 text-rainy-danger"></i>
-                        <h3 class="display-6 fw-bold text-rainy-dark" id="resignedEmployees">0</h3>
-                        <p class="card-text text-rainy-muted" data-translate="resigned_employees_month">
-                            @Context.Session.GetTranslation("resigned_employees_month")</p>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card shadow-rainy border-0 h-100">
+                        <div class="card-body text-center py-3">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-user-plus fa-lg text-rainy-warning me-2"></i>
+                                <span class="badge bg-rainy-warning rounded-pill small" id="newPercent">0%</span>
+                            </div>
+                            <h4 class="fw-bold text-rainy-dark mb-1" id="newEmployees">0</h4>
+                            <p class="card-text text-rainy-muted small mb-0">พนักงานใหม่เดือนนี้</p>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar bg-rainy-warning" id="newProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card shadow-rainy border-0 h-100">
+                        <div class="card-body text-center py-3">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-user-minus fa-lg text-rainy-danger me-2"></i>
+                                <span class="badge bg-rainy-danger rounded-pill small" id="resignedPercent">0%</span>
+                            </div>
+                            <h4 class="fw-bold text-rainy-dark mb-1" id="resignedEmployees">0</h4>
+                            <p class="card-text text-rainy-muted small mb-0">ลาออกเดือนนี้</p>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar bg-rainy-danger" id="resignedProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Cabinet Stats Cards Row -->
-        <div class="mb-5" id="cabinetStatsContainer" style="display: none;">
-            <!-- แถวที่ 1: สถิติตู้ -->
-            <div class="row g-3 mb-3">
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-archive fa-2x mb-3 text-rainy-primary"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="totalCabinets">0</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="total_cabinets">@Context.Session.GetTranslation("total_cabinets")</p>
+        <!-- Cabinet & Computer Statistics Section -->
+        <div class="stats-section mb-4" id="cabinetComputerStatsContainer" style="display: none;">
+            <div class="row">
+                <!-- Cabinet Statistics - Left Half -->
+                <div class="col-lg-6 mb-4">
+                    <div class="section-header mb-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="section-icon me-3">
+                                    <i class="fas fa-archive fa-2x text-rainy-secondary"></i>
+                                </div>
+                                <div>
+                                    <h4 class="section-title mb-1">สรุปข้อมูลตู้เก็บของ</h4>
+                                    <p class="section-subtitle mb-0">Cabinet Management Overview</p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnToggleCabinetDetails">
+                                <i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด
+                            </button>
+                        </div>
+                    </div>
+                    <!-- แถวที่ 1: สถิติตู้หลัก -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-archive fa-lg text-rainy-primary me-2"></i>
+                                        <span class="badge bg-rainy-primary rounded-pill small">ทั้งหมด</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="totalCabinets">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ตู้ทั้งหมด</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-primary" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-check-circle fa-lg text-rainy-success me-2"></i>
+                                        <span class="badge bg-rainy-success rounded-pill small" id="availablePercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="availableCabinets">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ตู้ว่าง</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-success" id="availableProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-user-check fa-lg text-primary me-2"></i>
+                                        <span class="badge bg-primary rounded-pill small" id="occupiedPercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="occupiedCabinets">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ตู้ที่ใช้งาน</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-primary" id="occupiedProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-exclamation-triangle fa-lg text-rainy-warning me-2"></i>
+                                        <span class="badge bg-rainy-warning rounded-pill small" id="damagedPercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="damagedCabinets">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ตู้ชำรุด</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-warning" id="damagedProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ข้อมูลเพิ่มเติม (ซ่อนได้) -->
+                    <div class="row g-3" id="cabinetDetailsSection" style="display: none;">
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100 border-warning">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-user-times fa-lg text-rainy-danger me-2"></i>
+                                        <span class="badge bg-rainy-danger rounded-pill small">ต้องคืน</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="resignedOwnedCabinets">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ตู้ต้องคืน<br /><small class="text-warning">(เจ้าของลาออก)</small></p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-danger" id="resignedProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100 border-info">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-user-plus fa-lg text-rainy-primary me-2"></i>
+                                        <span class="badge bg-info rounded-pill small">ไม่มีตู้</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="employeesWithoutCabinet">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">พนักงานไม่มีตู้<br /><small class="text-info">(ยังทำงานอยู่)</small></p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-info" id="withoutCabinetProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-percentage fa-lg text-rainy-secondary me-2"></i>
+                                        <span class="badge bg-rainy-secondary rounded-pill small">อัตราการใช้</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="utilizationRate">0%</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">อัตราการใช้ตู้</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-secondary" id="utilizationProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-users-cog fa-lg text-rainy-primary me-2"></i>
+                                        <span class="badge bg-rainy-primary rounded-pill small">ความครอบคลุม</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="cabinetCoverage">0%</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ความครอบคลุมตู้</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-primary" id="coverageProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-check-circle fa-2x mb-3 text-rainy-success"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="availableCabinets">0</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="available_cabinets">@Context.Session.GetTranslation("available_cabinets")</p>
+
+                <!-- Computer Statistics - Right Half -->
+                <div class="col-lg-6 mb-4">
+                    <div class="section-header mb-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="section-icon me-3">
+                                    <i class="fas fa-laptop fa-2x text-rainy-info"></i>
+                                </div>
+                                <div>
+                                    <h4 class="section-title mb-1">สรุปข้อมูลคอมพิวเตอร์</h4>
+                                    <p class="section-subtitle mb-0">Computer Asset Management Overview</p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-info btn-sm" id="btnToggleComputerDetails">
+                                <i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-user-check fa-2x mb-3 text-primary"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="occupiedCabinets">0</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="occupied_cabinets">@Context.Session.GetTranslation("occupied_cabinets")</p>
+                    <!-- แถวที่ 1: สถิติคอมพิวเตอร์หลัก -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-laptop fa-lg text-rainy-primary me-2"></i>
+                                        <span class="badge bg-rainy-primary rounded-pill small">ทั้งหมด</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="totalComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">คอมพิวเตอร์ทั้งหมด</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-primary" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-check-circle fa-lg text-rainy-success me-2"></i>
+                                        <span class="badge bg-rainy-success rounded-pill small" id="computerActivePercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="activeComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ใช้งานได้</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-success" id="computerActiveProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-tools fa-lg text-rainy-warning me-2"></i>
+                                        <span class="badge bg-rainy-warning rounded-pill small" id="repairPercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="repairComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">กำลังซ่อม</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-warning" id="repairProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-exclamation-triangle fa-lg text-rainy-danger me-2"></i>
+                                        <span class="badge bg-rainy-danger rounded-pill small" id="computerDamagedPercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="damagedComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ชำรุด</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-danger" id="computerDamagedProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-exclamation-triangle fa-2x mb-3 text-rainy-warning"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="damagedCabinets">0</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="damaged_cabinets">@Context.Session.GetTranslation("damaged_cabinets")</p>
+
+                    <!-- ข้อมูลเพิ่มเติม (ซ่อนได้) -->
+                    <div class="row g-3" id="computerDetailsSection" style="display: none;">
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100 border-secondary">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-recycle fa-lg text-rainy-secondary me-2"></i>
+                                        <span class="badge bg-rainy-secondary rounded-pill small" id="disposedPercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="disposedComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">จำหน่าย</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-secondary" id="disposedProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- แถวที่ 2: สถิติพิเศษ -->
-            <div class="row g-3">
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100 border-warning">
-                        <div class="card-body text-center">
-                            <i class="fas fa-user-times fa-2x mb-3 text-rainy-danger"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="resignedOwnedCabinets">0</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="cabinets_to_return">@Context.Session.GetTranslation("cabinets_to_return")<br/><small class="text-warning" data-translate="owner_resigned">(@Context.Session.GetTranslation("owner_resigned"))</small></p>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100 border-info">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-pause-circle fa-lg text-rainy-info me-2"></i>
+                                        <span class="badge bg-info rounded-pill small" id="inactivePercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="inactiveComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">ไม่ใช้งาน</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-info" id="inactiveProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100 border-info">
-                        <div class="card-body text-center">
-                            <i class="fas fa-user-plus fa-2x mb-3 text-rainy-primary"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="employeesWithoutCabinet">0</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="employees_without_cabinet">@Context.Session.GetTranslation("employees_without_cabinet")<br/><small class="text-info" data-translate="still_working">(@Context.Session.GetTranslation("still_working"))</small></p>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100 border-purple">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-boxes fa-lg text-purple me-2"></i>
+                                        <span class="badge bg-purple rounded-pill small" id="sparePercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="spareComputers">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">อะไหล่</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-purple" id="spareProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-percentage fa-2x mb-3 text-rainy-secondary"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="utilizationRate">0%</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="utilization_rate">@Context.Session.GetTranslation("utilization_rate")</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card shadow-rainy border-0 h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-users-cog fa-2x mb-3 text-rainy-primary"></i>
-                            <h3 class="display-6 fw-bold text-rainy-dark" id="cabinetCoverage">0%</h3>
-                            <p class="card-text text-rainy-muted small" data-translate="coverage_rate">@Context.Session.GetTranslation("coverage_rate")<br/><small class="text-muted" data-translate="employees_with_cabinets">(@Context.Session.GetTranslation("employees_with_cabinets"))</small></p>
+                        <div class="col-6">
+                            <div class="card shadow-rainy border-0 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <i class="fas fa-network-wired fa-lg text-rainy-primary me-2"></i>
+                                        <span class="badge bg-rainy-primary rounded-pill small" id="macPercent">0%</span>
+                                    </div>
+                                    <h4 class="fw-bold text-rainy-dark mb-1" id="computersWithMac">0</h4>
+                                    <p class="card-text text-rainy-muted small mb-0">มี Mac Address</p>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-rainy-primary" id="macProgress" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,13 +491,14 @@ var moduleId = ViewBag.ModuleId;
                     <div class="card-header bg-rainy-light border-bottom">
                         <h5 class="card-title mb-0 text-rainy-dark" data-translate="upcoming_holidays">
                             <i class="fas fa-calendar-alt me-2 text-rainy-warning"></i>
-                            @Context.Session.GetTranslation("upcoming_holidays") 
+                            @Context.Session.GetTranslation("upcoming_holidays")
                         </h5>
                     </div>
                     <div class="card-body">
                         <div id="upcomingHolidays" class="row g-3">
                             <div class="col-12 text-center text-rainy-muted">
-                                <i class="fas fa-spinner fa-spin me-2"></i> <span data-translate="loading_data">@Context.Session.GetTranslation("loading_data")</span>...
+                                <i class="fas fa-spinner fa-spin me-2"></i> <span
+                                    data-translate="loading_data">@Context.Session.GetTranslation("loading_data")</span>...
                             </div>
                         </div>
                     </div>
@@ -208,7 +540,8 @@ var moduleId = ViewBag.ModuleId;
                         </h5>
                         @if (ViewBag.IsAdmin == "true")
                         {
-                            <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#announcementModal" 
+                            <button type="button" class="btn btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#announcementModal"
                                 style="background: linear-gradient(45deg, #f59e0b, #fbbf24); color: white; border: none; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);"
                                 data-translate="add_announcement">
                                 <i class="fas fa-plus me-1"></i> @Context.Session.GetTranslation("add_announcement")
@@ -223,16 +556,22 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <div>
-                                                <h6 class="card-title mb-1" data-translate="annual_holiday_announcement">@Context.Session.GetTranslation("annual_holiday_announcement")</h6>
-                                                <small class="text-rainy-muted" data-translate="hr_department">@Context.Session.GetTranslation("hr_department")</small>
+                                                <h6 class="card-title mb-1"
+                                                    data-translate="annual_holiday_announcement">
+                                                    @Context.Session.GetTranslation("annual_holiday_announcement")</h6>
+                                                <small class="text-rainy-muted"
+                                                    data-translate="hr_department">@Context.Session.GetTranslation("hr_department")</small>
                                             </div>
-                                            <span class="badge bg-rainy-warning" data-translate="important">@Context.Session.GetTranslation("important")</span>
+                                            <span class="badge bg-rainy-warning"
+                                                data-translate="important">@Context.Session.GetTranslation("important")</span>
                                         </div>
-                                        <p class="card-text" data-translate="holiday_announcement_content">@Context.Session.GetTranslation("holiday_announcement_content")</p>
+                                        <p class="card-text" data-translate="holiday_announcement_content">
+                                            @Context.Session.GetTranslation("holiday_announcement_content")</p>
                                         <div class="d-flex justify-content-between align-items-center mt-3">
                                             <small class="text-rainy-muted">15 มี.ค. 2567</small>
                                             <button class="btn btn-sm btn-outline-rainy-warning">
-                                                <i class="fas fa-eye me-1"></i> <span data-translate="read_more">@Context.Session.GetTranslation("read_more")</span>
+                                                <i class="fas fa-eye me-1"></i> <span
+                                                    data-translate="read_more">@Context.Session.GetTranslation("read_more")</span>
                                             </button>
                                         </div>
                                     </div>
@@ -252,34 +591,41 @@ var moduleId = ViewBag.ModuleId;
                     <div class="modal-header bg-rainy-light">
                         <h5 class="modal-title" id="feedbackModalLabel">
                             <i class="fas fa-comment-dots me-2 text-rainy-primary"></i>
-                            <span data-translate="add_new_feedback">@Context.Session.GetTranslation("add_new_feedback")</span>
+                            <span
+                                data-translate="add_new_feedback">@Context.Session.GetTranslation("add_new_feedback")</span>
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form id="feedbackForm">
                             <div class="mb-3">
-                                <label for="feedbackType" class="form-label" data-translate="feedback_type">@Context.Session.GetTranslation("feedback_type")</label>
+                                <label for="feedbackType" class="form-label"
+                                    data-translate="feedback_type">@Context.Session.GetTranslation("feedback_type")</label>
                                 <select class="form-select" id="feedbackType" required>
-                                    <option value="" data-translate="select_feedback_type">@Context.Session.GetTranslation("select_feedback_type")</option>
+                                    <option value="" data-translate="select_feedback_type">
+                                        @Context.Session.GetTranslation("select_feedback_type")</option>
                                     <option value="feature">Feature Request</option>
                                     <option value="bug">Bug Report</option>
                                     <option value="improvement">Improvement</option>
-                                    <option value="other" data-translate="other">@Context.Session.GetTranslation("other")</option>
+                                    <option value="other" data-translate="other">
+                                        @Context.Session.GetTranslation("other")</option>
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label for="feedbackTitle" class="form-label" data-translate="title">@Context.Session.GetTranslation("title")</label>
+                                <label for="feedbackTitle" class="form-label"
+                                    data-translate="title">@Context.Session.GetTranslation("title")</label>
                                 <input type="text" class="form-control" id="feedbackTitle" required>
                             </div>
                             <div class="mb-3">
-                                <label for="feedbackContent" class="form-label" data-translate="details">@Context.Session.GetTranslation("details")</label>
+                                <label for="feedbackContent" class="form-label"
+                                    data-translate="details">@Context.Session.GetTranslation("details")</label>
                                 <textarea class="form-control" id="feedbackContent" rows="4" required></textarea>
                             </div>
                             <div class="mb-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="anonymousFeedback">
-                                    <label class="form-check-label" for="anonymousFeedback" data-translate="send_anonymous_feedback">
+                                    <label class="form-check-label" for="anonymousFeedback"
+                                        data-translate="send_anonymous_feedback">
                                         @Context.Session.GetTranslation("send_anonymous_feedback")
                                     </label>
                                 </div>
@@ -287,9 +633,11 @@ var moduleId = ViewBag.ModuleId;
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-rainy-secondary" data-bs-dismiss="modal" data-translate="cancel">@Context.Session.GetTranslation("cancel")</button>
+                        <button type="button" class="btn btn-rainy-secondary" data-bs-dismiss="modal"
+                            data-translate="cancel">@Context.Session.GetTranslation("cancel")</button>
                         <button type="button" class="btn btn-rainy-primary" id="submitFeedback">
-                            <i class="fas fa-paper-plane me-1"></i> <span data-translate="send_feedback">@Context.Session.GetTranslation("send_feedback")</span>
+                            <i class="fas fa-paper-plane me-1"></i> <span
+                                data-translate="send_feedback">@Context.Session.GetTranslation("send_feedback")</span>
                         </button>
                     </div>
                 </div>
@@ -304,43 +652,57 @@ var moduleId = ViewBag.ModuleId;
                     <div class="modal-header bg-rainy-light">
                         <h5 class="modal-title" id="announcementModalLabel">
                             <i class="fas fa-bullhorn me-2 text-rainy-warning"></i>
-                            <span data-translate="add_new_announcement">@Context.Session.GetTranslation("add_new_announcement")</span>
+                            <span
+                                data-translate="add_new_announcement">@Context.Session.GetTranslation("add_new_announcement")</span>
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form id="announcementForm">
                             <div class="mb-3">
-                                <label for="announcementTitle" class="form-label" data-translate="announcement_title">@Context.Session.GetTranslation("announcement_title")</label>
+                                <label for="announcementTitle" class="form-label"
+                                    data-translate="announcement_title">@Context.Session.GetTranslation("announcement_title")</label>
                                 <input type="text" class="form-control" id="announcementTitle" required>
                             </div>
                             <div class="mb-3">
-                                <label for="announcementContent" class="form-label" data-translate="details">@Context.Session.GetTranslation("details")</label>
+                                <label for="announcementContent" class="form-label"
+                                    data-translate="details">@Context.Session.GetTranslation("details")</label>
                                 <textarea class="form-control" id="announcementContent" rows="4" required></textarea>
                             </div>
                             <div class="mb-3">
-                                <label for="announcementDepartment" class="form-label" data-translate="announcing_department">@Context.Session.GetTranslation("announcing_department")</label>
+                                <label for="announcementDepartment" class="form-label"
+                                    data-translate="announcing_department">@Context.Session.GetTranslation("announcing_department")</label>
                                 <select class="form-select" id="announcementDepartment" required>
-                                    <option value="" data-translate="select_department">@Context.Session.GetTranslation("select_department")</option>
-                                    <option value="hr" data-translate="hr_department">@Context.Session.GetTranslation("hr_department")</option>
-                                    <option value="it" data-translate="it_department">@Context.Session.GetTranslation("it_department")</option>
-                                    <option value="admin" data-translate="admin_department">@Context.Session.GetTranslation("admin_department")</option>
+                                    <option value="" data-translate="select_department">
+                                        @Context.Session.GetTranslation("select_department")</option>
+                                    <option value="hr" data-translate="hr_department">
+                                        @Context.Session.GetTranslation("hr_department")</option>
+                                    <option value="it" data-translate="it_department">
+                                        @Context.Session.GetTranslation("it_department")</option>
+                                    <option value="admin" data-translate="admin_department">
+                                        @Context.Session.GetTranslation("admin_department")</option>
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label for="announcementPriority" class="form-label" data-translate="importance">@Context.Session.GetTranslation("importance")</label>
+                                <label for="announcementPriority" class="form-label"
+                                    data-translate="importance">@Context.Session.GetTranslation("importance")</label>
                                 <select class="form-select" id="announcementPriority" required>
-                                    <option value="normal" data-translate="normal">@Context.Session.GetTranslation("normal")</option>
-                                    <option value="important" data-translate="important">@Context.Session.GetTranslation("important")</option>
-                                    <option value="urgent" data-translate="urgent">@Context.Session.GetTranslation("urgent")</option>
+                                    <option value="normal" data-translate="normal">
+                                        @Context.Session.GetTranslation("normal")</option>
+                                    <option value="important" data-translate="important">
+                                        @Context.Session.GetTranslation("important")</option>
+                                    <option value="urgent" data-translate="urgent">
+                                        @Context.Session.GetTranslation("urgent")</option>
                                 </select>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-rainy-secondary" data-bs-dismiss="modal" data-translate="cancel">@Context.Session.GetTranslation("cancel")</button>
+                        <button type="button" class="btn btn-rainy-secondary" data-bs-dismiss="modal"
+                            data-translate="cancel">@Context.Session.GetTranslation("cancel")</button>
                         <button type="button" class="btn btn-rainy-warning" id="submitAnnouncement">
-                            <i class="fas fa-paper-plane me-1"></i> <span data-translate="announce">@Context.Session.GetTranslation("announce")</span>
+                            <i class="fas fa-paper-plane me-1"></i> <span
+                                data-translate="announce">@Context.Session.GetTranslation("announce")</span>
                         </button>
                     </div>
                 </div>
@@ -390,7 +752,8 @@ var moduleId = ViewBag.ModuleId;
                     <div class="card-header bg-rainy-light border-bottom">
                         <h5 class="card-title mb-0 text-rainy-dark">
                             <i class="fas fa-calendar-alt me-2 text-rainy-primary"></i>
-                            <span data-translate="leave_statistics">@Context.Session.GetTranslation("leave_statistics")</span>
+                            <span
+                                data-translate="leave_statistics">@Context.Session.GetTranslation("leave_statistics")</span>
                         </h5>
                     </div>
                     <div class="card-body">
@@ -401,7 +764,8 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body p-3">
                                         <h6 class="card-title text-rainy-primary mb-2 small">
                                             <i class="fas fa-chart-line me-1"></i>
-                                            <span data-translate="leave_count_per_month">@Context.Session.GetTranslation("leave_count_per_month")</span>
+                                            <span
+                                                data-translate="leave_count_per_month">@Context.Session.GetTranslation("leave_count_per_month")</span>
                                         </h6>
                                         <div style="height: 200px; position: relative;">
                                             <canvas id="leaveByMonthChart"></canvas>
@@ -415,7 +779,8 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body p-3">
                                         <h6 class="card-title text-rainy-primary mb-2 small">
                                             <i class="fas fa-chart-pie me-1"></i>
-                                            <span data-translate="popular_leave_types">@Context.Session.GetTranslation("popular_leave_types")</span>
+                                            <span
+                                                data-translate="popular_leave_types">@Context.Session.GetTranslation("popular_leave_types")</span>
                                         </h6>
                                         <div style="height: 200px; position: relative;">
                                             <canvas id="leaveTypeChart"></canvas>
@@ -429,7 +794,8 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body p-3">
                                         <h6 class="card-title text-rainy-primary mb-2 small">
                                             <i class="fas fa-calendar-alt me-1"></i>
-                                            <span data-translate="leave_days_per_month">@Context.Session.GetTranslation("leave_days_per_month")</span>
+                                            <span
+                                                data-translate="leave_days_per_month">@Context.Session.GetTranslation("leave_days_per_month")</span>
                                         </h6>
                                         <div style="height: 200px; position: relative;">
                                             <canvas id="leaveDaysByMonthChart"></canvas>
@@ -443,7 +809,8 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body p-3">
                                         <h6 class="card-title text-rainy-primary mb-2 small">
                                             <i class="fas fa-building me-1"></i>
-                                            <span data-translate="leave_ratio_by_department">@Context.Session.GetTranslation("leave_ratio_by_department")</span>
+                                            <span
+                                                data-translate="leave_ratio_by_department">@Context.Session.GetTranslation("leave_ratio_by_department")</span>
                                         </h6>
                                         <div style="height: 200px; position: relative;">
                                             <canvas id="leaveByDepartmentChart"></canvas>
@@ -457,7 +824,8 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body p-3">
                                         <h6 class="card-title text-rainy-primary mb-2 small">
                                             <i class="fas fa-hourglass-half me-1"></i>
-                                            <span data-translate="average_leave_duration">@Context.Session.GetTranslation("average_leave_duration")</span>
+                                            <span
+                                                data-translate="average_leave_duration">@Context.Session.GetTranslation("average_leave_duration")</span>
                                         </h6>
                                         <div style="height: 200px; position: relative;">
                                             <canvas id="averageLeaveDurationChart"></canvas>
@@ -471,7 +839,8 @@ var moduleId = ViewBag.ModuleId;
                                     <div class="card-body p-3">
                                         <h6 class="card-title text-rainy-primary mb-2 small">
                                             <i class="fas fa-calendar-check me-1"></i>
-                                            <span data-translate="leave_workday_holiday">@Context.Session.GetTranslation("leave_workday_holiday")</span>
+                                            <span
+                                                data-translate="leave_workday_holiday">@Context.Session.GetTranslation("leave_workday_holiday")</span>
                                         </h6>
                                         <div style="height: 200px; position: relative;">
                                             <canvas id="workdayHolidayLeaveChart"></canvas>
@@ -497,13 +866,15 @@ var moduleId = ViewBag.ModuleId;
                     <div class="card-header bg-rainy-light border-bottom">
                         <h5 class="card-title mb-0 text-rainy-dark">
                             <i class="fas fa-user-times me-2 text-rainy-danger"></i>
-                            <span data-translate="recent_resigned_employees">@Context.Session.GetTranslation("recent_resigned_employees")</span>
+                            <span
+                                data-translate="recent_resigned_employees">@Context.Session.GetTranslation("recent_resigned_employees")</span>
                         </h5>
                     </div>
                     <div class="card-body">
                         <div id="recentResignedEmployees" class="row g-3">
                             <div class="col-12 text-center text-rainy-muted">
-                                <span data-translate="no_resigned_employees">@Context.Session.GetTranslation("no_resigned_employees")</span>
+                                <span
+                                    data-translate="no_resigned_employees">@Context.Session.GetTranslation("no_resigned_employees")</span>
                             </div>
                         </div>
                     </div>
@@ -569,6 +940,14 @@ var moduleId = ViewBag.ModuleId;
         color: var(--rainy-danger) !important;
     }
 
+    .border-purple {
+        border-color: #6f42c1 !important;
+    }
+
+    .text-purple {
+        color: #6f42c1 !important;
+    }
+
     .card {
         background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(10px);
@@ -632,33 +1011,64 @@ var moduleId = ViewBag.ModuleId;
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
         }
     }
 
-    #cabinetStatsContainer .card {
+    #cabinetComputerStatsContainer .card {
         animation: fadeInUp 0.6s ease-out;
     }
 
-    /* Animation สำหรับแถวที่ 1 */
-    #cabinetStatsContainer .row:nth-child(1) .col-lg-3:nth-child(1) .card { animation-delay: 0.1s; }
-    #cabinetStatsContainer .row:nth-child(1) .col-lg-3:nth-child(2) .card { animation-delay: 0.2s; }
-    #cabinetStatsContainer .row:nth-child(1) .col-lg-3:nth-child(3) .card { animation-delay: 0.3s; }
-    #cabinetStatsContainer .row:nth-child(1) .col-lg-3:nth-child(4) .card { animation-delay: 0.4s; }
-    
-    /* Animation สำหรับแถวที่ 2 */
-    #cabinetStatsContainer .row:nth-child(3) .col-lg-3:nth-child(1) .card { animation-delay: 0.5s; }
-    #cabinetStatsContainer .row:nth-child(3) .col-lg-3:nth-child(2) .card { animation-delay: 0.6s; }
-    #cabinetStatsContainer .row:nth-child(3) .col-lg-3:nth-child(3) .card { animation-delay: 0.7s; }
-    #cabinetStatsContainer .row:nth-child(3) .col-lg-3:nth-child(4) .card { animation-delay: 0.8s; }
+    /* Animation สำหรับตู้เก็บของ - แถวที่ 1 */
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(2) .col-6:nth-child(1) .card {
+        animation-delay: 0.1s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(2) .col-6:nth-child(2) .card {
+        animation-delay: 0.2s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(2) .col-6:nth-child(3) .card {
+        animation-delay: 0.3s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(2) .col-6:nth-child(4) .card {
+        animation-delay: 0.4s;
+    }
+
+    /* Animation สำหรับตู้เก็บของ - แถวที่ 2 */
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(4) .col-6:nth-child(1) .card {
+        animation-delay: 0.5s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(4) .col-6:nth-child(2) .card {
+        animation-delay: 0.6s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(4) .col-6:nth-child(3) .card {
+        animation-delay: 0.7s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:first-child .row:nth-child(4) .col-6:nth-child(4) .card {
+        animation-delay: 0.8s;
+    }
 
     /* เอฟเฟกต์กะพริบสำหรับตู้ต้องคืน */
     @@keyframes pulse-warning {
-        0% { box-shadow: 0 4px 6px rgba(74, 144, 226, 0.1); }
-        50% { box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4); }
-        100% { box-shadow: 0 4px 6px rgba(74, 144, 226, 0.1); }
+        0% {
+            box-shadow: 0 4px 6px rgba(74, 144, 226, 0.1);
+        }
+
+        50% {
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        100% {
+            box-shadow: 0 4px 6px rgba(74, 144, 226, 0.1);
+        }
     }
 
     .cabinet-alert {
@@ -668,342 +1078,838 @@ var moduleId = ViewBag.ModuleId;
     .cabinet-alert .card-body i {
         animation: pulse 1.5s infinite;
     }
+
+    /* CSS สำหรับ Stats Cards ที่ปรับปรุงแล้ว */
+    .card .badge {
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.35rem 0.6rem;
+        border-radius: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card .progress {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 0.25rem;
+        overflow: hidden;
+    }
+
+    .card .progress-bar {
+        transition: width 0.8s ease-in-out;
+        border-radius: 0.25rem;
+    }
+
+    /* Hover effects สำหรับ cards */
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+        transition: all 0.3s ease;
+    }
+
+    .card:hover .progress-bar {
+        animation: progressPulse 1s ease-in-out;
+    }
+
+    @@keyframes progressPulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+
+    /* สีสำหรับ badge ตามประเภท */
+    .badge.bg-rainy-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+        color: white !important;
+    }
+
+    .badge.bg-rainy-success {
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+        color: white !important;
+    }
+
+    .badge.bg-rainy-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+        color: #000 !important;
+    }
+
+    .badge.bg-rainy-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+        color: white !important;
+    }
+
+    .badge.bg-rainy-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #545b62 100%) !important;
+        color: white !important;
+    }
+
+    .badge.bg-rainy-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+        color: white !important;
+    }
+
+    .badge.bg-purple {
+        background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%) !important;
+        color: white !important;
+    }
+
+    /* สีสำหรับ progress bar */
+    .progress-bar.bg-rainy-primary {
+        background: linear-gradient(90deg, #007bff 0%, #0056b3 100%) !important;
+    }
+
+    .progress-bar.bg-rainy-success {
+        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%) !important;
+    }
+
+    .progress-bar.bg-rainy-warning {
+        background: linear-gradient(90deg, #ffc107 0%, #e0a800 100%) !important;
+    }
+
+    .progress-bar.bg-rainy-danger {
+        background: linear-gradient(90deg, #dc3545 0%, #c82333 100%) !important;
+    }
+
+    .progress-bar.bg-rainy-secondary {
+        background: linear-gradient(90deg, #6c757d 0%, #545b62 100%) !important;
+    }
+
+    .progress-bar.bg-rainy-info {
+        background: linear-gradient(90deg, #17a2b8 0%, #138496 100%) !important;
+    }
+
+    .progress-bar.bg-purple {
+        background: linear-gradient(90deg, #6f42c1 0%, #5a32a3 100%) !important;
+    }
+
+    /* Animation สำหรับการโหลดข้อมูล */
+    .card.loading .progress-bar {
+        animation: loadingProgress 2s ease-in-out infinite;
+    }
+
+    @@keyframes loadingProgress {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+    }
+
+    /* CSS สำหรับ Section Header */
+    .stats-section {
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid rgba(74, 144, 226, 0.1);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(74, 144, 226, 0.08);
+    }
+
+    .section-header {
+        border-bottom: 2px solid rgba(74, 144, 226, 0.1);
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-icon {
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(74, 144, 226, 0.2) 100%);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 60px;
+        min-height: 60px;
+    }
+
+    .section-title {
+        color: var(--rainy-dark);
+        font-weight: 700;
+        font-size: 1.5rem;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .section-subtitle {
+        color: var(--rainy-muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin: 0;
+        opacity: 0.8;
+    }
+
+    /* Hover effect สำหรับ section */
+    .stats-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(74, 144, 226, 0.12);
+        transition: all 0.3s ease;
+    }
+
+    .stats-section:hover .section-icon {
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(74, 144, 226, 0.25) 100%);
+        transform: scale(1.05);
+        transition: all 0.3s ease;
+    }
+
+    /* Animation สำหรับ section header */
+    .section-header {
+        animation: slideInDown 0.6s ease-out;
+    }
+
+    @@keyframes slideInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .card .badge {
+            font-size: 0.6rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .card h4 {
+            font-size: 1.5rem;
+        }
+        
+        .card .progress {
+            height: 3px;
+        }
+
+        .stats-section {
+            padding: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+        }
+
+        .section-subtitle {
+            font-size: 0.8rem;
+        }
+
+        .section-icon {
+            min-width: 50px;
+            min-height: 50px;
+            padding: 0.75rem;
+        }
+
+        .section-icon i {
+            font-size: 1.5rem !important;
+        }
+
+        /* ปรับการ์ดให้แสดงเป็น 2 คอลัมน์บนมือถือ */
+        #cabinetComputerStatsContainer .col-lg-6 .row .col-6 {
+            width: 50%;
+        }
+
+        /* ปรับขนาดการ์ดให้เล็กลงบนมือถือ */
+        #cabinetComputerStatsContainer .card-body {
+            padding: 0.75rem;
+        }
+
+        #cabinetComputerStatsContainer h4 {
+            font-size: 1.5rem;
+        }
+
+        #cabinetComputerStatsContainer .card-text {
+            font-size: 0.75rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        /* ปรับการ์ดให้แสดงเป็น 1 คอลัมน์บนมือถือขนาดเล็ก */
+        #cabinetComputerStatsContainer .col-lg-6 .row .col-6 {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ปรับขนาดการ์ดให้เล็กลงบนมือถือขนาดเล็ก */
+        #cabinetComputerStatsContainer .card-body {
+            padding: 0.5rem;
+        }
+
+        #cabinetComputerStatsContainer h4 {
+            font-size: 1.25rem;
+        }
+
+        #cabinetComputerStatsContainer .card-text {
+            font-size: 0.7rem;
+        }
+    }
+
+    /* Animation for Computer stats cards */
+    #cabinetComputerStatsContainer .col-lg-6:last-child .card {
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* Animation สำหรับคอมพิวเตอร์ - แถวที่ 1 */
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(2) .col-6:nth-child(1) .card {
+        animation-delay: 0.1s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(2) .col-6:nth-child(2) .card {
+        animation-delay: 0.2s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(2) .col-6:nth-child(3) .card {
+        animation-delay: 0.3s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(2) .col-6:nth-child(4) .card {
+        animation-delay: 0.4s;
+    }
+
+    /* Animation สำหรับคอมพิวเตอร์ - แถวที่ 2 */
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(4) .col-6:nth-child(1) .card {
+        animation-delay: 0.5s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(4) .col-6:nth-child(2) .card {
+        animation-delay: 0.6s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(4) .col-6:nth-child(3) .card {
+        animation-delay: 0.7s;
+    }
+
+    #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(4) .col-6:nth-child(4) .card {
+        animation-delay: 0.8s;
+    }
 </style>
 
 <!-- Add Raindrops -->
 <div id="raindrops"></div>
 
 @section Scripts {
-<script>
-    // กำหนดการตั้งค่าภาษาสำหรับ Chart.js
-    const currentLanguage = '@Context.Session.GetCurrentLanguage()';
-    
-    // ตั้งค่าชื่อเดือนและวันตามภาษา
-    const monthNames = {
-        'th': ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
-        'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        'zh': ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-    };
+    <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
 
-    const fullMonthNames = {
-        'th': ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
-        'en': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-        'zh': ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
-    };
+        // กำหนดการตั้งค่าภาษาสำหรับ Chart.js
+        const currentLanguage = '@Context.Session.GetCurrentLanguage()';
 
-    // ตั้งค่า Chart.js defaults
-    if (typeof Chart !== 'undefined') {
-        Chart.defaults.font.family = 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif';
-        Chart.defaults.color = '#374151';
-        Chart.defaults.borderColor = '#e5e7eb';
-        
-        // กำหนดรูปแบบการแสดงผลพื้นฐานสำหรับทุกกราฟ
-        Chart.defaults.plugins.legend.labels.usePointStyle = true;
-        Chart.defaults.plugins.legend.labels.padding = 20;
-        Chart.defaults.plugins.tooltip.cornerRadius = 8;
-        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
-        Chart.defaults.plugins.tooltip.bodyColor = '#ffffff';
-        Chart.defaults.plugins.tooltip.borderColor = '#4a90e2';
-        Chart.defaults.plugins.tooltip.borderWidth = 1;
-        
-        // ตั้งค่าสำหรับ responsive
-        Chart.defaults.maintainAspectRatio = false;
-        Chart.defaults.responsive = true;
-    }
+        // ตั้งค่าชื่อเดือนและวันตามภาษา
+        const monthNames = {
+            'th': ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+            'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            'zh': ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+        };
 
-    // ฟังก์ชันแปลงชื่อเดือนเป็นภาษาท้องถิ่น
-    function getLocalizedMonth(monthStr) {
-        const months = monthNames[currentLanguage] || monthNames['th'];
-        
-        // ถ้าเป็นรูปแบบ "MMM yyyy" เช่น "Jan 2024"
-        if (monthStr && monthStr.includes(' ')) {
-            const parts = monthStr.split(' ');
-            const month = parts[0];
-            const year = parts[1];
-            
-            // หาตำแหน่งเดือนจากภาษาอังกฤษ
-            const englishMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const monthIndex = englishMonths.findIndex(m => m === month);
-            
-            if (monthIndex !== -1) {
-                const localizedMonth = months[monthIndex];
-                return currentLanguage === 'th' ? `${localizedMonth} ${parseInt(year) + 543}` : `${localizedMonth} ${year}`;
+        const fullMonthNames = {
+            'th': ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
+            'en': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            'zh': ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+        };
+
+        // ตั้งค่า Chart.js defaults
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.font.family = 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif';
+            Chart.defaults.color = '#374151';
+            Chart.defaults.borderColor = '#e5e7eb';
+
+            // กำหนดรูปแบบการแสดงผลพื้นฐานสำหรับทุกกราฟ
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+            Chart.defaults.plugins.legend.labels.padding = 20;
+            Chart.defaults.plugins.tooltip.cornerRadius = 8;
+            Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
+            Chart.defaults.plugins.tooltip.bodyColor = '#ffffff';
+            Chart.defaults.plugins.tooltip.borderColor = '#4a90e2';
+            Chart.defaults.plugins.tooltip.borderWidth = 1;
+
+            // ตั้งค่าสำหรับ responsive
+            Chart.defaults.maintainAspectRatio = false;
+            Chart.defaults.responsive = true;
+        }
+
+        // ฟังก์ชันแปลงชื่อเดือนเป็นภาษาท้องถิ่น
+        function getLocalizedMonth(monthStr) {
+            const months = monthNames[currentLanguage] || monthNames['th'];
+
+            // ถ้าเป็นรูปแบบ "MMM yyyy" เช่น "Jan 2024"
+            if (monthStr && monthStr.includes(' ')) {
+                const parts = monthStr.split(' ');
+                const month = parts[0];
+                const year = parts[1];
+
+                // หาตำแหน่งเดือนจากภาษาอังกฤษ
+                const englishMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthIndex = englishMonths.findIndex(m => m === month);
+
+                if (monthIndex !== -1) {
+                    const localizedMonth = months[monthIndex];
+                    return currentLanguage === 'th' ? `${localizedMonth} ${parseInt(year) + 543}` : `${localizedMonth} ${year}`;
+                }
             }
-        }
-        
-        // ถ้าเป็นแค่ชื่อเดือน
-        const englishMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const shortEnglishMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        let monthIndex = englishMonths.findIndex(m => monthStr.includes(m));
-        if (monthIndex === -1) {
-            monthIndex = shortEnglishMonths.findIndex(m => monthStr.includes(m));
-        }
-        
-        if (monthIndex !== -1) {
-            return months[monthIndex];
-        }
-        
-        return monthStr; // ถ้าไม่พบให้คืนค่าเดิม
-    }
 
-    // ฟังก์ชันแปลงชื่อแผนกเป็นภาษาท้องถิ่น (ถ้าจำเป็น)
-    function getLocalizedDepartment(deptName) {
-        // สามารถเพิ่มการแปลชื่อแผนกที่นี่ได้หากต้องการ
-        if (!deptName || deptName.length > 15) {
-            return deptName ? deptName.substring(0, 12) + '...' : deptName;
-        }
-        return deptName;
-    }
+            // ถ้าเป็นแค่ชื่อเดือน
+            const englishMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const shortEnglishMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    $(document).ready(function() {
-        // Clear existing charts
-        clearCharts();
-        // Set module ID
-        $('body').attr('data-module-id', '@ViewBag.ModuleId');
-        // Load employee statistics
-        loadEmployeeStats();
-        // Load leave statistics
-        loadLeaveStats();
-        // Load cabinet statistics
-        loadCabinetStats();
-        // Language handling
-        setupLanguageHandling();
-        // Add raindrops animation 
-        createRaindrops();
-        loadFeedbackList();
-        // Load upcoming holidays
-        loadUpcomingHolidays();
-        
-        // รีเฟรชสถิติตู้ทุก ๆ 30 วินาที
-        setInterval(loadCabinetStats, 30000);
-        // ส่งความคิดเห็นใหม่
-        $('#submitFeedback').on('click', function() {
-            const data = {
-                username: '@ViewBag.username', // ดึงชื่อพนักงานจาก session
-                department: 'แผนก', // ดึงจาก session จริง
-                type: $('#feedbackType').val(),
-                title: $('#feedbackTitle').val(),
-                content: $('#feedbackContent').val(),
-                isanonymous: $('#anonymousFeedback').is(':checked')
-            };
-            $.ajax({
-                url: '@Url.Action("AddFeedback", "Home")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function(res) {
+            let monthIndex = englishMonths.findIndex(m => monthStr.includes(m));
+            if (monthIndex === -1) {
+                monthIndex = shortEnglishMonths.findIndex(m => monthStr.includes(m));
+            }
+
+            if (monthIndex !== -1) {
+                return months[monthIndex];
+            }
+
+            return monthStr; // ถ้าไม่พบให้คืนค่าเดิม
+        }
+
+        // ฟังก์ชันแปลงชื่อแผนกเป็นภาษาท้องถิ่น (ถ้าจำเป็น)
+        function getLocalizedDepartment(deptName) {
+            // สามารถเพิ่มการแปลชื่อแผนกที่นี่ได้หากต้องการ
+            if (!deptName || deptName.length > 15) {
+                return deptName ? deptName.substring(0, 12) + '...' : deptName;
+            }
+            return deptName;
+        }
+
+        $(document).ready(function () {
+            // Clear existing charts
+            clearCharts();
+            // Set module ID
+            $('body').attr('data-module-id', '@ViewBag.ModuleId');
+            // Load employee statistics
+            loadEmployeeStats();
+            // Load leave statistics
+            loadLeaveStats();
+            // Load cabinet statistics
+            loadCabinetStats();
+            // Load computer statistics
+            loadComputerStats();
+            // Language handling
+            setupLanguageHandling();
+            // Add raindrops animation 
+            createRaindrops();
+            loadFeedbackList();
+            // Load upcoming holidays
+            loadUpcomingHolidays();
+            // Setup toggle details functionality
+            setupToggleDetails();
+
+            // รีเฟรชสถิติตู้ทุก ๆ 30 วินาที
+            setInterval(loadCabinetStats, 30000);
+            // รีเฟรชสถิติคอมพิวเตอร์ทุก ๆ 30 วินาที
+            setInterval(loadComputerStats, 30000);
+            // ส่งความคิดเห็นใหม่
+            $('#submitFeedback').on('click', function () {
+                const data = {
+                    username: '@ViewBag.username', // ดึงชื่อพนักงานจาก session
+                    department: 'แผนก', // ดึงจาก session จริง
+                    type: $('#feedbackType').val(),
+                    title: $('#feedbackTitle').val(),
+                    content: $('#feedbackContent').val(),
+                    isanonymous: $('#anonymousFeedback').is(':checked')
+                };
+                $.ajax({
+                    url: appBasePath + 'Home/AddFeedback',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#feedbackModal').modal('hide');
+                            loadFeedbackList();
+                        }
+                    }
+                });
+            });
+            // Like/Dislike
+            $(document).on('click', '.btn-like', function () {
+                const feedbackid = $(this).data('id');
+                const $btn = $(this);
+                const currentStatus = $btn.hasClass('active') ? 'unlike' : 'like';
+
+                $.post(appBasePath + 'Home/LikeFeedback', {
+                    feedbackid,
+                    username: '@ViewBag.username',
+                    status: currentStatus
+                }, function (res) {
                     if (res.success) {
-                        $('#feedbackModal').modal('hide');
                         loadFeedbackList();
                     }
-                }
-            });
-        });
-        // Like/Dislike
-        $(document).on('click', '.btn-like', function() {
-            const feedbackid = $(this).data('id');
-            const $btn = $(this);
-            const currentStatus = $btn.hasClass('active') ? 'unlike' : 'like';
-            
-            $.post('@Url.Action("LikeFeedback", "Home")', {
-                feedbackid,
-                username: '@ViewBag.username',
-                status: currentStatus
-            }, function(res) {
-                if (res.success) {
-                    loadFeedbackList();
-                }
-            });
-        });
-        // เพิ่ม Dislike และ Comment ตาม pattern เดียวกัน
-    });
-
-    function clearCharts() {
-        try {
-            if (window.departmentChart && window.departmentChart.destroy) window.departmentChart.destroy();
-            if (window.monthlyChart && window.monthlyChart.destroy) window.monthlyChart.destroy();
-            if (window.leaveByMonthChart && window.leaveByMonthChart.destroy) window.leaveByMonthChart.destroy();
-            if (window.leaveTypeChart && window.leaveTypeChart.destroy) window.leaveTypeChart.destroy();
-            if (window.leaveDaysByMonthChart && window.leaveDaysByMonthChart.destroy) window.leaveDaysByMonthChart.destroy();
-            if (window.leaveByDepartmentChart && window.leaveByDepartmentChart.destroy) window.leaveByDepartmentChart.destroy();
-            if (window.averageLeaveDurationChart && window.averageLeaveDurationChart.destroy) window.averageLeaveDurationChart.destroy();
-            if (window.workdayHolidayLeaveChart && window.workdayHolidayLeaveChart.destroy) window.workdayHolidayLeaveChart.destroy();
-            if (typeof Chart !== 'undefined' && Chart.getChart) {
-                ['departmentChart', 'monthlyChart', 'leaveByMonthChart', 'leaveTypeChart', 'leaveDaysByMonthChart',
-                    'leaveByDepartmentChart', 'averageLeaveDurationChart', 'workdayHolidayLeaveChart'
-                ].forEach(id => {
-                    const chart = Chart.getChart(id);
-                    if (chart) chart.destroy();
                 });
+            });
+            // เพิ่ม Dislike และ Comment ตาม pattern เดียวกัน
+        });
+
+        function clearCharts() {
+            try {
+                if (window.departmentChart && window.departmentChart.destroy) window.departmentChart.destroy();
+                if (window.monthlyChart && window.monthlyChart.destroy) window.monthlyChart.destroy();
+                if (window.leaveByMonthChart && window.leaveByMonthChart.destroy) window.leaveByMonthChart.destroy();
+                if (window.leaveTypeChart && window.leaveTypeChart.destroy) window.leaveTypeChart.destroy();
+                if (window.leaveDaysByMonthChart && window.leaveDaysByMonthChart.destroy) window.leaveDaysByMonthChart.destroy();
+                if (window.leaveByDepartmentChart && window.leaveByDepartmentChart.destroy) window.leaveByDepartmentChart.destroy();
+                if (window.averageLeaveDurationChart && window.averageLeaveDurationChart.destroy) window.averageLeaveDurationChart.destroy();
+                if (window.workdayHolidayLeaveChart && window.workdayHolidayLeaveChart.destroy) window.workdayHolidayLeaveChart.destroy();
+                if (typeof Chart !== 'undefined' && Chart.getChart) {
+                    ['departmentChart', 'monthlyChart', 'leaveByMonthChart', 'leaveTypeChart', 'leaveDaysByMonthChart',
+                        'leaveByDepartmentChart', 'averageLeaveDurationChart', 'workdayHolidayLeaveChart'
+                    ].forEach(id => {
+                        const chart = Chart.getChart(id);
+                        if (chart) chart.destroy();
+                    });
+                }
+            } catch (e) {
+                console.warn('Chart cleanup warning:', e);
             }
-        } catch (e) {
-            console.warn('Chart cleanup warning:', e);
         }
-    }
 
-    function loadEmployeeStats() {
-        $.ajax({
-            url: '@Url.Action("GetEmployeeStats", "Home")',
-            type: 'GET',
-            success: function(data) {
-                if (data.success) {
-                    updateBasicStats(data);
-                    displayRecentResignedEmployees(data.recentResignedEmployees);
-                    displayDepartmentChart(data.departmentStats);
-                    displayMonthlyChart(data.monthlyStats);
-                    displayStartTodayEmployees(data.startTodayEmployees);
+        function loadEmployeeStats() {
+            $.ajax({
+                url: appBasePath + 'Home/GetEmployeeStats',
+                type: 'GET',
+                success: function (data) {
+                    if (data.success) {
+                        updateBasicStats(data);
+                        displayRecentResignedEmployees(data.recentResignedEmployees);
+                        displayDepartmentChart(data.departmentStats);
+                        displayMonthlyChart(data.monthlyStats);
+                        displayStartTodayEmployees(data.startTodayEmployees);
+                    }
+                },
+                error: function () {
+                    console.error('Failed to load employee statistics');
                 }
-            },
-            error: function() {
-                console.error('Failed to load employee statistics');
-            }
-        });
-    }
+            });
+        }
 
-    function loadLeaveStats() {
-        $.ajax({
-            url: '@Url.Action("GetLeaveStats", "Leave")',
-            type: 'GET',
-            success: function(data) {
-                if (data.success) {
-                    console.log('Leave Stats Data:', data);
-                    displayLeaveByMonthChart(data.leaveByMonth);
-                    displayLeaveTypeChart(data.leaveTypes);
-                    displayLeaveDaysByMonthChart(data.leaveDaysByMonth);
-                    displayLeaveByDepartmentChart(data.leaveByDepartment);
-                    displayAverageLeaveDurationChart(data.averageLeaveDuration);
-                    displayWorkdayHolidayLeaveChart(data.workdayHolidayLeave);
-                } else {
-                    console.error('Failed to load leave statistics:', data.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error loading leave statistics:', error);
-            }
-        });
-    }
-
-    function loadCabinetStats() {
-        $.ajax({
-            url: '@Url.Action("GetCabinetStats", "Cabinet")',
-            type: 'GET',
-            success: function(data) {
-                try {
-                    // ตรวจสอบว่าข้อมูลถูกต้อง
-                    if (data && typeof data === 'object') {
-                                                // อัปเดตข้อมูลในการ์ด
-                        $('#totalCabinets').text(data.TotalCabinets || 0);
-                        $('#availableCabinets').text(data.AvailableCabinets || 0);
-                        $('#occupiedCabinets').text(data.OccupiedCabinets || 0);
-                        $('#damagedCabinets').text(data.DamagedCabinets || 0);
-                        $('#resignedOwnedCabinets').text(data.ResignedOwnedCabinets || 0);
-                        $('#employeesWithoutCabinet').text(data.EmployeesWithoutCabinet || 0);
-                        
-                        // คำนวณอัตราการใช้งาน
-                        const totalCabinets = data.TotalCabinets || 0;
-                        const occupiedCabinets = data.OccupiedCabinets || 0;
-                        const utilizationRate = totalCabinets > 0 ? 
-                            Math.round((occupiedCabinets / totalCabinets) * 100) : 0;
-                        $('#utilizationRate').text(utilizationRate + '%');
-                        
-                        // คำนวณความครอบคลุม (พนักงานที่มีตู้)
-                        const employeesWithoutCabinet = data.EmployeesWithoutCabinet || 0;
-                        const uniqueOccupiedOwners = data.OccupiedCabinets || 0; // จำนวนพนักงานที่มีตู้
-                        const totalActiveEmployees = employeesWithoutCabinet + uniqueOccupiedOwners;
-                        const cabinetCoverage = totalActiveEmployees > 0 ? 
-                            Math.round((uniqueOccupiedOwners / totalActiveEmployees) * 100) : 0;
-                        $('#cabinetCoverage').text(cabinetCoverage + '%');
-                        
-                        // เปลี่ยนสีการ์ดตู้ต้องคืนตามจำนวน
-                        const resignedCard = $('#resignedOwnedCabinets').closest('.card');
-                        const resignedCount = data.ResignedOwnedCabinets || 0;
-                        
-                        resignedCard.removeClass('border-warning border-danger cabinet-alert');
-                        if (resignedCount > 0) {
-                            resignedCard.addClass(resignedCount > 5 ? 'border-danger' : 'border-warning');
-                            resignedCard.addClass('cabinet-alert');
-                        }
-                        
-                        // แสดงส่วน Cabinet Stats Cards
-                        $('#cabinetStatsContainer').fadeIn(800);
+        function loadLeaveStats() {
+            $.ajax({
+                url: appBasePath + 'Leave/GetLeaveStats',
+                type: 'GET',
+                success: function (data) {
+                    if (data.success) {
+                        console.log('Leave Stats Data:', data);
+                        displayLeaveByMonthChart(data.leaveByMonth);
+                        displayLeaveTypeChart(data.leaveTypes);
+                        displayLeaveDaysByMonthChart(data.leaveDaysByMonth);
+                        displayLeaveByDepartmentChart(data.leaveByDepartment);
+                        displayAverageLeaveDurationChart(data.averageLeaveDuration);
+                        displayWorkdayHolidayLeaveChart(data.workdayHolidayLeave);
                     } else {
-                        console.error('Invalid data received:', data);
+                        console.error('Failed to load leave statistics:', data.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error loading leave statistics:', error);
+                }
+            });
+        }
+
+        function loadCabinetStats() {
+            $.ajax({
+                url: appBasePath + 'Cabinet/GetCabinetStats',
+                type: 'GET',
+                success: function (data) {
+                    try {
+                        // ตรวจสอบว่าข้อมูลถูกต้อง
+                        if (data && typeof data === 'object') {
+                            const total = data.TotalCabinets || 0;
+                            const available = data.AvailableCabinets || 0;
+                            const occupied = data.OccupiedCabinets || 0;
+                            const damaged = data.DamagedCabinets || 0;
+                            const resigned = data.ResignedOwnedCabinets || 0;
+                            const withoutCabinet = data.EmployeesWithoutCabinet || 0;
+
+                            // อัปเดตข้อมูลในการ์ด
+                            $('#totalCabinets').text(total);
+                            $('#availableCabinets').text(available);
+                            $('#occupiedCabinets').text(occupied);
+                            $('#damagedCabinets').text(damaged);
+                            $('#resignedOwnedCabinets').text(resigned);
+                            $('#employeesWithoutCabinet').text(withoutCabinet);
+
+                            // คำนวณและอัปเดตเปอร์เซ็นต์
+                            if (total > 0) {
+                                const availablePercent = Math.round((available / total) * 100);
+                                const occupiedPercent = Math.round((occupied / total) * 100);
+                                const damagedPercent = Math.round((damaged / total) * 100);
+                                const resignedPercent = Math.round((resigned / total) * 100);
+
+                                $('#availablePercent').text(availablePercent + '%');
+                                $('#occupiedPercent').text(occupiedPercent + '%');
+                                $('#damagedPercent').text(damagedPercent + '%');
+                                $('#resignedPercent').text(resignedPercent + '%');
+
+                                // อัปเดต progress bar
+                                $('#availableProgress').css('width', availablePercent + '%');
+                                $('#occupiedProgress').css('width', occupiedPercent + '%');
+                                $('#damagedProgress').css('width', damagedPercent + '%');
+                                $('#resignedProgress').css('width', resignedPercent + '%');
+                            } else {
+                                $('#availablePercent').text('0%');
+                                $('#occupiedPercent').text('0%');
+                                $('#damagedPercent').text('0%');
+                                $('#resignedPercent').text('0%');
+                                $('#availableProgress').css('width', '0%');
+                                $('#occupiedProgress').css('width', '0%');
+                                $('#damagedProgress').css('width', '0%');
+                                $('#resignedProgress').css('width', '0%');
+                            }
+
+                            // คำนวณอัตราการใช้งาน
+                            const utilizationRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+                            $('#utilizationRate').text(utilizationRate + '%');
+                            $('#utilizationProgress').css('width', utilizationRate + '%');
+
+                            // คำนวณความครอบคลุม (พนักงานที่มีตู้)
+                            const totalActiveEmployees = withoutCabinet + occupied;
+                            const cabinetCoverage = totalActiveEmployees > 0 ? Math.round((occupied / totalActiveEmployees) * 100) : 0;
+                            $('#cabinetCoverage').text(cabinetCoverage + '%');
+                            $('#coverageProgress').css('width', cabinetCoverage + '%');
+
+                            // คำนวณเปอร์เซ็นต์พนักงานไม่มีตู้
+                            const withoutCabinetPercent = totalActiveEmployees > 0 ? Math.round((withoutCabinet / totalActiveEmployees) * 100) : 0;
+                            $('#withoutCabinetProgress').css('width', withoutCabinetPercent + '%');
+
+                            // เปลี่ยนสีการ์ดตู้ต้องคืนตามจำนวน
+                            const resignedCard = $('#resignedOwnedCabinets').closest('.card');
+                            resignedCard.removeClass('border-warning border-danger cabinet-alert');
+                            if (resigned > 0) {
+                                resignedCard.addClass(resigned > 5 ? 'border-danger' : 'border-warning');
+                                resignedCard.addClass('cabinet-alert');
+                            }
+
+                            // แสดงส่วน Cabinet & Computer Stats Cards
+                            $('#cabinetComputerStatsContainer').fadeIn(800);
+                        } else {
+                            console.error('Invalid data received:', data);
+                            showDefaultCabinetStats();
+                        }
+                    } catch (err) {
+                        console.error('Error processing cabinet stats:', err);
                         showDefaultCabinetStats();
                     }
-                } catch (err) {
-                    console.error('Error processing cabinet stats:', err);
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error loading cabinet stats:', { xhr, status, error });
                     showDefaultCabinetStats();
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error loading cabinet stats:', {xhr, status, error});
-                showDefaultCabinetStats();
+            });
+        }
+
+        function showDefaultCabinetStats() {
+            // แสดงค่าเริ่มต้นเมื่อเกิดข้อผิดพลาด
+            $('#totalCabinets').text('0');
+            $('#availableCabinets').text('0');
+            $('#occupiedCabinets').text('0');
+            $('#damagedCabinets').text('0');
+            $('#resignedOwnedCabinets').text('0');
+            $('#employeesWithoutCabinet').text('0');
+            $('#utilizationRate').text('0%');
+            $('#cabinetCoverage').text('0%');
+
+            const resignedCard = $('#resignedOwnedCabinets').closest('.card');
+            resignedCard.removeClass('border-warning border-danger cabinet-alert');
+
+            // แสดงส่วน Cabinet & Computer Stats Cards แม้จะเกิดข้อผิดพลาด
+            $('#cabinetComputerStatsContainer').fadeIn(800);
+        }
+
+        function loadComputerStats() {
+            $.ajax({
+                url: appBasePath + 'Asset/GetDashboardSummary',
+                type: 'GET',
+                success: function (data) {
+                    try {
+                        // ตรวจสอบว่าข้อมูลถูกต้อง
+                        if (data && typeof data === 'object') {
+                            const total = data.total || 0;
+                            const active = data.active || 0;
+                            const repair = data.repair || 0;
+                            const damaged = data.damaged || 0;
+                            const disposed = data.disposed || 0;
+                            const inactive = data.inactive || 0;
+                            const spare = data.spare || 0;
+                            const withMac = data.withMac || 0;
+
+                            // อัปเดตข้อมูลในการ์ด
+                            $('#totalComputers').text(total);
+                            $('#activeComputers').text(active);
+                            $('#repairComputers').text(repair);
+                            $('#damagedComputers').text(damaged);
+                            $('#disposedComputers').text(disposed);
+                            $('#inactiveComputers').text(inactive);
+                            $('#spareComputers').text(spare);
+                            $('#computersWithMac').text(withMac);
+
+                            // คำนวณและอัปเดตเปอร์เซ็นต์
+                            if (total > 0) {
+                                const activePercent = Math.round((active / total) * 100);
+                                const repairPercent = Math.round((repair / total) * 100);
+                                const damagedPercent = Math.round((damaged / total) * 100);
+                                const disposedPercent = Math.round((disposed / total) * 100);
+                                const inactivePercent = Math.round((inactive / total) * 100);
+                                const sparePercent = Math.round((spare / total) * 100);
+                                const macPercent = Math.round((withMac / total) * 100);
+
+                                $('#computerActivePercent').text(activePercent + '%');
+                                $('#repairPercent').text(repairPercent + '%');
+                                $('#computerDamagedPercent').text(damagedPercent + '%');
+                                $('#disposedPercent').text(disposedPercent + '%');
+                                $('#inactivePercent').text(inactivePercent + '%');
+                                $('#sparePercent').text(sparePercent + '%');
+                                $('#macPercent').text(macPercent + '%');
+
+                                // อัปเดต progress bar
+                                $('#computerActiveProgress').css('width', activePercent + '%');
+                                $('#repairProgress').css('width', repairPercent + '%');
+                                $('#computerDamagedProgress').css('width', damagedPercent + '%');
+                                $('#disposedProgress').css('width', disposedPercent + '%');
+                                $('#inactiveProgress').css('width', inactivePercent + '%');
+                                $('#spareProgress').css('width', sparePercent + '%');
+                                $('#macProgress').css('width', macPercent + '%');
+                            } else {
+                                $('#computerActivePercent').text('0%');
+                                $('#repairPercent').text('0%');
+                                $('#computerDamagedPercent').text('0%');
+                                $('#disposedPercent').text('0%');
+                                $('#inactivePercent').text('0%');
+                                $('#sparePercent').text('0%');
+                                $('#macPercent').text('0%');
+                                $('#computerActiveProgress').css('width', '0%');
+                                $('#repairProgress').css('width', '0%');
+                                $('#computerDamagedProgress').css('width', '0%');
+                                $('#disposedProgress').css('width', '0%');
+                                $('#inactiveProgress').css('width', '0%');
+                                $('#spareProgress').css('width', '0%');
+                                $('#macProgress').css('width', '0%');
+                            }
+
+                            // แสดงส่วน Cabinet & Computer Stats Cards
+                            $('#cabinetComputerStatsContainer').fadeIn(800);
+                        } else {
+                            console.error('Invalid computer data received:', data);
+                            showDefaultComputerStats();
+                        }
+                    } catch (err) {
+                        console.error('Error processing computer stats:', err);
+                        showDefaultComputerStats();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error loading computer stats:', { xhr, status, error });
+                    showDefaultComputerStats();
+                }
+            });
+        }
+
+        function showDefaultComputerStats() {
+            // แสดงค่าเริ่มต้นเมื่อเกิดข้อผิดพลาด
+            $('#totalComputers').text('0');
+            $('#activeComputers').text('0');
+            $('#repairComputers').text('0');
+            $('#damagedComputers').text('0');
+            $('#disposedComputers').text('0');
+            $('#inactiveComputers').text('0');
+            $('#spareComputers').text('0');
+            $('#computersWithMac').text('0');
+
+            // แสดงส่วน Cabinet & Computer Stats Cards แม้จะเกิดข้อผิดพลาด
+            $('#cabinetComputerStatsContainer').fadeIn(800);
+        }
+
+        function updateBasicStats(data) {
+            $('#totalEmployees').text(data.totalEmployees || 0);
+            $('#activeEmployees').text(data.activeEmployees || 0);
+            $('#newEmployees').text(data.newEmployees || 0);
+            $('#resignedEmployees').text(data.resignedEmployees || 0);
+        }
+
+        function displayRecentResignedEmployees(employees) {
+            const container = $('#recentResignedEmployees');
+            container.empty();
+            if (employees && employees.length > 0) {
+                employees.forEach(emp => {
+                    const todayBadge = emp.daysAgo === 0 ?
+                        `<span class="today-badge ms-2" data-translate="today">@Context.Session.GetTranslation("today")!</span>` :
+                        '';
+                    const card = $(`
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card border border-rainy-danger border-opacity-25 h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-rainy-dark">${emp.name}${todayBadge}</h6>
+                                    <p class="card-text small mb-1 text-rainy-muted">
+                                        <i class="fas fa-building me-2 text-rainy-primary"></i>
+                                        <span data-translate="department">@Context.Session.GetTranslation("department")</span>: ${emp.department}
+                                    </p>
+                                    <p class="card-text small mb-1 text-rainy-muted">
+                                        <i class="fas fa-calendar-check me-2 text-rainy-success"></i>
+                                        <span data-translate="start_date">@Context.Session.GetTranslation("start_date")</span>: ${emp.startDate}
+                                    </p>
+                                    <p class="card-text small mb-1 text-rainy-muted">
+                                        <i class="fas fa-calendar-times me-2 text-rainy-danger"></i>
+                                        <span data-translate="resign_date">@Context.Session.GetTranslation("resign_date")</span>: ${emp.resignDate}
+                                    </p>
+                                    <p class="card-text small mb-1 text-rainy-muted">
+                                        <i class="fas fa-business-time me-2 text-rainy-warning"></i>
+                                        <span data-translate="work_period">@Context.Session.GetTranslation("work_period")</span>: ${emp.workPeriod}
+                                    </p>
+                                    <p class="card-text small text-rainy-muted">
+                                        <i class="fas fa-hourglass-end me-2 text-rainy-secondary"></i>
+                                        ${emp.daysAgo === 0 ?
+                            `<span class="fw-bold text-rainy-danger" data-translate="today">@Context.Session.GetTranslation("today")</span>` :
+                            `${emp.daysAgo} <span data-translate="days_ago">@Context.Session.GetTranslation("days_ago")</span>`
+                        }
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                    container.append(card);
+                });
+            } else {
+                container.html(`
+                    <div class="col-12 text-center text-rainy-muted">
+                        <span data-translate="no_resigned_employees">@Context.Session.GetTranslation("no_resigned_employees")</span>
+                    </div>
+                `);
             }
-        });
-    }
+        }
 
-    function showDefaultCabinetStats() {
-        // แสดงค่าเริ่มต้นเมื่อเกิดข้อผิดพลาด
-        $('#totalCabinets').text('0');
-        $('#availableCabinets').text('0');
-        $('#occupiedCabinets').text('0');
-        $('#damagedCabinets').text('0');
-        $('#resignedOwnedCabinets').text('0');
-        $('#employeesWithoutCabinet').text('0');
-        $('#utilizationRate').text('0%');
-        $('#cabinetCoverage').text('0%');
-        
-        const resignedCard = $('#resignedOwnedCabinets').closest('.card');
-        resignedCard.removeClass('border-warning border-danger cabinet-alert');
-        
-        // แสดงส่วน Cabinet Stats Cards แม้จะเกิดข้อผิดพลาด
-        $('#cabinetStatsContainer').fadeIn(800);
-    }
-
-    function updateBasicStats(data) {
-        $('#totalEmployees').text(data.totalEmployees || 0);
-        $('#activeEmployees').text(data.activeEmployees || 0);
-        $('#newEmployees').text(data.newEmployees || 0);
-        $('#resignedEmployees').text(data.resignedEmployees || 0);
-    }
-
-    function displayRecentResignedEmployees(employees) {
-        const container = $('#recentResignedEmployees');
-        container.empty();
-        if (employees && employees.length > 0) {
+        function displayStartTodayEmployees(employees) {
+            if (!employees || !employees.length) return;
+            const section = $(`
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow-rainy border-0">
+                            <div class="card-header bg-rainy-light border-bottom">
+                                <h5 class="card-title mb-0 text-rainy-dark">
+                                    <i class="fas fa-user-plus me-2 text-rainy-success"></i>
+                                    <span data-translate="start_today_employees">@Context.Session.GetTranslation("start_today_employees")</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3" id="startTodayEmployeesList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            $('#startTodayEmployeesSection').replaceWith(section).attr('id', 'startTodayEmployeesSection');
+            const container = $('#startTodayEmployeesList');
             employees.forEach(emp => {
-                const todayBadge = emp.daysAgo === 0 ?
-                    `<span class="today-badge ms-2" data-translate="today">@Context.Session.GetTranslation("today")!</span>` :
-                    '';
                 const card = $(`
                     <div class="col-lg-4 col-md-6">
-                        <div class="card border border-rainy-danger border-opacity-25 h-100">
+                        <div class="card border border-rainy-success border-opacity-25 h-100">
                             <div class="card-body">
-                                <h6 class="card-title text-rainy-dark">${emp.name}${todayBadge}</h6>
-                                <p class="card-text small mb-1 text-rainy-muted">
+                                <h6 class="card-title text-rainy-dark">
+                                    ${emp.name}
+                                    <span class="today-badge ms-2" data-translate="first_day">@Context.Session.GetTranslation("first_day")!</span>
+                                </h6>
+                                <p class="card-text small text-rainy-muted">
                                     <i class="fas fa-building me-2 text-rainy-primary"></i>
                                     <span data-translate="department">@Context.Session.GetTranslation("department")</span>: ${emp.department}
-                                </p>
-                                <p class="card-text small mb-1 text-rainy-muted">
-                                    <i class="fas fa-calendar-check me-2 text-rainy-success"></i>
-                                    <span data-translate="start_date">@Context.Session.GetTranslation("start_date")</span>: ${emp.startDate}
-                                </p>
-                                <p class="card-text small mb-1 text-rainy-muted">
-                                    <i class="fas fa-calendar-times me-2 text-rainy-danger"></i>
-                                    <span data-translate="resign_date">@Context.Session.GetTranslation("resign_date")</span>: ${emp.resignDate}
-                                </p>
-                                <p class="card-text small mb-1 text-rainy-muted">
-                                    <i class="fas fa-business-time me-2 text-rainy-warning"></i>
-                                    <span data-translate="work_period">@Context.Session.GetTranslation("work_period")</span>: ${emp.workPeriod}
-                                </p>
-                                <p class="card-text small text-rainy-muted">
-                                    <i class="fas fa-hourglass-end me-2 text-rainy-secondary"></i>
-                                    ${emp.daysAgo === 0 ? 
-                                        `<span class="fw-bold text-rainy-danger" data-translate="today">@Context.Session.GetTranslation("today")</span>` :
-                                        `${emp.daysAgo} <span data-translate="days_ago">@Context.Session.GetTranslation("days_ago")</span>`
-                                    }
                                 </p>
                             </div>
                         </div>
@@ -1011,139 +1917,90 @@ var moduleId = ViewBag.ModuleId;
                 `);
                 container.append(card);
             });
-        } else {
-            container.html(`
-                <div class="col-12 text-center text-rainy-muted">
-                    <span data-translate="no_resigned_employees">@Context.Session.GetTranslation("no_resigned_employees")</span>
-                </div>
-            `);
         }
-    }
 
-    function displayStartTodayEmployees(employees) {
-        if (!employees || !employees.length) return;
-        const section = $(`
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card shadow-rainy border-0">
-                        <div class="card-header bg-rainy-light border-bottom">
-                            <h5 class="card-title mb-0 text-rainy-dark">
-                                <i class="fas fa-user-plus me-2 text-rainy-success"></i>
-                                <span data-translate="start_today_employees">@Context.Session.GetTranslation("start_today_employees")</span>
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3" id="startTodayEmployeesList"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `);
-        $('#startTodayEmployeesSection').replaceWith(section).attr('id', 'startTodayEmployeesSection');
-        const container = $('#startTodayEmployeesList');
-        employees.forEach(emp => {
-            const card = $(`
-                <div class="col-lg-4 col-md-6">
-                    <div class="card border border-rainy-success border-opacity-25 h-100">
-                        <div class="card-body">
-                            <h6 class="card-title text-rainy-dark">
-                                ${emp.name}
-                                <span class="today-badge ms-2" data-translate="first_day">@Context.Session.GetTranslation("first_day")!</span>
-                            </h6>
-                            <p class="card-text small text-rainy-muted">
-                                <i class="fas fa-building me-2 text-rainy-primary"></i>
-                                <span data-translate="department">@Context.Session.GetTranslation("department")</span>: ${emp.department}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `);
-            container.append(card);
-        });
-    }
+        function displayDepartmentChart(departmentStats) {
+            if (!departmentStats || !departmentStats.length) return;
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            const topDepts = departmentStats.slice(0, 5);
+            try {
+                if (window.departmentChart && window.departmentChart.destroy) window.departmentChart.destroy();
+                else if (Chart.getChart('departmentChart')) Chart.getChart('departmentChart').destroy();
+            } catch (e) {
+                console.warn('Chart cleanup warning:', e);
+            }
 
-    function displayDepartmentChart(departmentStats) {
-        if (!departmentStats || !departmentStats.length) return;
-        const ctx = document.getElementById('departmentChart').getContext('2d');
-        const topDepts = departmentStats.slice(0, 5);
-        try {
-            if (window.departmentChart && window.departmentChart.destroy) window.departmentChart.destroy();
-            else if (Chart.getChart('departmentChart')) Chart.getChart('departmentChart').destroy();
-        } catch (e) {
-            console.warn('Chart cleanup warning:', e);
-        }
-        
-        // แปลงชื่อแผนกให้สั้นลงหากยาวเกินไป
-        const localizedLabels = topDepts.map(d => getLocalizedDepartment(d.department));
-        
-        window.departmentChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
-                    label: '@Html.Raw(Context.Session.GetTranslation("male"))',
-                    data: topDepts.map(d => d.maleCount),
-                    backgroundColor: '#64748b',
-                    borderColor: '#475569',
-                    borderWidth: 1
-                }, {
-                    label: '@Html.Raw(Context.Session.GetTranslation("female"))',
-                    data: topDepts.map(d => d.femaleCount),
-                    backgroundColor: '#94a3b8',
-                    borderColor: '#64748b',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#374151'
-                        }
-                    }
+            // แปลงชื่อแผนกให้สั้นลงหากยาวเกินไป
+            const localizedLabels = topDepts.map(d => getLocalizedDepartment(d.department));
+
+            window.departmentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: localizedLabels,
+                    datasets: [{
+                        label: '@Html.Raw(Context.Session.GetTranslation("male"))',
+                        data: topDepts.map(d => d.maleCount),
+                        backgroundColor: '#64748b',
+                        borderColor: '#475569',
+                        borderWidth: 1
+                    }, {
+                        label: '@Html.Raw(Context.Session.GetTranslation("female"))',
+                        data: topDepts.map(d => d.femaleCount),
+                        backgroundColor: '#94a3b8',
+                        borderColor: '#64748b',
+                        borderWidth: 1
+                    }]
                 },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#6b7280'
-                        },
-                        grid: {
-                            color: '#e5e7eb'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#374151'
+                            }
                         }
                     },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: '#6b7280'
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: '#e5e7eb'
+                            }
                         },
-                        grid: {
-                            color: '#e5e7eb'
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: '#e5e7eb'
+                            }
                         }
                     }
                 }
-            }
-        });
-    }
-
-    function displayMonthlyChart(monthlyStats) {
-        if (!monthlyStats || !monthlyStats.length) return;
-        const ctx = document.getElementById('monthlyChart').getContext('2d');
-        try {
-            if (window.monthlyChart && window.monthlyChart.destroy) window.monthlyChart.destroy();
-            else if (Chart.getChart('monthlyChart')) Chart.getChart('monthlyChart').destroy();
-        } catch (e) {
-            console.warn('Chart cleanup warning:', e);
+            });
         }
-        // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
-        const localizedLabels = monthlyStats.map(m => getLocalizedMonth(m.monthName));
-        
-        window.monthlyChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
+
+        function displayMonthlyChart(monthlyStats) {
+            if (!monthlyStats || !monthlyStats.length) return;
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            try {
+                if (window.monthlyChart && window.monthlyChart.destroy) window.monthlyChart.destroy();
+                else if (Chart.getChart('monthlyChart')) Chart.getChart('monthlyChart').destroy();
+            } catch (e) {
+                console.warn('Chart cleanup warning:', e);
+            }
+            // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
+            const localizedLabels = monthlyStats.map(m => getLocalizedMonth(m.monthName));
+
+            window.monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: localizedLabels,
+                    datasets: [{
                         label: '@Html.Raw(Context.Session.GetTranslation("new_employees"))',
                         data: monthlyStats.map(m => m.newEmployees),
                         backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -1161,506 +2018,541 @@ var moduleId = ViewBag.ModuleId;
                         tension: 0.3,
                         pointBackgroundColor: '#ef4444'
                     }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#374151'
-                        }
-                    }
+                    ]
                 },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#6b7280'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#374151'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: '#e5e7eb'
+                            }
                         },
-                        grid: {
-                            color: '#e5e7eb'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: '#6b7280'
-                        },
-                        grid: {
-                            color: '#e5e7eb'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function displayLeaveByMonthChart(data) {
-        if (!data || !data.length) return;
-        const ctx = document.getElementById('leaveByMonthChart').getContext('2d');
-        
-        // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
-        const localizedLabels = data.map(d => getLocalizedMonth(d.month));
-        
-        window.leaveByMonthChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
-                    label: '@Context.Session.GetTranslation("leave_count")',
-                    data: data.map(d => d.count),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.3,
-                    fill: true,
-                    borderWidth: 2,
-                    pointRadius: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: {
-                                size: 10
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#6b7280'
                             },
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function displayLeaveTypeChart(data) {
-        if (!data || !data.length) return;
-        const ctx = document.getElementById('leaveTypeChart').getContext('2d');
-        window.leaveTypeChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: data.map(d => d.type),
-                datasets: [{
-                    data: data.map(d => d.count),
-                    backgroundColor: [
-                        '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
-                        '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        align: 'center',
-                        labels: {
-                            boxWidth: 12,
-                            padding: 8,
-                            font: {
-                                size: 10
+                            grid: {
+                                color: '#e5e7eb'
                             }
                         }
                     }
                 }
-            }
-        });
-    }
-
-    function displayLeaveDaysByMonthChart(data) {
-        if (!data || !data.length) return;
-        const ctx = document.getElementById('leaveDaysByMonthChart').getContext('2d');
-        
-        // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
-        const localizedLabels = data.map(d => getLocalizedMonth(d.month));
-        
-        window.leaveDaysByMonthChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
-                    label: '@Context.Session.GetTranslation("leave_days")',
-                    data: data.map(d => d.days),
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 4,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: {
-                                size: 10
-                            },
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function displayLeaveByDepartmentChart(data) {
-        if (!data || !data.length) return;
-        const ctx = document.getElementById('leaveByDepartmentChart').getContext('2d');
-        
-        // แปลงชื่อแผนกให้สั้นลงหากยาวเกินไป
-        const localizedLabels = data.map(d => getLocalizedDepartment(d.department));
-        
-        window.leaveByDepartmentChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
-                    label: '@Context.Session.GetTranslation("leave_count")',
-                    data: data.map(d => d.count),
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 4,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            font: {
-                                size: 10
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function displayAverageLeaveDurationChart(data) {
-        if (!data || !data.length) return;
-        const ctx = document.getElementById('averageLeaveDurationChart').getContext('2d');
-        
-        // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
-        const localizedLabels = data.map(d => getLocalizedMonth(d.month));
-        
-        window.averageLeaveDurationChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
-                    label: '@Context.Session.GetTranslation("average_duration_days")',
-                    data: data.map(d => d.averageDuration),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.3,
-                    fill: true,
-                    borderWidth: 2,
-                    pointRadius: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: {
-                                size: 10
-                            },
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function displayWorkdayHolidayLeaveChart(data) {
-        if (!data || !data.length) return;
-        const ctx = document.getElementById('workdayHolidayLeaveChart').getContext('2d');
-        
-        // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
-        const localizedLabels = data.map(d => getLocalizedMonth(d.month));
-        
-        window.workdayHolidayLeaveChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: localizedLabels,
-                datasets: [{
-                    label: '@Context.Session.GetTranslation("workday")',
-                    data: data.map(d => d.workday),
-                    backgroundColor: '#3b82f6',
-                    borderWidth: 0
-                }, {
-                    label: '@Context.Session.GetTranslation("holiday")',
-                    data: data.map(d => d.holiday),
-                    backgroundColor: '#f59e0b',
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        align: 'center',
-                        labels: {
-                            boxWidth: 12,
-                            padding: 8,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                        ticks: {
-                            font: {
-                                size: 10
-                            },
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function setupLanguageHandling() {
-        function updateLanguageText() {
-            const currentLang = '@Context.Session.GetCurrentLanguage()';
-            const langTexts = {
-                'th': '@Context.Session.GetTranslation("thai_language")',
-                'en': '@Context.Session.GetTranslation("english_language")',
-                'zh': '@Context.Session.GetTranslation("chinese_language")'
-            };
-            $('#currentLanguage').text(langTexts[currentLang] || '@Context.Session.GetTranslation("language")');
+            });
         }
-        updateLanguageText();
-        $('.language-select').on('click', function(e) {
-            e.preventDefault();
-            const lang = $(this).data('lang');
-            $('#currentLanguage').html('<i class="fas fa-spinner fa-spin"></i>');
-            $.ajax({
-                url: '@Url.Action("ChangeLanguage", "Home")',
-                type: 'POST',
+
+        function displayLeaveByMonthChart(data) {
+            if (!data || !data.length) return;
+            const ctx = document.getElementById('leaveByMonthChart').getContext('2d');
+
+            // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
+            const localizedLabels = data.map(d => getLocalizedMonth(d.month));
+
+            window.leaveByMonthChart = new Chart(ctx, {
+                type: 'line',
                 data: {
-                    lang: lang
+                    labels: localizedLabels,
+                    datasets: [{
+                        label: '@Context.Session.GetTranslation("leave_count")',
+                        data: data.map(d => d.count),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }]
                 },
-                success: function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        showError('@Context.Session.GetTranslation("cannot_change_language")');
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
                     }
-                },
-                error: function() {
-                    showError('@Context.Session.GetTranslation("cannot_connect_server")');
                 }
             });
-        });
-    }
+        }
 
-    function showError(message) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: '@Context.Session.GetTranslation("error_occurred")',
-                text: message,
-                confirmButtonText: '@Context.Session.GetTranslation("ok")'
+        function displayLeaveTypeChart(data) {
+            if (!data || !data.length) return;
+            const ctx = document.getElementById('leaveTypeChart').getContext('2d');
+            window.leaveTypeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.type),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
+                            '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            align: 'center',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
             });
-        } else {
-            alert(message);
         }
-    }
-    // Add raindrops animation
-    function createRaindrops() {
-        const container = document.getElementById('raindrops');
-        const count = 50;
-        for (let i = 0; i < count; i++) {
-            const raindrop = document.createElement('div');
-            raindrop.className = 'raindrop';
-            raindrop.style.left = `${Math.random() * 100}%`;
-            raindrop.style.animationDelay = `${Math.random() * 1}s`;
-            raindrop.style.opacity = Math.random() * 0.5;
-            container.appendChild(raindrop);
-        }
-    }
 
-    function loadFeedbackList() {
-        $.get('@Url.Action("GetFeedbackList", "Home")', function(res) {
-            if (res.success) {
-                let html = '';
-                res.data.forEach(fb => {
-                    const isLiked = res.likes.some(like => 
-                        like.feedbackid === fb.id && 
-                        like.username === '@ViewBag.username' && 
-                        like.status === 'like'
-                    );
-                    
-                    html += `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 border-0 shadow-sm mb-3">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h6 class="card-title mb-1">${fb.isanonymous ? '@Context.Session.GetTranslation("anonymous")' : (fb.username || '')}</h6>
-                                        <small class="text-rainy-muted">${fb.department || ''}</small>
-                                    </div>
-                                    <span class="badge bg-rainy-primary">${fb.type}</span>
-                                </div>
-                                <p class="card-text">${fb.content}</p>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm ${isLiked ? 'btn-rainy-primary active' : 'btn-outline-rainy-primary'} btn-like" data-id="${fb.id}">
-                                            <i class="fas fa-thumbs-up me-1"></i> ${fb.likecount}
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-rainy-secondary btn-comment" data-id="${fb.id}">
-                                            <i class="fas fa-comment me-1"></i> ${fb.commentcount}
-                                        </button>
-                                    </div>
-                                    <small class="text-rainy-muted">${fb.createdat ? fb.createdat.split('T')[0] : ''}</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    `;
-                });
-                $('#feedbackList').html(html);
+        function displayLeaveDaysByMonthChart(data) {
+            if (!data || !data.length) return;
+            const ctx = document.getElementById('leaveDaysByMonthChart').getContext('2d');
+
+            // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
+            const localizedLabels = data.map(d => getLocalizedMonth(d.month));
+
+            window.leaveDaysByMonthChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: localizedLabels,
+                    datasets: [{
+                        label: '@Context.Session.GetTranslation("leave_days")',
+                        data: data.map(d => d.days),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayLeaveByDepartmentChart(data) {
+            if (!data || !data.length) return;
+            const ctx = document.getElementById('leaveByDepartmentChart').getContext('2d');
+
+            // แปลงชื่อแผนกให้สั้นลงหากยาวเกินไป
+            const localizedLabels = data.map(d => getLocalizedDepartment(d.department));
+
+            window.leaveByDepartmentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: localizedLabels,
+                    datasets: [{
+                        label: '@Context.Session.GetTranslation("leave_count")',
+                        data: data.map(d => d.count),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayAverageLeaveDurationChart(data) {
+            if (!data || !data.length) return;
+            const ctx = document.getElementById('averageLeaveDurationChart').getContext('2d');
+
+            // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
+            const localizedLabels = data.map(d => getLocalizedMonth(d.month));
+
+            window.averageLeaveDurationChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: localizedLabels,
+                    datasets: [{
+                        label: '@Context.Session.GetTranslation("average_duration_days")',
+                        data: data.map(d => d.averageDuration),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayWorkdayHolidayLeaveChart(data) {
+            if (!data || !data.length) return;
+            const ctx = document.getElementById('workdayHolidayLeaveChart').getContext('2d');
+
+            // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
+            const localizedLabels = data.map(d => getLocalizedMonth(d.month));
+
+            window.workdayHolidayLeaveChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: localizedLabels,
+                    datasets: [{
+                        label: '@Context.Session.GetTranslation("workday")',
+                        data: data.map(d => d.workday),
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 0
+                    }, {
+                        label: '@Context.Session.GetTranslation("holiday")',
+                        data: data.map(d => d.holiday),
+                        backgroundColor: '#f59e0b',
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'center',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupLanguageHandling() {
+            function updateLanguageText() {
+                const currentLang = '@Context.Session.GetCurrentLanguage()';
+                const langTexts = {
+                    'th': '@Context.Session.GetTranslation("thai_language")',
+                    'en': '@Context.Session.GetTranslation("english_language")',
+                    'zh': '@Context.Session.GetTranslation("chinese_language")'
+                };
+                $('#currentLanguage').text(langTexts[currentLang] || '@Context.Session.GetTranslation("language")');
             }
-        });
-    }
+            updateLanguageText();
+            $('.language-select').on('click', function (e) {
+                e.preventDefault();
+                const lang = $(this).data('lang');
+                $('#currentLanguage').html('<i class="fas fa-spinner fa-spin"></i>');
+                $.ajax({
+                    url: appBasePath + 'Home/ChangeLanguage',
+                    type: 'POST',
+                    data: {
+                        lang: lang
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            showError('@Context.Session.GetTranslation("cannot_change_language")');
+                        }
+                    },
+                    error: function () {
+                        showError('@Context.Session.GetTranslation("cannot_connect_server")');
+                    }
+                });
+            });
+        }
 
-    // เพิ่ม function สำหรับโหลดข้อมูลวันหยุด
-    function loadUpcomingHolidays() {
-        $.get('@Url.Action("GetUpcomingHolidays", "Home")', function(res) {
-            if (res.success) {
-                const container = $('#upcomingHolidays');
-                if (res.holidays && res.holidays.length > 0) {
+        function showError(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: '@Context.Session.GetTranslation("error_occurred")',
+                    text: message,
+                    confirmButtonText: '@Context.Session.GetTranslation("ok")'
+                });
+            } else {
+                alert(message);
+            }
+        }
+        // Add raindrops animation
+        function createRaindrops() {
+            const container = document.getElementById('raindrops');
+            const count = 50;
+            for (let i = 0; i < count; i++) {
+                const raindrop = document.createElement('div');
+                raindrop.className = 'raindrop';
+                raindrop.style.left = `${Math.random() * 100}%`;
+                raindrop.style.animationDelay = `${Math.random() * 1}s`;
+                raindrop.style.opacity = Math.random() * 0.5;
+                container.appendChild(raindrop);
+            }
+        }
+
+        function loadFeedbackList() {
+            $.get(appBasePath + 'Home/GetFeedbackList', function (res) {
+                if (res.success) {
                     let html = '';
-                    res.holidays.forEach(holiday => {
-                        const daysUntil = holiday.daysUntil;
-                        const badgeClass = daysUntil <= 7 ? 'bg-rainy-danger' : 
-                                         daysUntil <= 14 ? 'bg-rainy-warning' : 
-                                         'bg-rainy-primary';
-                        
+                    res.data.forEach(fb => {
+                        const isLiked = res.likes.some(like =>
+                            like.feedbackid === fb.id &&
+                            like.username === '@ViewBag.username' &&
+                            like.status === 'like'
+                        );
+
                         html += `
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-0 shadow-sm">
+                            <div class="card h-100 border-0 shadow-sm mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 class="card-title mb-0">${holiday.holidayName}</h6>
-                                        <span class="badge ${badgeClass}">
-                                            ${daysUntil === 0 ? '@Context.Session.GetTranslation("today")' : 
-                                              daysUntil === 1 ? '@Context.Session.GetTranslation("tomorrow")' : 
-                                              `${daysUntil} @Context.Session.GetTranslation("days")`}
-                                        </span>
+                                        <div>
+                                            <h6 class="card-title mb-1">${fb.isanonymous ? '@Context.Session.GetTranslation("anonymous")' : (fb.username || '')}</h6>
+                                            <small class="text-rainy-muted">${fb.department || ''}</small>
+                                        </div>
+                                        <span class="badge bg-rainy-primary">${fb.type}</span>
                                     </div>
-                                    <p class="card-text text-rainy-muted mb-2">
-                                        <i class="fas fa-calendar me-2"></i>
-                                        ${holiday.holidayDate}
-                                    </p>
-                                    <p class="card-text small text-rainy-muted">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        ${holiday.description || '@Context.Session.GetTranslation("annual_holiday")'}
-                                    </p>
+                                    <p class="card-text">${fb.content}</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm ${isLiked ? 'btn-rainy-primary active' : 'btn-outline-rainy-primary'} btn-like" data-id="${fb.id}">
+                                                <i class="fas fa-thumbs-up me-1"></i> ${fb.likecount}
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-rainy-secondary btn-comment" data-id="${fb.id}">
+                                                <i class="fas fa-comment me-1"></i> ${fb.commentcount}
+                                            </button>
+                                        </div>
+                                        <small class="text-rainy-muted">${fb.createdat ? fb.createdat.split('T')[0] : ''}</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         `;
                     });
-                    container.html(html);
-                } else {
-                    container.html(`
-                        <div class="col-12 text-center text-rainy-muted">
-                            <i class="fas fa-calendar-times me-2"></i>
-                            @Context.Session.GetTranslation("no_upcoming_holidays")
-                        </div>
-                    `);
+                    $('#feedbackList').html(html);
                 }
-            }
-        });
-    }
-</script>
+            });
+        }
+
+        // เพิ่ม function สำหรับโหลดข้อมูลวันหยุด
+        function loadUpcomingHolidays() {
+            $.get(appBasePath + 'Home/GetUpcomingHolidays', function (res) {
+                if (res.success) {
+                    const container = $('#upcomingHolidays');
+                    if (res.holidays && res.holidays.length > 0) {
+                        let html = '';
+                        res.holidays.forEach(holiday => {
+                            const daysUntil = holiday.daysUntil;
+                            const badgeClass = daysUntil <= 7 ? 'bg-rainy-danger' :
+                                daysUntil <= 14 ? 'bg-rainy-warning' :
+                                    'bg-rainy-primary';
+
+                            html += `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">${holiday.holidayName}</h6>
+                                            <span class="badge ${badgeClass}">
+                                                ${daysUntil === 0 ? '@Context.Session.GetTranslation("today")' :
+                                    daysUntil === 1 ? '@Context.Session.GetTranslation("tomorrow")' :
+                                        `${daysUntil} @Context.Session.GetTranslation("days")`}
+                                            </span>
+                                        </div>
+                                        <p class="card-text text-rainy-muted mb-2">
+                                            <i class="fas fa-calendar me-2"></i>
+                                            ${holiday.holidayDate}
+                                        </p>
+                                        <p class="card-text small text-rainy-muted">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            ${holiday.description || '@Context.Session.GetTranslation("annual_holiday")'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        });
+                        container.html(html);
+                    } else {
+                        container.html(`
+                            <div class="col-12 text-center text-rainy-muted">
+                                <i class="fas fa-calendar-times me-2"></i>
+                                @Context.Session.GetTranslation("no_upcoming_holidays")
+                            </div>
+                        `);
+                    }
+                }
+            });
+        }
+
+        // ฟังก์ชันสำหรับควบคุมการซ่อน/ขยายส่วนรายละเอียด
+        function setupToggleDetails() {
+            // ปุ่มซ่อน/ขยายรายละเอียดตู้เก็บของ
+            $('#btnToggleCabinetDetails').on('click', function() {
+                const $detailsSection = $('#cabinetDetailsSection');
+                const $btn = $(this);
+                
+                if ($detailsSection.is(':visible')) {
+                    $detailsSection.slideUp(300);
+                    $btn.html('<i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด');
+                    $btn.removeClass('btn-primary active').addClass('btn-outline-primary');
+                } else {
+                    $detailsSection.slideDown(300);
+                    $btn.html('<i class="fas fa-chevron-up me-1"></i>ซ่อนรายละเอียด');
+                    $btn.removeClass('btn-outline-primary').addClass('btn-primary active');
+                }
+            });
+
+            // ปุ่มซ่อน/ขยายรายละเอียดคอมพิวเตอร์
+            $('#btnToggleComputerDetails').on('click', function() {
+                const $detailsSection = $('#computerDetailsSection');
+                const $btn = $(this);
+                
+                if ($detailsSection.is(':visible')) {
+                    $detailsSection.slideUp(300);
+                    $btn.html('<i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด');
+                    $btn.removeClass('btn-info active').addClass('btn-outline-info');
+                } else {
+                    $detailsSection.slideDown(300);
+                    $btn.html('<i class="fas fa-chevron-up me-1"></i>ซ่อนรายละเอียด');
+                    $btn.removeClass('btn-outline-info').addClass('btn-info active');
+                }
+            });
+        }
+    </script>
 }

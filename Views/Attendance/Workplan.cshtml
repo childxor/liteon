@@ -59,12 +59,15 @@
 
 @section Scripts {
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         var table;
 
         $(document).ready(function() {
             table = $('#workplanTable').DataTable({
                 "ajax": {
-                    "url": "@Url.Action("GetWorkplans", "Attendance")",
+                    "url": appBasePath + "Attendance/GetWorkplans",
                     "type": "GET",
                     "datatype": "json"
                 },
@@ -157,7 +160,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '@Url.Action("DeleteWorkplan", "Attendance")/' + id,
+                        url: appBasePath + "Attendance/DeleteWorkplan/" + id,
                         type: 'POST',
                         success: function(response) {
                             if (response.success) {

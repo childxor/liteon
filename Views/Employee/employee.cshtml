@@ -13,6 +13,8 @@
         bool canEdit = permissions?["CanEdit"] ?? false;
         bool canDelete = permissions?["CanDelete"] ?? false;
         bool canView = permissions?["CanView"] ?? false;
+        bool isAdmin = permissions?["IsAdmin"] ?? false;
+    
         }
  
         <div class="container-fluid">
@@ -32,6 +34,13 @@
                                 <div>
                                     <h2 class="mb-0 fw-bold">รายชื่อพนักงาน</h2>
                                     <p class="mb-0 text-white-50">จัดการข้อมูลพนักงานและสิทธิ์การเข้าถึง</p>
+                                    @if (!isAdmin)
+                                    {
+                                        <p class="mb-0 text-white-75 small mt-1">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            แสดงข้อมูลเฉพาะแผนก: @ViewData["CurrentUserDepartment"] (เฉพาะดูข้อมูลเท่านั้น)
+                                        </p>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -48,21 +57,27 @@
                                 </div>
                                 <div class="p-3">
                                     <div class="d-flex gap-3 flex-wrap">
-                                        <button type="button"
-                                            class="btn btn-danger btn-hover-translate rounded-pill shadow-sm"
-                                            id="removeResignedAccessButton">
-                                            <i class="fas fa-door-closed me-2"></i>ลบสิทธิ์ประตูพนักงานลาออก
-                                        </button>
-                                        <button type="button"
-                                            class="btn btn-primary btn-hover-translate rounded-pill shadow-sm"
-                                            id="checkAndAddBasicAccessButton">
-                                            <i class="fas fa-check-circle me-2"></i>ตรวจสอบและเพิ่มสิทธิ์พื้นฐาน
-                                        </button>
-                                        <button type="button"
-                                            class="btn btn-danger btn-hover-translate rounded-pill shadow-sm"
-                                            id="removeEmployeeButton">
-                                            <i class="fas fa-trash me-2"></i>ลบข้อมูลพนักงานลาออก
-                                        </button>
+                                        @if (canDelete && isAdmin)
+                                        {
+                                            <button type="button"
+                                                class="btn btn-danger btn-hover-translate rounded-pill shadow-sm"
+                                                id="removeResignedAccessButton">
+                                                <i class="fas fa-door-closed me-2"></i>ลบสิทธิ์ประตูพนักงานลาออก
+                                            </button>
+                                            <button type="button"
+                                                class="btn btn-danger btn-hover-translate rounded-pill shadow-sm"
+                                                id="removeEmployeeButton">
+                                                <i class="fas fa-trash me-2"></i>ลบข้อมูลพนักงานลาออก
+                                            </button>
+                                        }
+                                        @if (canAdd && isAdmin)
+                                        {
+                                            <button type="button"
+                                                class="btn btn-primary btn-hover-translate rounded-pill shadow-sm"
+                                                id="checkAndAddBasicAccessButton">
+                                                <i class="fas fa-check-circle me-2"></i>ตรวจสอบและเพิ่มสิทธิ์พื้นฐาน
+                                            </button>
+                                        }
                                         <button type="button"
                                             class="btn btn-info text-white btn-hover-translate rounded-pill shadow-sm"
                                             id="filterButton">
@@ -84,8 +99,11 @@
                                 <h5 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>ข้อมูลพนักงาน</h5>
                                 <div class="d-flex align-items-center gap-2">
                                     <div id="current-filters" class="d-flex flex-wrap gap-2 me-2"></div>
-                                    <button class="btn btn-sm btn-success rounded-pill add-employee"><i
-                                            class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน</button>
+                                    @if (canAdd && isAdmin)
+                                    {
+                                        <button class="btn btn-sm btn-success rounded-pill add-employee"><i
+                                                class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน</button>
+                                    }
                                 </div>
                             </div>
                             <div class="card-body p-0">
@@ -179,23 +197,30 @@
                                         <div class="col-12">
                                             <div class="form-floating">
                                                 <select class="form-select" name="deptName" id="deptName" required>
-                                                    <option value="">เลือกแผนก</option>
-                                                    <option value="4070">Liteon Thailand IPS</option>
-                                                    <option value="S6211">MFG</option>
-                                                    <option value="S6212">QRA</option>
-                                                    <option value="S6213">CSC</option>
-                                                    <option value="S6214">OFFICE</option>
-                                                    <option value="S6215">WH</option>
-                                                    <option value="S6216">IE</option>
-                                                    <option value="S6217">PMC</option>
-                                                    <option value="S6218">รปภ.</option>
-                                                    <option value="S6219">CH</option>
-                                                    <option value="S6220">แม่บ้าน</option>
-                                                    <option value="S6221">ME</option>
-                                                    <option value="S6224">ITS</option>
-                                                    <option value="S6225">PE</option>
-                                                    <option value="S6226">BOI</option>
-                                                    <option value="S6227">PC</option>
+                                                    @if (isAdmin)
+                                                    {
+                                                        <option value="" selected>เลือกแผนก</option>
+                                                        <option value="4070">Liteon Thailand IPS</option>
+                                                        <option value="S6211">MFG</option>
+                                                        <option value="S6212">QRA</option>
+                                                        <option value="S6213">CSC</option>
+                                                        <option value="S6214">OFFICE</option>
+                                                        <option value="S6215">WH</option>
+                                                        <option value="S6216">IE</option>
+                                                        <option value="S6217">PMC</option>
+                                                        <option value="S6218">รปภ.</option>
+                                                        <option value="S6219">CH</option>
+                                                        <option value="S6220">แม่บ้าน</option>
+                                                        <option value="S6221">ME</option>
+                                                        <option value="S6224">ITS</option>
+                                                        <option value="S6225">PE</option>
+                                                        <option value="S6226">BOI</option>
+                                                        <option value="S6227">PC</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@ViewData["CurrentUserDepartment"]" selected>@ViewData["CurrentUserDepartment"]</option>
+                                                    }
                                                 </select>
                                                 <label for="deptName">แผนก<span class="text-danger">*</span></label>
                                                 <div class="invalid-feedback">กรุณาเลือกแผนก</div>
@@ -299,7 +324,7 @@
                             </div>
                         </div>
                         <div class="modal-footer bg-light">
-                            <div class="btn-group shadow-sm" role="group">
+                            <div class="btn-group shadow-sm" role="group" id="accessControlButtons">
                                 <button type="button" class="btn btn-primary btn-hover-translate" id="addAllAccess">
                                     <i class="fas fa-door-open me-1"></i>เพิ่มสิทธิ์ทั้งหมด
                                 </button>
@@ -309,6 +334,10 @@
                                 <button type="button" class="btn btn-danger btn-hover-translate" id="removeAllAccess">
                                     <i class="fas fa-times-circle me-1"></i>ลบสิทธิ์ทั้งหมด
                                 </button>
+                            </div>
+                            <div id="viewOnlyMessage" class="alert alert-info d-none mb-0 me-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <small>คุณสามารถดูข้อมูลสิทธิ์ประตูได้เท่านั้น ไม่สามารถแก้ไขได้</small>
                             </div>
                             <button type="button" class="btn btn-secondary btn-hover-translate rounded-pill"
                                 data-bs-dismiss="modal">
@@ -332,23 +361,30 @@
                                     <div class="col-md-6">
                                         <div class="form-floating">
                                             <select class="form-select filter-department">
-                                                <option value="">ทั้งหมด</option>
-                                                <option value="4070">Liteon Thailand IPS</option>
-                                                <option value="S6211">MFG</option>
-                                                <option value="S6212">QRA</option>
-                                                <option value="S6213">CSC</option>
-                                                <option value="S6214">OFFICE</option>
-                                                <option value="S6215">WH</option>
-                                                <option value="S6216">IE</option>
-                                                <option value="S6217">PMC</option>
-                                                <option value="S6218">รปภ.</option>
-                                                <option value="S6219">CH</option>
-                                                <option value="S6220">แม่บ้าน</option>
-                                                <option value="S6221">ME</option>
-                                                <option value="S6224">ITS</option>
-                                                <option value="S6225">PE</option>
-                                                <option value="S6226">BOI</option>
-                                                <option value="S6227">PC</option>
+                                                @if (isAdmin)
+                                                {
+                                                    <option value="" selected>ทั้งหมด</option>
+                                                    <option value="4070">Liteon Thailand IPS</option>
+                                                    <option value="S6211">MFG</option>
+                                                    <option value="S6212">QRA</option>
+                                                    <option value="S6213">CSC</option>
+                                                    <option value="S6214">OFFICE</option>
+                                                    <option value="S6215">WH</option>
+                                                    <option value="S6216">IE</option>
+                                                    <option value="S6217">PMC</option>
+                                                    <option value="S6218">รปภ.</option>
+                                                    <option value="S6219">CH</option>
+                                                    <option value="S6220">แม่บ้าน</option>
+                                                    <option value="S6221">ME</option>
+                                                    <option value="S6224">ITS</option>
+                                                    <option value="S6225">PE</option>
+                                                    <option value="S6226">BOI</option>
+                                                    <option value="S6227">PC</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@ViewData["CurrentUserDepartment"]" selected>@ViewData["CurrentUserDepartment"]</option>
+                                                }
                                             </select>
                                             <label><i class="fas fa-building me-1"></i>แผนก</label>
                                         </div>
@@ -356,7 +392,7 @@
                                     <div class="col-md-6">
                                         <div class="form-floating">
                                             <select class="form-select filter-shift">
-                                                <option value="">ทั้งหมด</option>
+                                                <option value="" selected>ทั้งหมด</option>
                                                 <option value="D01N01">กะเช้า (รายวัน) (D01N01)</option>
                                                 <option value="DT1NT1">กะเช้า (รายเดือน) (DT1NT1)</option>
                                                 <option value="OFFICE">กะออฟฟิศ (ไม่เข้ากะ) (OFFICE)</option>
@@ -372,7 +408,7 @@
                                     <div class="col-md-6">
                                         <div class="form-floating">
                                             <select class="form-select filter-status">
-                                                <option value="">ทั้งหมด</option>
+                                                <option value="" selected>ทั้งหมด</option>
                                                 <option value="active" selected>ยังไม่ลาออก</option>
                                                 <option value="resigned">ลาออก</option>
                                                 <option value="incomplete">ข้อมูลไม่ครบถ้วน</option>
@@ -385,7 +421,7 @@
                                     <div class="col-md-6">
                                         <div class="form-floating">
                                             <select class="form-select filter-door">
-                                                <option value="">ทั้งหมด</option>
+                                                <option value="" selected>ทั้งหมด</option>
                                                 <option value="0001601">Build1 - Chemical room</option>
                                                 <option value="0001801">Build1 - Comsumables room</option>
                                                 <option value="0001101">Build1 - DCC room</option>
@@ -441,6 +477,9 @@
 
         @section Scripts {
         <script>
+            // ประกาศตัวแปร appBasePath
+            var appBasePath = '@Url.Content("~/")';
+             
             $(document).ready(function() {
                 // ตั้งค่า filter เริ่มต้นจาก localStorage หรือค่าเริ่มต้นปกติ
                 const storedFilters = loadFiltersFromLocalStorage();
@@ -462,7 +501,7 @@
                     lengthMenu: [50, 100, 200, 500],
                     info: true,
                     ajax: {
-                        url: '@Url.Action("GetEmployeesData", "Employee")',
+                        url: appBasePath + 'Employee/GetEmployeesData',
                         type: 'GET',
                         data: function(d) {
                             d.status = $('#filter-storage').data('status');
@@ -470,6 +509,32 @@
                             d.department = $('#filter-storage').data('department');
                             d.shift = $('#filter-storage').data('shift');
                             d.fingerprint = $('#filter-storage').data('fingerprint');
+                        },
+                        dataSrc: function(json) {
+                            console.log('DataTables dataSrc received:', json);
+                            // ตรวจสอบว่า response เป็น array หรือไม่
+                            if (Array.isArray(json)) {
+                                console.log('Returning array with', json.length, 'items');
+                                return json;
+                            }
+                            // ถ้าเป็น error response
+                            if (json && json.error) {
+                                console.error('Error response:', json.error);
+                                showErrorToast('เกิดข้อผิดพลาด: ' + json.error);
+                                return [];
+                            }
+                            // ถ้าเป็น response แบบเก่า (มี success และ data)
+                            if (json && json.success && Array.isArray(json.data)) {
+                                console.log('Returning data from success response with', json.data.length, 'items');
+                                return json.data;
+                            }
+                            // กรณีอื่นๆ
+                            console.warn('Unexpected response format:', json);
+                            return [];
+                        },
+                        error: function(xhr, error, thrown) {
+                            console.error('DataTables error:', error, thrown);
+                            showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (thrown || error));
                         }
                     }, 
                     columns: [{
@@ -642,12 +707,21 @@
                             data: 'personID',
                             title: '<i class="fas fa-door-open me-1"></i> สิทธิ์ประตู',
                             orderable: false,
-                            render: function(data) {
-                                return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info access-door" data-id="' +
-                                    data +
-                                    '" data-bs-toggle="tooltip" title="จัดการสิทธิ์ประตู">' +
-                                    '<i class="fas fa-door-open"></i>' +
-                                    '</button>';
+                            render: function(data, type, row) {
+                                // แสดงปุ่มสำหรับทุกคน แต่ disable สำหรับผู้ใช้ที่ไม่ใช่ admin
+                                if (userPermissions.isAdmin) {
+                                    return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info access-door" data-id="' +
+                                        data +
+                                        '" data-bs-toggle="tooltip" title="จัดการสิทธิ์ประตู">' +
+                                        '<i class="fas fa-door-open"></i>' +
+                                        '</button>';
+                                } else {
+                                    return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-secondary view-access-door" data-id="' +
+                                        data +
+                                        '" data-bs-toggle="tooltip" title="ดูสิทธิ์ประตู (เฉพาะดูข้อมูลเท่านั้น)">' +
+                                        '<i class="fas fa-eye"></i>' +
+                                        '</button>';
+                                }
                             }
                         },
                         {
@@ -681,24 +755,46 @@
                             data: 'personID',
                             title: '<i class="fas fa-cogs me-1"></i> จัดการ',
                             orderable: false,
-                            render: function(data) {
-                                return '<div class="d-flex gap-1">' +
-                                    '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info view-employee" data-id="' +
-                                    data + '" data-person-id="' + data +
-                                    '" data-bs-toggle="tooltip" title="ดูข้อมูล">' +
-                                    '<i class="fas fa-eye"></i>' +
-                                    '</button>' +
-                                    '<button class="btn btn-xs btn-icon btn-rounded btn-outline-warning edit-employee" data-id="' +
-                                    data + '" data-person-id="' + data +
-                                    '" data-bs-toggle="tooltip" title="แก้ไข">' +
-                                    '<i class="fas fa-edit"></i>' +
-                                    '</button>' +
-                                    '<button class="btn btn-xs btn-icon btn-rounded btn-outline-danger delete-employee" data-id="' +
-                                    data + '" data-person-id="' + data +
-                                    '" data-bs-toggle="tooltip" title="ลบ">' +
-                                    '<i class="fas fa-trash"></i>' +
-                                    '</button>' +
-                                    '</div>';
+                            render: function(data, type, row) {
+                                var buttons = '<div class="d-flex gap-1">';
+                                
+                                // ปุ่มดูข้อมูล - แสดงเสมอถ้ามีสิทธิ์ดู
+                                if (userPermissions.canView) {
+                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info view-employee" data-id="' +
+                                        data + '" data-person-id="' + data +
+                                        '" data-bs-toggle="tooltip" title="ดูข้อมูล">' +
+                                        '<i class="fas fa-eye"></i>' +
+                                        '</button>';
+                                }
+                                
+                                // ปุ่มแก้ไข - แสดงเสมอแต่ disable สำหรับผู้ใช้ที่ไม่ใช่ admin
+                                if (userPermissions.isAdmin) {
+                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-warning edit-employee" data-id="' +
+                                        data + '" data-person-id="' + data +
+                                        '" data-bs-toggle="tooltip" title="แก้ไข">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                        '</button>';
+                                } else {
+                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-secondary" disabled data-bs-toggle="tooltip" title="ไม่มีสิทธิ์แก้ไข">' +
+                                        '<i class="fas fa-edit"></i>' +
+                                        '</button>';
+                                }
+                                
+                                // ปุ่มลบ - แสดงเสมอแต่ disable สำหรับผู้ใช้ที่ไม่ใช่ admin
+                                if (userPermissions.isAdmin) {
+                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-danger delete-employee" data-id="' +
+                                        data + '" data-person-id="' + data +
+                                        '" data-bs-toggle="tooltip" title="ลบ">' +
+                                        '<i class="fas fa-trash"></i>' +
+                                        '</button>';
+                                } else {
+                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-secondary" disabled data-bs-toggle="tooltip" title="ไม่มีสิทธิ์ลบ">' +
+                                        '<i class="fas fa-trash"></i>' +
+                                        '</button>';
+                                }
+                                
+                                buttons += '</div>';
+                                return buttons;
                             }
                         },
                         {
@@ -729,6 +825,17 @@
                 // อัพเดท UI แสดงตัวกรองที่ใช้อยู่
                 updateFilterBadges();
             });
+            // กำหนดตัวแปรสิทธิ์สำหรับใช้ใน JavaScript
+            var userPermissions = {
+                canAdd: @Json.Serialize(canAdd),
+                canEdit: @Json.Serialize(canEdit),
+                canDelete: @Json.Serialize(canDelete),
+                canView: @Json.Serialize(canView),
+                isAdmin: @Json.Serialize(isAdmin),
+
+                currentUserDepartment: '@ViewData["CurrentUserDepartment"]'
+            };
+
             // จัดการกับส่วน Filter
             $('#filterButton').on('click', function() {
                 // เช็คว่ามี filter row อยู่แล้วหรือไม่
@@ -745,9 +852,17 @@
                     $('.filter-door').val($('#filter-storage').data('door') || '');
                     // จัดการปุ่มรีเซ็ต
                     $('.reset-filter').on('click', function() {
-                        $('.filter-department, .filter-shift, .filter-door, .filter-fingerprint').val(
-                            '');
+                        $('.filter-shift, .filter-door, .filter-fingerprint').val('');
                         $('.filter-status').val('active');
+                        
+                        // ตรวจสอบสิทธิ์การเข้าถึงแผนก
+                        if (!userPermissions.isAdmin) {
+                            // ถ้าไม่ใช่ admin ให้ตั้งค่าแผนกเป็นแผนกของผู้ใช้
+                            $('.filter-department').val(userPermissions.currentUserDepartment);
+                        } else {
+                            // ถ้าเป็น admin ให้รีเซ็ตเป็นค่าว่าง
+                            $('.filter-department').val('');
+                        }
                     });
                     // จัดการปุ่มตกลง
                     $('.apply-filter').on('click', function() {
@@ -785,6 +900,19 @@
             $('body').on('click', '.add-employee', function() {
                 resetEmployeeForm();
                 $('#employeeModalLabel').html('<i class="fas fa-user-plus me-2"></i>เพิ่มข้อมูลพนักงาน');
+                
+                // ตรวจสอบสิทธิ์การเพิ่มพนักงาน
+                if (!userPermissions.canAdd) {
+                    showErrorToast('ไม่มีสิทธิ์ในการเพิ่มข้อมูลพนักงาน');
+                    return;
+                }
+                
+                // ถ้าไม่ใช่ admin ให้เลือกแผนกของผู้ใช้โดยอัตโนมัติ
+                if (!userPermissions.isAdmin) {
+                    $('#deptName').val(userPermissions.currentUserDepartment);
+                    $('#deptName').trigger('change');
+                }
+                
                 $('#employeeModal').modal('show');
             });
             // เมื่อกดปุ่มแก้ไขพนักงาน
@@ -800,7 +928,7 @@
                 });
                 // ดึงข้อมูลพนักงาน
                 $.ajax({
-                    url: '/Employee/GetEmployeeById',
+                    url: appBasePath + 'Employee/GetEmployeeById',
                     type: 'GET',
                     data: {
                         personID: personId
@@ -882,7 +1010,7 @@
                 if (form.checkValidity()) {
                     // ตรวจสอบว่าเป็นการเพิ่มหรือแก้ไข
                     let isNewEmployee = !$('#employeeModalLabel').html().includes('แก้ไข');
-                    let url = isNewEmployee ? '/Employee/AddEmployee' : '/Employee/UpdateEmployee';
+                    let url = isNewEmployee ? appBasePath + 'Employee/AddEmployee' : appBasePath + 'Employee/UpdateEmployee';
                     $.ajax({
                         url: url,
                         type: 'POST',
@@ -931,7 +1059,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/Employee/DeleteEmployee',
+                            url: appBasePath + 'Employee/DeleteEmployee',
                             type: 'POST',
                             data: {
                                 personId: personId
@@ -959,7 +1087,16 @@
             });
             // แสดงโมดัลสิทธิ์ประตู
             $('body').on('click', '.access-door', function() {
-                let personId = $(this).data('id');
+                showAccessModal($(this).data('id'), true);
+            });
+
+            // แสดงโมดัลดูสิทธิ์ประตู (สำหรับผู้ใช้ที่ไม่ใช่ admin)
+            $('body').on('click', '.view-access-door', function() {
+                showAccessModal($(this).data('id'), false);
+            });
+
+            // ฟังก์ชันแสดงโมดัลสิทธิ์ประตู
+            function showAccessModal(personId, isAdmin) {
                 // แสดง Loading
                 Swal.fire({
                     title: 'กำลังโหลดข้อมูล',
@@ -969,7 +1106,7 @@
                 });
                 // ดึงข้อมูลสิทธิ์ประตู
                 $.ajax({
-                    url: '/Employee/GetAccess',
+                    url: appBasePath + 'Employee/GetAccess',
                     type: 'POST',
                     data: {
                         personId: personId
@@ -995,10 +1132,10 @@
                             $.each(response.data, function(index, door) {
                                 // กำหนดสถานะสิทธิ์
                                 let cardAccessHtml = getAccessHtml(door.hasCardAccess,
-                                    'card', personId, door.doorID);
+                                    'card', personId, door.doorID, isAdmin);
                                 let fingerAccessHtml = getAccessHtml(door
                                     .hasFingerprintAccess, 'finger', personId, door
-                                    .doorID);
+                                    .doorID, isAdmin);
                                 // สร้างแถวข้อมูล
                                 tableHtml += '<tr>';
                                 tableHtml += '<td>' + door.doorName +
@@ -1012,8 +1149,18 @@
                             });
                             // เพิ่มข้อมูลลงในตาราง
                             $('#doorAccessTableBody').html(tableHtml);
-                            // เพิ่ม event listener สำหรับการเปลี่ยนสถานะสิทธิ์
-                            setupAccessToggleEvents();
+                            
+                            // จัดการการแสดงปุ่มควบคุมตามสิทธิ์
+                            if (isAdmin) {
+                                $('#accessControlButtons').show();
+                                $('#viewOnlyMessage').addClass('d-none');
+                                // เพิ่ม event listener สำหรับการเปลี่ยนสถานะสิทธิ์
+                                setupAccessToggleEvents();
+                            } else {
+                                $('#accessControlButtons').hide();
+                                $('#viewOnlyMessage').removeClass('d-none');
+                            }
+                            
                             // แสดงโมดัล
                             $('#accessDoorModal').modal('show');
                         } else {
@@ -1027,14 +1174,15 @@
                         showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error);
                     }
                 });
-            });
+            }
             // ฟังก์ชันสร้าง HTML สำหรับแสดงสถานะสิทธิ์
-            function getAccessHtml(hasAccess, accessType, personId, doorId) {
+            function getAccessHtml(hasAccess, accessType, personId, doorId, isAdmin) {
                 let checked = hasAccess ? 'checked' : '';
                 let suffix = accessType === 'card' ? '-1' : '-2';
                 let fullPersonId = personId + suffix;
+                let disabled = isAdmin ? '' : 'disabled';
                 return '<div class="form-check form-switch d-flex justify-content-center">' +
-                    '<input class="form-check-input toggle-access" type="checkbox" ' + checked + ' ' +
+                    '<input class="form-check-input toggle-access" type="checkbox" ' + checked + ' ' + disabled + ' ' +
                     'data-person-id="' + fullPersonId + '" ' +
                     'data-door-id="' + doorId + '" ' +
                     'data-access-type="' + accessType + '">' +
@@ -1064,7 +1212,7 @@
             // อัพเดทสิทธิ์การเข้าประตู
             function updateDoorAccess(personId, doorId, state, weekTimeID, dnfp) {
                 $.ajax({
-                    url: '/Employee/UpdateAccess',
+                    url: appBasePath + 'Employee/UpdateAccess',
                     type: 'POST',
                     data: {
                         personId: personId,
@@ -1081,15 +1229,31 @@
                         if (response.status === 'success') {
                             // ไม่ต้องแสดงข้อความเมื่อสำเร็จ
                         } else {
-                            showErrorToast(response.message || 'ไม่สามารถอัพเดทสิทธิ์ได้');
+                            // แสดงข้อความผิดพลาดที่เหมาะสม
+                            let errorMessage = response.message || 'ไม่สามารถอัพเดทสิทธิ์ได้';
+                            if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                            } else {
+                                showErrorToast(errorMessage);
+                            }
                             // ย้อนกลับสถานะของสวิตช์
                             let checkbox = $('[data-person-id="' + personId + '"][data-door-id="' + doorId +
                                 '"]');
                             checkbox.prop('checked', !checkbox.prop('checked'));
                         }
                     },
-                    error: function() {
-                        showErrorToast('เกิดข้อผิดพลาดในการอัพเดทสิทธิ์');
+                    error: function(xhr, status, error) {
+                        // ตรวจสอบข้อผิดพลาดจาก server
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            let errorMessage = xhr.responseJSON.message;
+                            if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                            } else {
+                                showErrorToast('เกิดข้อผิดพลาดในการอัพเดทสิทธิ์: ' + errorMessage);
+                            }
+                        } else {
+                            showErrorToast('เกิดข้อผิดพลาดในการอัพเดทสิทธิ์');
+                        }
                         // ย้อนกลับสถานะของสวิตช์
                         let checkbox = $('[data-person-id="' + personId + '"][data-door-id="' + doorId +
                             '"]');
@@ -1120,7 +1284,7 @@
                             allowOutsideClick: false
                         });
                         $.ajax({
-                            url: '/Employee/AddAllAccess',
+                            url: appBasePath + 'Employee/AddAllAccess',
                             type: 'POST',
                             data: {
                                 personId: personId
@@ -1138,13 +1302,26 @@
                                     $('.access-door[data-id="' + personId + '"]').trigger(
                                         'click');
                                 } else {
-                                    showErrorToast(response.message ||
-                                        'ไม่สามารถเพิ่มสิทธิ์ทั้งหมดได้');
+                                    let errorMessage = response.message || 'ไม่สามารถเพิ่มสิทธิ์ทั้งหมดได้';
+                                    if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                        showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                                    } else {
+                                        showErrorToast(errorMessage);
+                                    }
                                 }
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + error);
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    let errorMessage = xhr.responseJSON.message;
+                                    if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                        showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                                    } else {
+                                        showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + errorMessage);
+                                    }
+                                } else {
+                                    showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + error);
+                                }
                             }
                         });
                     }
@@ -1173,7 +1350,7 @@
                             allowOutsideClick: false
                         });
                         $.ajax({
-                            url: '/Employee/AddHRAccess',
+                            url: appBasePath + 'Employee/AddHRAccess',
                             type: 'POST',
                             data: {
                                 personId: personId
@@ -1191,13 +1368,26 @@
                                     $('.access-door[data-id="' + personId + '"]').trigger(
                                         'click');
                                 } else {
-                                    showErrorToast(response.message ||
-                                        'ไม่สามารถเพิ่มสิทธิ์พื้นฐานได้');
+                                    let errorMessage = response.message || 'ไม่สามารถเพิ่มสิทธิ์พื้นฐานได้';
+                                    if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                        showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                                    } else {
+                                        showErrorToast(errorMessage);
+                                    }
                                 }
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + error);
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    let errorMessage = xhr.responseJSON.message;
+                                    if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                        showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                                    } else {
+                                        showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + errorMessage);
+                                    }
+                                } else {
+                                    showErrorToast('เกิดข้อผิดพลาดในการเพิ่มสิทธิ์: ' + error);
+                                }
                             }
                         });
                     }
@@ -1226,7 +1416,7 @@
                             allowOutsideClick: false
                         });
                         $.ajax({
-                            url: '/Employee/RemoveAllAccess',
+                            url: appBasePath + 'Employee/RemoveAllAccess',
                             type: 'POST',
                             data: {
                                 personId: personId
@@ -1244,13 +1434,26 @@
                                     $('.access-door[data-id="' + personId + '"]').trigger(
                                         'click');
                                 } else {
-                                    showErrorToast(response.message ||
-                                        'ไม่สามารถลบสิทธิ์ทั้งหมดได้');
+                                    let errorMessage = response.message || 'ไม่สามารถลบสิทธิ์ทั้งหมดได้';
+                                    if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                        showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                                    } else {
+                                        showErrorToast(errorMessage);
+                                    }
                                 }
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                showErrorToast('เกิดข้อผิดพลาดในการลบสิทธิ์: ' + error);
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    let errorMessage = xhr.responseJSON.message;
+                                    if (errorMessage.includes('ไม่มีสิทธิ์')) {
+                                        showErrorToast('คุณไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู กรุณาติดต่อผู้ดูแลระบบ');
+                                    } else {
+                                        showErrorToast('เกิดข้อผิดพลาดในการลบสิทธิ์: ' + errorMessage);
+                                    }
+                                } else {
+                                    showErrorToast('เกิดข้อผิดพลาดในการลบสิทธิ์: ' + error);
+                                }
                             }
                         });
                     }
@@ -1270,7 +1473,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/Employee/RemoveResignedAccess',
+                            url: appBasePath + 'Employee/RemoveResignedAccess',
                             type: 'POST',
                             beforeSend: function(xhr) {
                                 xhr.setRequestHeader("RequestVerificationToken",
@@ -1307,7 +1510,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/Employee/CheckAndAddBasicAccess',
+                            url: appBasePath + 'Employee/CheckAndAddBasicAccess',
                             type: 'POST',
                             beforeSend: function(xhr) {
                                 xhr.setRequestHeader("RequestVerificationToken",
@@ -1344,7 +1547,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/Employee/RemoveAllResignedEmployees',
+                            url: appBasePath + 'Employee/RemoveAllResignedEmployees',
                             type: 'POST',
                             beforeSend: function(xhr) {
                                 xhr.setRequestHeader("RequestVerificationToken",
@@ -1401,7 +1604,7 @@
                     tr.addClass('shown-row');
                     // ดึงข้อมูลประวัติพนักงาน
                     $.ajax({
-                        url: '/Employee/GetEmployeeHistory',
+                        url: appBasePath + 'Employee/GetEmployeeHistory',
                         type: 'GET',
                         data: {
                             personId: personId
@@ -1654,7 +1857,7 @@
             // ฟังก์ชันสำหรับลบกะการทำงาน
             function deleteShift(id) {
                 $.ajax({
-                    url: '/Employee/DeleteShiftHistory',
+                    url: appBasePath + 'Employee/DeleteShiftHistory',
                     type: 'POST',
                     data: {
                         id: id
@@ -1692,7 +1895,7 @@
                     TimeOut: $('#timeOut').val() ? $('#shiftDate').val() + 'T' + $('#timeOut').val() : null
                 };
                 $.ajax({
-                    url: '/Employee/SaveShiftChange',
+                    url: appBasePath + 'Employee/SaveShiftChange',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
@@ -1718,7 +1921,7 @@
             // ฟังก์ชันเพื่อโหลดข้อมูลประวัติการเปลี่ยนกะ
             function loadEmployeeHistory(personId) {
                 return $.ajax({
-                    url: '/Employee/GetEmployeeHistory',
+                    url: appBasePath + 'Employee/GetEmployeeHistory',
                     type: 'GET',
                     data: {
                         personId: personId
@@ -1915,7 +2118,7 @@
                 } else {
                     // กรณีไม่สามารถดึงข้อมูลจากตารางได้
                     $.ajax({
-                        url: '/Employee/GetEmployeeBasicInfo',
+                        url: appBasePath + 'Employee/GetEmployeeBasicInfo',
                         type: 'GET',
                         data: {
                             personId: personId
@@ -2044,7 +2247,7 @@
                     if (!hasCardData && cardNumber) {
                         // เพิ่มข้อมูล SQL944 ก่อน
                         $.ajax({
-                            url: '/Employee/CreateCardData',
+                            url: appBasePath + 'Employee/CreateCardData',
                             type: 'POST',
                             data: {
                                 personId: formData.PersonId,
@@ -2086,7 +2289,7 @@
             // ฟังก์ชันสำหรับบันทึกข้อมูลกะ
             function saveShiftData(formData) {
                 $.ajax({
-                    url: '/Employee/SaveShiftHistory',
+                    url: appBasePath + 'Employee/SaveShiftHistory',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
@@ -2183,7 +2386,7 @@
                 });
                 // ดึงข้อมูลพนักงาน
                 $.ajax({
-                    url: '/Employee/GetEmployeeById',
+                    url: appBasePath + 'Employee/GetEmployeeById',
                     type: 'GET',
                     data: {
                         personID: personId

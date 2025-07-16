@@ -17,6 +17,21 @@ namespace IPS_TH.Controllers.Employee
 {
     public class EmployeeController : BaseController
     {
+        private class SQL944DataResult
+        {
+            public HashSet<string> sql944Employees { get; set; }
+            public Dictionary<string, object> cardDict { get; set; } =
+                new Dictionary<string, object>();
+            public Dictionary<string, object> fingerprintDict { get; set; } =
+                new Dictionary<string, object>();
+            public Dictionary<string, string> nameDict { get; set; }
+            public Dictionary<string, string> deptNameDict { get; set; }
+            public Dictionary<string, string> deptIDDict { get; set; }
+            public Dictionary<string, string> cardNumberDict { get; set; }
+            public Dictionary<string, int> accessCountDict { get; set; }
+            public HashSet<string> fingerprintDataIds { get; set; }
+        }
+
         private readonly string _connectionString;
 
         private readonly string _hrIpsConnectionString;
@@ -56,13 +71,7 @@ namespace IPS_TH.Controllers.Employee
                 using (var connection = new SqlConnection(_sql944ConnectionString))
                 {
                     var query = @"SELECT * FROM Dept";
-
-                    // ถ้าไม่มีสิทธิ์ edit ให้แสดงเฉพาะแผนกของผู้ใช้
-                    // if (!CheckPermission("Edit"))
-                    // {
-                    //     query += " WHERE name = @userDept";
-                    // }
-
+                    
                     // เพิ่มข้อมูล Shiftdept
                     var shiftDeptQuery =
                         @"SELECT * FROM emp_shift WHERE record_status = 'N' ORDER BY shift_group";
@@ -81,7 +90,11 @@ namespace IPS_TH.Controllers.Employee
                     ViewBag.Doors = doors;
                 }
 
-                LoadPermissions("Employee", "Employee");
+                await LoadPermissions("Employee", "Employee");
+
+                // ส่งข้อมูลแผนกของผู้ใช้ไปยัง View
+                ViewData["CurrentUserDepartment"] = CurrentUserDepartment;
+
                 return View();
             }
             catch (Exception ex)
@@ -205,8 +218,75 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                // ดึงข้อมูลพนักงาน
+                // ตรวจสอบสิทธิ์การลบ
+                if (!CheckPermission("CanDelete"))
+                {
+                    return Json(
+                        new { success = false, message = "ไม่มีสิทธิ์ในการลบข้อมูลพนักงาน" }
+                    );
+                }
+
+                // ดึงข้อมูลแผนกของพนักงานที่ต้องการลบ
+                string employeeDeptId = "";
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    var deptQuery =
+                        "SELECT DeptID FROM Person WHERE personID = @personId OR personID = @personId1 OR personID = @personId2";
+                    var deptResult = await connection.QueryFirstOrDefaultAsync<string>(
+                        deptQuery,
+                        new
+                        {
+                            personId = personId,
+                            personId1 = personId + "-1",
+                            personId2 = personId + "-2",
+                        }
+                    );
+                    employeeDeptId = deptResult ?? "";
+                }
+
+                // ตรวจสอบสิทธิ์การลบตามแผนก
+                if (!IsCurrentUserAdmin)
+                {
+                    if (
+                        string.IsNullOrEmpty(CurrentUserDepartment)
+                        || string.IsNullOrEmpty(employeeDeptId)
+                        || !CurrentUserDepartment.Equals(
+                            employeeDeptId,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                    {
+                        return Json(
+                            new
+                            {
+                                success = false,
+                                message = "ไม่มีสิทธิ์ในการลบข้อมูลพนักงานในแผนกนี้",
+                            }
+                        );
+                    }
+                }
+
+                // ดึงข้อมูลพนักงานเพื่อตรวจสอบแผนก
                 var basePersonId = personId.Split('-')[0];
+
+                // ดึงข้อมูลพนักงานจากฐานข้อมูลเพื่อตรวจสอบแผนก
+                var employee = await _context.emp_person.FirstOrDefaultAsync(e =>
+                    e.personID.StartsWith(basePersonId)
+                );
+                if (employee != null)
+                {
+                    // ตรวจสอบสิทธิ์การเข้าถึงข้อมูลพนักงาน
+                    if (!CanAccessEmployeeData(employee.deptID))
+                    {
+                        return Json(
+                            new
+                            {
+                                success = false,
+                                message = "ไม่มีสิทธิ์ในการลบข้อมูลพนักงานในแผนกนี้",
+                            }
+                        );
+                    }
+                }
 
                 using (var sql944Connection = new SqlConnection(_sql944ConnectionString))
                 using (var hrConnection = new SqlConnection(_hrIpsConnectionString))
@@ -786,6 +866,33 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                // ตรวจสอบสิทธิ์การแก้ไข
+                if (!CheckPermission("CanEdit"))
+                {
+                    return Json(
+                        new { success = false, message = "ไม่มีสิทธิ์ในการแก้ไขข้อมูลพนักงาน" }
+                    );
+                }
+
+                // ตรวจสอบสิทธิ์การเข้าถึงแผนกที่ต้องการแก้ไข
+                if (!IsCurrentUserAdmin)
+                {
+                    if (
+                        string.IsNullOrEmpty(CurrentUserDepartment)
+                        || string.IsNullOrEmpty(deptID)
+                        || !CurrentUserDepartment.Equals(deptID, StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return Json(
+                            new
+                            {
+                                success = false,
+                                message = "ไม่มีสิทธิ์ในการแก้ไขข้อมูลในแผนกนี้",
+                            }
+                        );
+                    }
+                }
+
                 // ตรวจสอบว่ามีการระบุข้อมูลครบถ้วนหรือไม่
                 if (
                     string.IsNullOrEmpty(personID)
@@ -863,6 +970,31 @@ namespace IPS_TH.Controllers.Employee
                         WHERE deptID IS NOT NULL 
                         ORDER BY deptID";
                     var data = db.Query(sql).ToList<dynamic>();
+
+                    // กรองแผนกตามสิทธิ์การเข้าถึง
+                    if (data != null && data.Any())
+                    {
+                        // ถ้าเป็น admin ให้แสดงทั้งหมด
+                        if (IsCurrentUserAdmin)
+                        {
+                            return data;
+                        }
+                        else
+                        {
+                            // กรองเฉพาะแผนกที่ผู้ใช้มีสิทธิ์เข้าถึง
+                            var filteredData = data.Where(dept =>
+                                    !string.IsNullOrEmpty(CurrentUserDepartment)
+                                    && !string.IsNullOrEmpty(dept.deptID?.ToString())
+                                    && CurrentUserDepartment.Equals(
+                                        dept.deptID.ToString(),
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                )
+                                .ToList();
+                            return filteredData;
+                        }
+                    }
+
                     return data ?? new List<dynamic>();
                 }
             }
@@ -914,6 +1046,36 @@ namespace IPS_TH.Controllers.Employee
 
         // ปรับปรุงเมธอด GetEmployees เพื่อดึงข้อมูลจาก CES941 และ SQL944
         [HttpGet]
+        [Route("Employee/TestPermissions")]
+        public async Task<IActionResult> TestPermissions()
+        {
+            try
+            {
+                // ตรวจสอบว่า permissions ถูกโหลดแล้วหรือไม่
+                if (CurrentPermissions == null)
+                {
+                    Console.WriteLine("TestPermissions: Permissions not loaded, loading now...");
+                    await LoadPermissions("Employee", "TestPermissions");
+                }
+
+                return Json(
+                    new
+                    {
+                        success = true,
+                        permissions = CurrentPermissions,
+                        isAdmin = IsCurrentUserAdmin,
+                        userDepartment = CurrentUserDepartment,
+                        canView = CheckPermission("CanView"),
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpGet]
         [Route("Employee/GetEmployeesData")]
         public async Task<IActionResult> GetEmployees(
             string status = "",
@@ -925,274 +1087,521 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                // ดึงข้อมูลพนักงานจาก CES941
-                var ces941Employees = await GetEmployeesFromCES941();
+                // ตรวจสอบและโหลด permissions
+                await EnsurePermissionsLoaded();
 
-                // สร้าง Dictionary สำหรับพนักงานจาก CES941
-                var ces941Dict = new Dictionary<string, dynamic>();
+                // ตรวจสอบสิทธิ์การเข้าถึง
+                if (!CheckPermission("CanView"))
+                {
+                    return Json(new { error = "ไม่มีสิทธิ์ในการดูข้อมูลพนักงาน" });
+                }
+
+                // ดึงข้อมูลจากแหล่งต่างๆ แบบ parallel
+                var ces941Task = GetEmployeesFromCES941();
+                var sql944Task = GetSQL944Data();
+                var shiftsTask = GetShiftsData();
+
+                await Task.WhenAll(ces941Task, sql944Task, shiftsTask);
+
+                var ces941Employees = await ces941Task;
+                var sql944Data = await sql944Task;
+                var shifts = await shiftsTask;
+
+                // สร้าง Dictionary สำหรับข้อมูล CES941
+                var ces941Dict = new Dictionary<string, object>();
                 foreach (var emp in ces941Employees)
                 {
-                    string id = emp.EmpNo?.ToString().Trim();
-                    if (!string.IsNullOrEmpty(id))
+                    if (!string.IsNullOrEmpty(emp.EmpNo?.ToString().Trim()))
                     {
-                        ces941Dict[id] = emp;
+                        ces941Dict[emp.EmpNo.ToString().Trim()] = emp;
                     }
                 }
 
-                // ดึงข้อมูลพนักงานจาก SQL944
-                var sql944Employees = new HashSet<string>();
-                var cardDict = new Dictionary<string, dynamic>();
-                var fingerprintDict = new Dictionary<string, dynamic>();
-                var nameDict = new Dictionary<string, string>();
-                var deptNameDict = new Dictionary<string, string>();
-                var deptIDDict = new Dictionary<string, string>();
-                var cardNumberDict = new Dictionary<string, string>(); // เพิ่ม Dictionary สำหรับ cardNumber
-                var accessCountDict = new Dictionary<string, int>();
-                var fingerprintDataIds = new HashSet<string>();
+                // ประมวลผลข้อมูล SQL944
+                var sql944Employees = sql944Data.sql944Employees;
+                var cardDict = sql944Data.cardDict;
+                var fingerprintDict = sql944Data.fingerprintDict;
+                var nameDict = sql944Data.nameDict;
+                var deptNameDict = sql944Data.deptNameDict;
+                var deptIDDict = sql944Data.deptIDDict;
+                var cardNumberDict = sql944Data.cardNumberDict;
+                var accessCountDict = sql944Data.accessCountDict;
+                var fingerprintDataIds = sql944Data.fingerprintDataIds;
 
-                using (var sql944Connection = new SqlConnection(_sql944ConnectionString))
-                {
-                    // ดึงข้อมูลบัตร (-1) รวมทั้ง cardNumber
-                    var cardSql =
-                        @"SELECT personID, Name, DeptName, DeptID, CardNumber FROM Person WHERE personID LIKE '%-1'";
-                    var cardData = await sql944Connection.QueryAsync<dynamic>(cardSql);
-                    foreach (var card in cardData)
-                    {
-                        string baseId = card.personID.Split('-')[0].Trim();
-                        sql944Employees.Add(baseId);
-                        cardDict[baseId] = card;
-                        if (!string.IsNullOrEmpty(card.Name))
-                            nameDict[baseId] = card.Name;
-                        if (!string.IsNullOrEmpty(card.DeptName))
-                            deptNameDict[baseId] = card.DeptName;
-                        if (!string.IsNullOrEmpty(card.DeptID))
-                            deptIDDict[baseId] = card.DeptID;
-                        // เก็บ cardNumber จาก SQL944
-                        if (!string.IsNullOrEmpty(card.CardNumber))
-                            cardNumberDict[baseId] = card.CardNumber;
-                    }
+                // รวมข้อมูลพนักงาน
+                var employeesList = await BuildEmployeesList(
+                    ces941Dict,
+                    sql944Employees,
+                    sql944Data.cardDict,
+                    sql944Data.fingerprintDict,
+                    sql944Data.nameDict,
+                    sql944Data.deptNameDict,
+                    sql944Data.deptIDDict,
+                    sql944Data.cardNumberDict,
+                    sql944Data.accessCountDict,
+                    sql944Data.fingerprintDataIds,
+                    shifts
+                );
 
-                    // ดึงข้อมูลลายนิ้วมือ (-2)
-                    var fingerprintSql =
-                        @"SELECT personID, Name, DeptName, DeptID FROM Person WHERE personID LIKE '%-2'";
-                    var fingerprintData = await sql944Connection.QueryAsync<dynamic>(
-                        fingerprintSql
-                    );
-                    foreach (var fp in fingerprintData)
-                    {
-                        string baseId = fp.personID.Split('-')[0].Trim();
-                        sql944Employees.Add(baseId);
-                        fingerprintDict[baseId] = fp;
-                        if (!string.IsNullOrEmpty(fp.Name) && !nameDict.ContainsKey(baseId))
-                            nameDict[baseId] = fp.Name;
-                        if (!string.IsNullOrEmpty(fp.DeptName) && !deptNameDict.ContainsKey(baseId))
-                            deptNameDict[baseId] = fp.DeptName;
-                        if (!string.IsNullOrEmpty(fp.DeptID) && !deptIDDict.ContainsKey(baseId))
-                            deptIDDict[baseId] = fp.DeptID;
-                    }
+                // กรองข้อมูลตามเงื่อนไข
+                employeesList = await ApplyFilters(
+                    employeesList,
+                    status,
+                    door,
+                    department,
+                    shift,
+                    fingerprint
+                );
 
-                    // ดึงข้อมูลสิทธิ์การเข้าประตู
-                    var doorAccessSql =
-                        @"SELECT personID, doorID FROM PubDoorAuth WHERE reserve1 != 2";
-                    var doorAccessData = await sql944Connection.QueryAsync<dynamic>(doorAccessSql);
-                    foreach (var access in doorAccessData)
-                    {
-                        string baseId = access.personID.Split('-')[0].Trim();
-                        accessCountDict[baseId] = accessCountDict.GetValueOrDefault(baseId, 0) + 1;
-                    }
+                // Debug logging
+                LogEmployeeCount(employeesList.Count);
 
-                    // ดึงข้อมูลลายนิ้วมือ
-                    var fingerprintDataSql =
-                        @"SELECT PersonID FROM Person_FP WHERE (FP1 IS NOT NULL OR FP2 IS NOT NULL)";
-                    var fingerprintRecords = await sql944Connection.QueryAsync<string>(
-                        fingerprintDataSql
-                    );
-                    fingerprintDataIds = fingerprintRecords
-                        .Select(id => id.Split('-')[0].Trim())
-                        .ToHashSet();
-                }
-
-                // ดึงข้อมูลกะ
-                var shifts = await _context
-                    .emp_person_shift.Where(s => s.personID != null)
-                    .GroupBy(s => s.personID)
-                    .Select(g => new
-                    {
-                        PersonID = g.Key,
-                        ShiftMent = g.OrderByDescending(s => s.date).FirstOrDefault().shiftMent,
-                    })
-                    .ToDictionaryAsync(k => k.PersonID, v => v.ShiftMent);
-
-                // รวมข้อมูลพนักงานจากทั้งสองแหล่ง
-                var employeesList = new List<dynamic>();
-                var processedIds = new HashSet<string>();
-
-                // ประมวลผลพนักงานจาก CES941
-                foreach (var kvp in ces941Dict)
-                {
-                    string id = kvp.Key;
-                    var emp = kvp.Value;
-                    processedIds.Add(id); 
-
-                    bool inSql944 = sql944Employees.Contains(id);
-                    var cardData = cardDict.GetValueOrDefault(id);
-                    var fingerprintData = fingerprintDict.GetValueOrDefault(id);
-
-                    employeesList.Add(
-                        new
-                        {
-                            personID = id,
-                            name = nameDict.ContainsKey(id)
-                            && !string.IsNullOrWhiteSpace(nameDict[id])
-                                ? nameDict[id]
-                                : $"{emp.PrefixName} {emp.EmpName} {emp.EmpLName}".Trim(),
-                            department = deptNameDict.ContainsKey(id)
-                            && !string.IsNullOrWhiteSpace(deptNameDict[id])
-                                ? deptNameDict[id]
-                                : emp.DeptName ?? "",
-                            deptID = deptIDDict.ContainsKey(id)
-                            && !string.IsNullOrWhiteSpace(deptIDDict[id])
-                                ? deptIDDict[id]
-                                : emp.DeptID ?? "",
-                            position = emp.PositionName ?? "",
-                            startDate = emp.EmpStartDate,
-                            resignDate = emp.EmpResignDate,
-                            phone = emp.MobilePhone ?? "",
-                            email = emp.eMailAdd ?? "",
-                            gender = emp.Gender ?? "",
-                            cardNumber = cardNumberDict.GetValueOrDefault(id, ""), // ใช้ cardNumber จาก SQL944
-                            hasCardData = cardDict.ContainsKey(id),
-                            hasFingerprintData = fingerprintDict.ContainsKey(id),
-                            accessCount = accessCountDict.GetValueOrDefault(id, 0),
-                            shift = shifts.GetValueOrDefault(id, ""),
-                            hasFingerprint = fingerprintDataIds.Contains(id),
-                            isActive = (cardDict.ContainsKey(id) || fingerprintDict.ContainsKey(id))
-                                ? 1
-                                : 0,
-                            existsInCES941 = true,
-                            existsInSQL944 = inSql944,
-                        }
-                    );
-                }
-
-                // ประมวลผลพนักงานที่มีเฉพาะใน SQL944
-                foreach (var id in sql944Employees)
-                {
-                    if (!processedIds.Contains(id))
-                    {
-                        var cardData = cardDict.GetValueOrDefault(id);
-                        var fingerprintData = fingerprintDict.GetValueOrDefault(id);
-                        var sql944Data = cardData ?? fingerprintData;
-
-                        employeesList.Add(
-                            new
-                            {
-                                personID = id,
-                                name = nameDict.GetValueOrDefault(id, "ไม่ระบุชื่อ"),
-                                department = deptNameDict.GetValueOrDefault(id, ""),
-                                deptID = deptIDDict.GetValueOrDefault(id, ""),
-                                position = "",
-                                startDate = "",
-                                resignDate = "",
-                                phone = "",
-                                email = "",
-                                gender = "",
-                                cardNumber = cardNumberDict.GetValueOrDefault(id, ""), // ใช้ cardNumber จาก SQL944
-                                hasCardData = cardDict.ContainsKey(id),
-                                hasFingerprintData = fingerprintDict.ContainsKey(id),
-                                accessCount = accessCountDict.GetValueOrDefault(id, 0),
-                                shift = shifts.GetValueOrDefault(id, ""),
-                                hasFingerprint = fingerprintDataIds.Contains(id),
-                                isActive = (
-                                    cardDict.ContainsKey(id) || fingerprintDict.ContainsKey(id)
-                                )
-                                    ? 1
-                                    : 0,
-                                existsInCES941 = false,
-                                existsInSQL944 = true,
-                            }
-                        );
-                    }
-                }
-
-                // กรองตามเงื่อนไข
-                if (!string.IsNullOrEmpty(status))
-                {
-                    employeesList = status switch
-                    {
-                        "1" => employeesList
-                            .Where(e => ((dynamic)e).hasCardData || ((dynamic)e).hasFingerprintData)
-                            .ToList(),
-                        "0" => employeesList
-                            .Where(e =>
-                                !((dynamic)e).hasCardData && !((dynamic)e).hasFingerprintData
-                            )
-                            .ToList(),
-                        "incomplete" => employeesList
-                            .Where(e =>
-                                !((dynamic)e).existsInCES941 || !((dynamic)e).existsInSQL944
-                            )
-                            .ToList(),
-                        "ces941only" => employeesList
-                            .Where(e => ((dynamic)e).existsInCES941 && !((dynamic)e).existsInSQL944)
-                            .ToList(),
-                        "sql944only" => employeesList
-                            .Where(e => !((dynamic)e).existsInCES941 && ((dynamic)e).existsInSQL944)
-                            .ToList(),
-                        "active" => employeesList
-                            .Where(e => ((dynamic)e).resignDate == null)
-                            .ToList(),
-                        "resigned" => employeesList
-                            .Where(e => ((dynamic)e).resignDate != null)
-                            .ToList(),
-                        _ => employeesList,
-                    };
-                }
-
-                if (!string.IsNullOrEmpty(door) && door != "all")
-                {
-                    using (var sql944Connection = new SqlConnection(_sql944ConnectionString))
-                    {
-                        var doorAccessSql =
-                            @"SELECT DISTINCT personID FROM PubDoorAuth WHERE doorID = @doorID AND reserve1 != 2";
-                        var authorizedPersons = await sql944Connection.QueryAsync<string>(
-                            doorAccessSql,
-                            new { doorID = door }
-                        );
-                        var basePersonIds = authorizedPersons
-                            .Select(p => p.Split('-')[0].Trim())
-                            .ToHashSet();
-                        employeesList = employeesList
-                            .Where(e => basePersonIds.Contains(((dynamic)e).personID))
-                            .ToList();
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(department))
-                    employeesList = employeesList
-                        .Where(e => ((dynamic)e).deptID == department)
-                        .ToList();
-
-                if (!string.IsNullOrEmpty(shift))
-                    employeesList = employeesList.Where(e => ((dynamic)e).shift == shift).ToList();
-
-                // กรองตามข้อมูลลายนิ้วมือ
-                if (!string.IsNullOrEmpty(fingerprint))
-                {
-                    employeesList = fingerprint switch
-                    {
-                        "has" => employeesList.Where(e => ((dynamic)e).hasFingerprint).ToList(),
-                        "none" => employeesList.Where(e => !((dynamic)e).hasFingerprint).ToList(),
-                        _ => employeesList,
-                    };
-                }
-
-                return Json(new { success = true, data = employeesList });
+                return Json(employeesList ?? new List<dynamic>());
+            }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogWarning($"GetEmployeesData: Context disposed error - {ex.Message}");
+                return Json(new List<dynamic>());
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetEmployees: {ex.Message}");
-                return Json(new { success = false, message = ex.Message });
+                _logger.LogError($"Error in GetEmployees: {ex.Message}");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        private async Task EnsurePermissionsLoaded()
+        {
+            if (CurrentPermissions == null)
+            {
+                _logger.LogInformation("GetEmployeesData: Permissions not loaded, loading now...");
+                await LoadPermissions("Employee", "employee");
+            }
+        }
+
+        private async Task<SQL944DataResult> GetSQL944Data()
+        {
+            var sql944Employees = new HashSet<string>();
+            var cardDict = new Dictionary<string, object>();
+            var fingerprintDict = new Dictionary<string, object>();
+            var nameDict = new Dictionary<string, string>();
+            var deptNameDict = new Dictionary<string, string>();
+            var deptIDDict = new Dictionary<string, string>();
+            var cardNumberDict = new Dictionary<string, string>();
+            var accessCountDict = new Dictionary<string, int>();
+            var fingerprintDataIds = new HashSet<string>();
+
+            using var sql944Connection = new SqlConnection(_sql944ConnectionString);
+            await sql944Connection.OpenAsync();
+
+            // ดึงข้อมูลบัตร (-1)
+            var cardSql =
+                @"SELECT personID, Name, DeptName, DeptID, CardNumber FROM Person WHERE personID LIKE '%-1'";
+            var cardData = await sql944Connection.QueryAsync<dynamic>(cardSql);
+
+            foreach (var card in cardData)
+            {
+                string baseId = card.personID.Split('-')[0].Trim();
+                sql944Employees.Add(baseId);
+                cardDict[baseId] = card;
+
+                if (!string.IsNullOrEmpty(card.Name))
+                    nameDict[baseId] = card.Name;
+                if (!string.IsNullOrEmpty(card.DeptName))
+                    deptNameDict[baseId] = card.DeptName;
+                if (!string.IsNullOrEmpty(card.DeptID))
+                    deptIDDict[baseId] = card.DeptID;
+                if (!string.IsNullOrEmpty(card.CardNumber))
+                    cardNumberDict[baseId] = card.CardNumber;
+            }
+
+            // ดึงข้อมูลลายนิ้วมือ (-2)
+            var fingerprintSql =
+                @"SELECT personID, Name, DeptName, DeptID FROM Person WHERE personID LIKE '%-2'";
+            var fingerprintData = await sql944Connection.QueryAsync<dynamic>(fingerprintSql);
+
+            foreach (var fp in fingerprintData)
+            {
+                string baseId = fp.personID.Split('-')[0].Trim();
+                sql944Employees.Add(baseId);
+                fingerprintDict[baseId] = fp;
+
+                if (!string.IsNullOrEmpty(fp.Name) && !nameDict.ContainsKey(baseId))
+                    nameDict[baseId] = fp.Name;
+                if (!string.IsNullOrEmpty(fp.DeptName) && !deptNameDict.ContainsKey(baseId))
+                    deptNameDict[baseId] = fp.DeptName;
+                if (!string.IsNullOrEmpty(fp.DeptID) && !deptIDDict.ContainsKey(baseId))
+                    deptIDDict[baseId] = fp.DeptID;
+            }
+
+            // ดึงข้อมูลสิทธิ์การเข้าประตู
+            var doorAccessSql = @"SELECT personID, doorID FROM PubDoorAuth WHERE reserve1 != 2";
+            var doorAccessData = await sql944Connection.QueryAsync<dynamic>(doorAccessSql);
+
+            foreach (var access in doorAccessData)
+            {
+                string baseId = access.personID.Split('-')[0].Trim();
+                accessCountDict[baseId] = accessCountDict.GetValueOrDefault(baseId, 0) + 1;
+            }
+
+            // ดึงข้อมูลลายนิ้วมือ
+            var fingerprintDataSql =
+                @"SELECT PersonID FROM Person_FP WHERE (FP1 IS NOT NULL OR FP2 IS NOT NULL)";
+            var fingerprintRecords = await sql944Connection.QueryAsync<string>(fingerprintDataSql);
+            fingerprintDataIds = fingerprintRecords
+                .Select(id => id.Split('-')[0].Trim())
+                .ToHashSet();
+
+            return new SQL944DataResult
+            {
+                sql944Employees = sql944Employees,
+                cardDict = cardDict,
+                fingerprintDict = fingerprintDict,
+                nameDict = nameDict,
+                deptNameDict = deptNameDict,
+                deptIDDict = deptIDDict,
+                cardNumberDict = cardNumberDict,
+                accessCountDict = accessCountDict,
+                fingerprintDataIds = fingerprintDataIds,
+            };
+        }
+
+        private async Task<Dictionary<string, string>> GetShiftsData()
+        {
+            return await _context
+                .emp_person_shift.Where(s => s.personID != null)
+                .GroupBy(s => s.personID)
+                .Select(g => new
+                {
+                    PersonID = g.Key,
+                    ShiftMent = g.OrderByDescending(s => s.date).FirstOrDefault().shiftMent,
+                })
+                .ToDictionaryAsync(k => k.PersonID, v => v.ShiftMent);
+        }
+
+        private async Task<List<dynamic>> BuildEmployeesList(
+            Dictionary<string, object> ces941Dict,
+            HashSet<string> sql944Employees,
+            Dictionary<string, object> cardDict,
+            Dictionary<string, object> fingerprintDict,
+            Dictionary<string, string> nameDict,
+            Dictionary<string, string> deptNameDict,
+            Dictionary<string, string> deptIDDict,
+            Dictionary<string, string> cardNumberDict,
+            Dictionary<string, int> accessCountDict,
+            HashSet<string> fingerprintDataIds,
+            Dictionary<string, string> shifts
+        )
+        {
+            var employeesList = new List<dynamic>();
+            var processedIds = new HashSet<string>();
+
+            // ประมวลผลพนักงานจาก CES941
+            foreach (var kvp in ces941Dict)
+            {
+                string id = kvp.Key;
+                var emp = kvp.Value;
+                processedIds.Add(id);
+
+                var employeeData = CreateEmployeeData(
+                    id,
+                    emp,
+                    sql944Employees,
+                    cardDict,
+                    fingerprintDict,
+                    nameDict,
+                    deptNameDict,
+                    deptIDDict,
+                    cardNumberDict,
+                    accessCountDict,
+                    fingerprintDataIds,
+                    shifts,
+                    true,
+                    true
+                );
+
+                if (employeeData != null)
+                {
+                    employeesList.Add(employeeData);
+                }
+            }
+
+            // ประมวลผลพนักงานที่มีเฉพาะใน SQL944
+            foreach (var id in sql944Employees)
+            {
+                if (!processedIds.Contains(id))
+                {
+                    var employeeData = CreateEmployeeData(
+                        id,
+                        null,
+                        sql944Employees,
+                        cardDict,
+                        fingerprintDict,
+                        nameDict,
+                        deptNameDict,
+                        deptIDDict,
+                        cardNumberDict,
+                        accessCountDict,
+                        fingerprintDataIds,
+                        shifts,
+                        false,
+                        true
+                    );
+
+                    if (employeeData != null)
+                    {
+                        employeesList.Add(employeeData);
+                    }
+                }
+            }
+
+            return employeesList;
+        }
+
+        private dynamic CreateEmployeeData(
+            string id,
+            dynamic emp,
+            HashSet<string> sql944Employees,
+            Dictionary<string, dynamic> cardDict,
+            Dictionary<string, dynamic> fingerprintDict,
+            Dictionary<string, string> nameDict,
+            Dictionary<string, string> deptNameDict,
+            Dictionary<string, string> deptIDDict,
+            Dictionary<string, string> cardNumberDict,
+            Dictionary<string, int> accessCountDict,
+            HashSet<string> fingerprintDataIds,
+            Dictionary<string, string> shifts,
+            bool existsInCES941,
+            bool existsInSQL944
+        )
+        {
+            bool inSql944 = sql944Employees.Contains(id);
+
+            // ตรวจสอบสิทธิ์การเข้าถึงข้อมูลพนักงานตามแผนก
+            string employeeDeptId =
+                deptIDDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(deptIDDict[id])
+                    ? deptIDDict[id]
+                    : emp?.DeptID ?? "";
+
+            // กรองข้อมูลตามสิทธิ์การเข้าถึง
+            if (!IsCurrentUserAdmin)
+            {
+                // ตรวจสอบว่าผู้ใช้มีแผนกหรือไม่ และแผนกของพนักงานตรงกับของผู้ใช้หรือไม่
+                if (string.IsNullOrEmpty(CurrentUserDepartment))
+                {
+                    return null; // ข้ามพนักงานที่ไม่มีสิทธิ์เข้าถึง
+                }
+            }
+
+            // สร้างข้อมูลพนักงาน
+            return new
+            {
+                personID = id,
+                name = GetEmployeeName(id, emp, nameDict),
+                department = GetEmployeeDepartment(id, emp, deptNameDict),
+                deptID = GetEmployeeDeptID(id, emp, deptIDDict),
+                position = emp?.PositionName ?? "",
+                startDate = emp?.EmpStartDate,
+                resignDate = emp?.EmpResignDate,
+                phone = emp?.MobilePhone ?? "",
+                email = emp?.eMailAdd ?? "",
+                gender = emp?.Gender ?? "",
+                cardNumber = cardNumberDict.GetValueOrDefault(id, ""),
+                hasCardData = cardDict.ContainsKey(id),
+                hasFingerprintData = fingerprintDict.ContainsKey(id),
+                accessCount = accessCountDict.GetValueOrDefault(id, 0),
+                shift = shifts.GetValueOrDefault(id, ""),
+                hasFingerprint = fingerprintDataIds.Contains(id),
+                isActive = (cardDict.ContainsKey(id) || fingerprintDict.ContainsKey(id)) ? 1 : 0,
+                existsInCES941 = existsInCES941,
+                existsInSQL944 = existsInSQL944,
+            };
+        }
+
+        private string GetEmployeeName(string id, dynamic emp, Dictionary<string, string> nameDict)
+        {
+            if (nameDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(nameDict[id]))
+            {
+                return nameDict[id];
+            }
+
+            if (emp != null)
+            {
+                return $"{emp.PrefixName} {emp.EmpName} {emp.EmpLName}".Trim();
+            }
+
+            return "ไม่ระบุชื่อ";
+        }
+
+        private string GetEmployeeDepartment(
+            string id,
+            dynamic emp,
+            Dictionary<string, string> deptNameDict
+        )
+        {
+            if (deptNameDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(deptNameDict[id]))
+            {
+                return deptNameDict[id];
+            }
+
+            return emp?.DeptName ?? "";
+        }
+
+        private string GetEmployeeDeptID(
+            string id,
+            dynamic emp,
+            Dictionary<string, string> deptIDDict
+        )
+        {
+            if (deptIDDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(deptIDDict[id]))
+            {
+                return deptIDDict[id];
+            }
+
+            return emp?.DeptID ?? "";
+        }
+
+        private async Task<List<dynamic>> ApplyFilters(
+            List<dynamic> employeesList,
+            string status,
+            string door,
+            string department,
+            string shift,
+            string fingerprint
+        )
+        {
+            // กรองตามสถานะ
+            if (!string.IsNullOrEmpty(status))
+            {
+                employeesList = status switch
+                {
+                    "1" => employeesList
+                        .Where(e => ((dynamic)e).hasCardData || ((dynamic)e).hasFingerprintData)
+                        .ToList(),
+                    "0" => employeesList
+                        .Where(e => !((dynamic)e).hasCardData && !((dynamic)e).hasFingerprintData)
+                        .ToList(),
+                    "incomplete" => employeesList
+                        .Where(e => !((dynamic)e).existsInCES941 || !((dynamic)e).existsInSQL944)
+                        .ToList(),
+                    "ces941only" => employeesList
+                        .Where(e => ((dynamic)e).existsInCES941 && !((dynamic)e).existsInSQL944)
+                        .ToList(),
+                    "sql944only" => employeesList
+                        .Where(e => !((dynamic)e).existsInCES941 && ((dynamic)e).existsInSQL944)
+                        .ToList(),
+                    "active" => employeesList.Where(e => ((dynamic)e).resignDate == null).ToList(),
+                    "resigned" => employeesList
+                        .Where(e => ((dynamic)e).resignDate != null)
+                        .ToList(),
+                    _ => employeesList,
+                };
+            }
+
+            // กรองตามประตู
+            if (!string.IsNullOrEmpty(door) && door != "all")
+            {
+                employeesList = await FilterByDoor(employeesList, door);
+            }
+
+            // กรองตามแผนก - ปรับปรุงให้กรองจากชื่อแผนก (department) และรหัสแผนก (deptID)
+            if (!string.IsNullOrEmpty(department) && department != "all")
+            {
+                employeesList = employeesList
+                    .Where(e =>
+                    {
+                        var emp = (dynamic)e;
+
+                        // ตรวจสอบข้อมูลแผนกจากทั้ง department และ deptID
+                        string empDepartment = "";
+                        string empDeptID = "";
+
+                        // ดึงข้อมูล department
+                        if (emp.department != null)
+                        {
+                            empDepartment = emp.department.ToString().ToLower().Trim();
+                        }
+
+                        // ดึงข้อมูล deptID
+                        if (emp.deptID != null)
+                        {
+                            empDeptID = emp.deptID.ToString().ToLower().Trim();
+                        }
+
+                        // ถ้าไม่มีข้อมูลแผนกเลย ให้ข้าม
+                        if (string.IsNullOrEmpty(empDepartment) && string.IsNullOrEmpty(empDeptID))
+                        {
+                            return false;
+                        }
+
+                        string filterDepartment = department.ToLower().Trim();
+
+                        // เปรียบเทียบกับทั้งชื่อแผนกและรหัสแผนก
+                        return empDepartment == filterDepartment
+                            || empDepartment.Contains(filterDepartment)
+                            || empDeptID == filterDepartment
+                            || empDeptID.Contains(filterDepartment);
+                    })
+                    .ToList();
+            }
+
+            // กรองตามกะ
+            if (!string.IsNullOrEmpty(shift) && shift != "all")
+            {
+                employeesList = employeesList
+                    .Where(e =>
+                    {
+                        var emp = (dynamic)e;
+                        // ตรวจสอบว่ามีข้อมูล shift หรือไม่ และไม่เป็น null
+                        if (emp.shift == null)
+                            return false;
+
+                        // แปลงเป็น string และทำการเปรียบเทียบแบบไม่คำนึงถึงตัวพิมพ์ใหญ่-เล็ก
+                        string empShift = emp.shift.ToString().ToLower().Trim();
+                        string filterShift = shift.ToLower().Trim();
+
+                        // เปรียบเทียบแบบ exact match หรือ contains
+                        return empShift == filterShift || empShift.Contains(filterShift);
+                    })
+                    .ToList();
+            }
+
+            // กรองตามข้อมูลลายนิ้วมือ
+            if (!string.IsNullOrEmpty(fingerprint))
+            {
+                employeesList = fingerprint switch
+                {
+                    "has" => employeesList.Where(e => ((dynamic)e).hasFingerprint).ToList(),
+                    "none" => employeesList.Where(e => !((dynamic)e).hasFingerprint).ToList(),
+                    _ => employeesList,
+                };
+            }
+
+            return employeesList;
+        }
+
+        private async Task<List<dynamic>> FilterByDoor(List<dynamic> employeesList, string door)
+        {
+            using var sql944Connection = new SqlConnection(_sql944ConnectionString);
+            var doorAccessSql =
+                @"SELECT DISTINCT personID FROM PubDoorAuth WHERE doorID = @doorID AND reserve1 != 2";
+            var authorizedPersons = await sql944Connection.QueryAsync<string>(
+                doorAccessSql,
+                new { doorID = door }
+            );
+            var basePersonIds = authorizedPersons.Select(p => p.Split('-')[0].Trim()).ToHashSet();
+
+            return employeesList.Where(e => basePersonIds.Contains(((dynamic)e).personID)).ToList();
+        }
+
+        private void LogEmployeeCount(int count)
+        {
+            _logger.LogInformation($"GetEmployeesData: Final employee list has {count} employees");
+            if (count == 0)
+            {
+                _logger.LogWarning(
+                    "GetEmployeesData: Warning - No employees found. This might be due to permission filtering."
+                );
             }
         }
 
@@ -1353,6 +1762,14 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                // ตรวจสอบสิทธิ์การดู
+                if (!CheckPermission("CanView"))
+                {
+                    return Json(
+                        new { success = false, message = "ไม่มีสิทธิ์ในการดูข้อมูลพนักงาน" }
+                    );
+                }
+
                 using (var connection = new SqlConnection(_connectionString))
                 using (var sql944 = new SqlConnection(_sql944ConnectionString))
                 {
@@ -1370,9 +1787,32 @@ namespace IPS_TH.Controllers.Employee
                     );
 
                     // ตรวจสอบว่าพบข้อมูลหรือไม่
-                    if (sql944Employee == null)
+                    if (sql944Employee == null || !sql944Employee.Any())
                     {
                         return Json(new { success = false, message = "ไม่พบข้อมูลพนักงาน" });
+                    }
+
+                    // ตรวจสอบสิทธิ์การเข้าถึงข้อมูลพนักงานตามแผนก
+                    var firstEmployee = sql944Employee.FirstOrDefault();
+                    if (firstEmployee != null && !IsCurrentUserAdmin)
+                    {
+                        if (
+                            string.IsNullOrEmpty(CurrentUserDepartment)
+                            || string.IsNullOrEmpty(firstEmployee.deptID)
+                            || !CurrentUserDepartment.Equals(
+                                firstEmployee.deptID,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        {
+                            return Json(
+                                new
+                                {
+                                    success = false,
+                                    message = "ไม่มีสิทธิ์ในการเข้าถึงข้อมูลพนักงานในแผนกนี้",
+                                }
+                            );
+                        }
                     }
 
                     var result = new { success = true, data = new { emp_person = sql944Employee } };
@@ -1399,6 +1839,33 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                // ตรวจสอบสิทธิ์การเพิ่ม
+                if (!CheckPermission("CanAdd"))
+                {
+                    return Json(
+                        new { success = false, message = "ไม่มีสิทธิ์ในการเพิ่มข้อมูลพนักงาน" }
+                    );
+                }
+
+                // ตรวจสอบสิทธิ์การเข้าถึงแผนกที่ต้องการเพิ่ม
+                if (!IsCurrentUserAdmin)
+                {
+                    if (
+                        string.IsNullOrEmpty(CurrentUserDepartment)
+                        || string.IsNullOrEmpty(deptID)
+                        || !CurrentUserDepartment.Equals(deptID, StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return Json(
+                            new
+                            {
+                                success = false,
+                                message = "ไม่มีสิทธิ์ในการเพิ่มข้อมูลในแผนกนี้",
+                            }
+                        );
+                    }
+                }
+
                 // ตรวจสอบข้อมูลที่จำเป็น
                 if (
                     string.IsNullOrEmpty(personID)
@@ -2041,6 +2508,8 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+            
+
                 using (IDbConnection db = new SqlConnection(_sql944ConnectionString))
                 {
                     if (state == 0)
@@ -2148,6 +2617,12 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                // ตรวจสอบสิทธิ์การแก้ไขสิทธิ์ประตู - เฉพาะ admin เท่านั้น
+                if (!IsCurrentUserAdmin)
+                {
+                    return Json(new { status = "error", message = "ไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู" });
+                }
+
                 using (IDbConnection db = new SqlConnection(_sql944ConnectionString))
                 {
                     // ดึงข้อมูลประตูทั้งหมด
@@ -2180,6 +2655,12 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                // ตรวจสอบสิทธิ์การแก้ไขสิทธิ์ประตู - เฉพาะ admin เท่านั้น
+                if (!IsCurrentUserAdmin)
+                {
+                    return Json(new { status = "error", message = "ไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู" });
+                }
+
                 var result = await AddBasicDoorAccess(personId);
                 if (result.Success)
                 {
@@ -2360,6 +2841,12 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                // ตรวจสอบสิทธิ์การแก้ไขสิทธิ์ประตู - เฉพาะ admin เท่านั้น
+                if (!IsCurrentUserAdmin)
+                {
+                    return Json(new { status = "error", message = "ไม่มีสิทธิ์ในการแก้ไขสิทธิ์ประตู" });
+                }
+
                 using (IDbConnection db = new SqlConnection(_sql944ConnectionString))
                 {
                     // แทนที่จะลบ ให้ update reserve1 = 2 แทน
@@ -2916,9 +3403,6 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                // ใช้ async/await เพื่อรอให้การโหลด permissions เสร็จสมบูรณ์
-                LoadPermissions("Employee", "TypeShift");
-
                 // ดึงข้อมูลกะทั้งหมด
                 var shifts = await _context
                     .emp_shift.Where(s => s.record_status == "N")
@@ -3249,7 +3733,7 @@ namespace IPS_TH.Controllers.Employee
                         }
                     );
 
-                    // ไม่ต้องเพิ่มข้อมูลลงใน emp_person_shift ที่นี่ 
+                    // ไม่ต้องเพิ่มข้อมูลลงใน emp_person_shift ที่นี่
                     // เพราะ SaveShiftHistory จะจัดการเองแล้ว
                 }
 
@@ -3284,12 +3768,15 @@ namespace IPS_TH.Controllers.Employee
         {
             if (string.IsNullOrEmpty(fullName))
                 return fullName;
-                
+
             // ลบคำนำหน้าชื่อ
-            string name = System.Text.RegularExpressions.Regex.Replace(fullName, 
-                @"^(Mr\.|Mrs\.|Miss|Ms\.|Dr\.|Prof\.)\s+", "", 
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            
+            string name = System.Text.RegularExpressions.Regex.Replace(
+                fullName,
+                @"^(Mr\.|Mrs\.|Miss|Ms\.|Dr\.|Prof\.)\s+",
+                "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
             // แยกชื่อและนามสกุล
             string[] nameParts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (nameParts.Length >= 2)

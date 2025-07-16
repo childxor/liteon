@@ -141,12 +141,15 @@
 
 @section Scripts {
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         var table;
 
         $(document).ready(function() {
             table = $('#shiftTable').DataTable({
                 "ajax": {
-                    "url": "@Url.Action("GetShifts", "Employee")",
+                    "url": appBasePath + "Employee/GetShifts",
                     "type": "GET",
                     "datatype": "json"
                 },
@@ -243,7 +246,7 @@
                 row.child.hide();
                 tr.removeClass('shown');
             } else {
-                $.get('@Url.Action("GetShiftById", "Employee")/' + id, function(data) {
+                $.get(appBasePath + 'Employee/GetShiftById/' + id, function(data) {
                     var childContent = `
                         <div class="card shadow-sm border-0 my-3">
                             <div class="card-header bg-light py-3">
@@ -431,7 +434,7 @@
             };
 
             $.ajax({
-                url: '@Url.Action("SaveShift", "Employee")',
+                url: appBasePath + 'Employee/SaveShift',
                 type: 'POST',
                 data: JSON.stringify(data),
                 contentType: 'application/json',
@@ -472,7 +475,7 @@
 
         function openEditModal(id) {
             $('#modalTitleText').text('แก้ไขกะการทำงาน');
-            $.get('@Url.Action("GetShiftById", "Employee")/' + id, function(data) {
+            $.get(appBasePath + 'Employee/GetShiftById/' + id, function(data) {
                 $('#shiftId').val(data.id);
                 $('#shiftCode').val(data.shift_code);
                 $('#shiftName').val(data.shift_name);
@@ -504,7 +507,7 @@
             };
 
             $.ajax({
-                url: '@Url.Action("SaveShift", "Employee")',
+                url: appBasePath + 'Employee/SaveShift',
                 type: 'POST',
                 data: JSON.stringify(data),
                 contentType: 'application/json',
@@ -543,7 +546,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '@Url.Action("DeleteShift", "Employee")/' + id,
+                        url: appBasePath + 'Employee/DeleteShift/' + id,
                         type: 'POST',
                         success: function(response) {
                             if (response.success) {

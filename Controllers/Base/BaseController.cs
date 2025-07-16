@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore; // เพิ่มบรรทัดนี้
 using Newtonsoft.Json;
 
-namespace IPS_TH.Controllers
+namespace IPS_TH.Controllers 
 {
     public class BaseController : Controller
     {
@@ -38,33 +38,39 @@ namespace IPS_TH.Controllers
         }
 
         protected Dictionary<string, bool> CurrentPermissions { get; private set; }
+        
+        // เพิ่ม property สำหรับเก็บข้อมูลแผนกของผู้ใช้
+        protected string CurrentUserDepartment { get; private set; }
+        
+        // เพิ่ม property สำหรับตรวจสอบว่าเป็น admin หรือไม่
+        protected bool IsCurrentUserAdmin { get; private set; }
 
-        public override async Task OnActionExecutionAsync(
-            ActionExecutingContext context,
-            ActionExecutionDelegate next
-        )
-        {
-            try
-            {
-                if (!IsUserLoggedIn())
-                {
-                    context.Result = RedirectToAction("Login", "Authen");
-                    return;
-                }
+        //public override async Task OnActionExecutionAsync(
+        //    ActionExecutingContext context,
+        //    ActionExecutionDelegate next
+        //)
+        //{
+        //    try
+        //    {
+        //        if (!IsUserLoggedIn())
+        //        {
+        //            context.Result = RedirectToAction("Login", "Authen");
+        //            return;
+        //        }
 
-                var currentController = context.RouteData.Values["controller"]?.ToString();
-                var currentAction = context.RouteData.Values["action"]?.ToString();
+        //        var currentController = context.RouteData.Values["controller"]?.ToString();
+        //        var currentAction = context.RouteData.Values["action"]?.ToString();
 
-                await LoadPermissions(currentController, currentAction);
+        //        await LoadPermissions(currentController, currentAction);
 
-                await next();
-            }
-            catch (Exception ex)
-            {
-                // Log error here
-                context.Result = ErrorResponse($"เกิดข้อผิดพลาด: {ex.Message}");
-            }
-        }
+        //        await next();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Log error here
+        //        context.Result = ErrorResponse($"เกิดข้อผิดพลาด: {ex.Message}");
+        //    }
+        //}
 
         protected bool IsUserLoggedIn()
         {
@@ -81,86 +87,132 @@ namespace IPS_TH.Controllers
 
         protected async Task LoadPermissions(string controller, string action)
         {
-            var user = GetCurrentUser();
-            if (user == null)
+            try
             {
-                CurrentPermissions = new Dictionary<string, bool>();
-                ViewData["Permissions"] = CurrentPermissions;
-                return;
-            }
-
-            // ลองดึงจาก Cache ก่อน
-            var cacheKey = $"Permissions_{user.Id}_{controller}_{action}";
-            if (HttpContext.Items.TryGetValue(cacheKey, out var cachedPermissions))
-            {
-                CurrentPermissions = cachedPermissions as Dictionary<string, bool>;
-                ViewData["Permissions"] = CurrentPermissions;
-                return;
-            }
-
-            var roles = user.Roles.Split('|');
-            var roleNames = await _context
-                .sys_role.Where(r => roles.Contains(r.Id.ToString()))
-                .Select(r => r.RoleName)
-                .ToArrayAsync();
-
-            // เช็ค Admin แบบ Case-insensitive
-            if (roleNames.Any(r => r.Equals("Administrators", StringComparison.OrdinalIgnoreCase)))
-            {
-                CurrentPermissions = new Dictionary<string, bool>
+                var user = GetCurrentUser();
+                if (user == null)
                 {
-                    { "CanView", true },
-                    { "CanAdd", true },
-                    { "CanEdit", true },
-                    { "CanDelete", true },
-                    { "CanApprove", true },
-                    { "CanReport", true },
-                };
-            }
-            else
-            {
-                var module = await _context.sys_module.FirstOrDefaultAsync(m =>
-                    m.Controller == controller
-                    && (string.IsNullOrEmpty(action) || m.Action == action)
-                );
-
-                if (module != null)
-                {
-                    // ดึงข้อมูลสิทธิ์จากทุก role ที่ผู้ใช้มี
-                    var roleDetails = await _context
-                        .sys_role_detail.Where(rd =>
-                            roles.Contains(rd.RoleId.ToString()) && rd.ModuleId == module.Id
-                        )
-                        .ToListAsync();
-
-                    // ถ้ามีอย่างน้อยหนึ่ง role ที่มีสิทธิ์ ให้ถือว่ามีสิทธิ์
-                    CurrentPermissions = new Dictionary<string, bool>
-                    {
-                        { "CanView", roleDetails.Any(rd => rd.IsView) },
-                        { "CanAdd", roleDetails.Any(rd => rd.IsAdd) },
-                        { "CanEdit", roleDetails.Any(rd => rd.IsEdit) },
-                        { "CanDelete", roleDetails.Any(rd => rd.IsDelete) },
-                        { "CanApprove", roleDetails.Any(rd => rd.IsApprove) },
-                        { "CanReport", roleDetails.Any(rd => rd.IsReport) },
-                    };
+                    CurrentPermissions = new Dictionary<string, bool>();
+                    ViewData["Permissions"] = CurrentPermissions;
+                    return;
                 }
-                else
+
+                // เก็บข้อมูลแผนกของผู้ใช้
+                CurrentUserDepartment = user.Department;
+
+                // ลองดึงจาก Cache ก่อน
+                var cacheKey = $"Permissions_{user.Id}_{controller}_{action}";
+                if (HttpContext.Items.TryGetValue(cacheKey, out var cachedPermissions))
                 {
-                    // กรณีไม่พบ module ให้กำหนดสิทธิ์เป็น false ทั้งหมด
-                    CurrentPermissions = new Dictionary<string, bool>
+                    CurrentPermissions = cachedPermissions as Dictionary<string, bool>;
+                    ViewData["Permissions"] = CurrentPermissions;
+                    return;
+                }
+
+                // ตรวจสอบว่า context ยังใช้งานได้หรือไม่
+                if (_context == null)
+                {
+                    Console.WriteLine("LoadPermissions: Context is null, setting default permissions");
+                    SetDefaultPermissions();
+                    return;
+                }
+
+                try
+                {
+                    var roles = user.Roles.Split('|');
+                    var roleNames = await _context
+                        .sys_role.Where(r => roles.Contains(r.Id.ToString()))
+                        .Select(r => r.RoleName)
+                        .ToArrayAsync();
+
+                    // เช็ค Admin แบบ Case-insensitive
+                    IsCurrentUserAdmin = roleNames.Any(r => r.Equals("Administrators", StringComparison.OrdinalIgnoreCase));
+
+                    if (IsCurrentUserAdmin)
                     {
-                        { "CanView", false },
-                        { "CanAdd", false },
-                        { "CanEdit", false },
-                        { "CanDelete", false },
-                        { "CanApprove", false },
-                        { "CanReport", false },
+                        CurrentPermissions = new Dictionary<string, bool>
+                    {
+                        { "CanView", true },
+                        { "CanAdd", true },
+                        { "CanEdit", true },
+                        { "CanDelete", true },
+                        { "CanApprove", true },
+                        { "CanReport", true },
+                        { "IsAdmin", true },
+
                     };
+                    }
+                    else
+                    {
+                        var module = await _context.sys_module.FirstOrDefaultAsync(m =>
+                            m.Controller == controller
+                            && (string.IsNullOrEmpty(action) || m.Action == action)
+                        );
+
+                        if (module != null)
+                        {
+                            // ดึงข้อมูลสิทธิ์จากทุก role ที่ผู้ใช้มี
+                            var roleDetails = await _context
+                                .sys_role_detail.Where(rd =>
+                                    roles.Contains(rd.RoleId.ToString()) && rd.ModuleId == module.Id
+                                )
+                                .ToListAsync();
+
+                            // ถ้ามีอย่างน้อยหนึ่ง role ที่มีสิทธิ์ ให้ถือว่ามีสิทธิ์
+                            CurrentPermissions = new Dictionary<string, bool>
+                        {
+                            { "CanView", roleDetails.Any(rd => rd.IsView) },
+                            { "CanAdd", roleDetails.Any(rd => rd.IsAdd) },
+                            { "CanEdit", roleDetails.Any(rd => rd.IsEdit) },
+                            { "CanDelete", roleDetails.Any(rd => rd.IsDelete) },
+                            { "CanApprove", roleDetails.Any(rd => rd.IsApprove) },
+                            { "CanReport", roleDetails.Any(rd => rd.IsReport) },
+                            { "IsAdmin", false },
+
+                        };
+                        }
+                        else
+                        {
+                            // กรณีไม่พบ module ให้กำหนดสิทธิ์เป็น false ทั้งหมด
+                            SetDefaultPermissions();
+                        }
+                    }
+
+                    // เก็บลง Cache
+                    HttpContext.Items[cacheKey] = CurrentPermissions;
+                    ViewData["Permissions"] = CurrentPermissions;
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    Console.WriteLine($"LoadPermissions: Context disposed error - {ex.Message}");
+                    SetDefaultPermissions();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"LoadPermissions: Unexpected error - {ex.Message}");
+                    SetDefaultPermissions();
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"LoadPermissions: Critical error - {ex.Message}");
+                SetDefaultPermissions();
+            }
+        }
 
-            // เก็บลง Cache
-            HttpContext.Items[cacheKey] = CurrentPermissions;
+        private void SetDefaultPermissions()
+        {
+            CurrentPermissions = new Dictionary<string, bool>
+            {
+                { "CanView", false },
+                { "CanAdd", false },
+                { "CanEdit", false },
+                { "CanDelete", false },
+                { "CanApprove", false },
+                { "CanReport", false },
+                { "IsAdmin", false },
+
+            };
             ViewData["Permissions"] = CurrentPermissions;
         }
 
@@ -173,8 +225,77 @@ namespace IPS_TH.Controllers
             if (string.IsNullOrEmpty(permissionType))
                 return false;
 
-            var key = $"Can{permissionType}";
-            return CurrentPermissions.TryGetValue(key, out bool hasPermission) && hasPermission;
+            return CurrentPermissions.TryGetValue(permissionType, out var hasPermission) && hasPermission;
+        }
+
+        // เพิ่มฟังก์ชันสำหรับตรวจสอบสิทธิ์การเข้าถึงตามแผนก
+        protected bool CanAccessDepartment(string departmentId)
+        {
+            // Admin สามารถเข้าถึงได้ทุกแผนก
+            if (IsCurrentUserAdmin)
+                return true;
+
+            // ถ้าแผนกไม่ตรงกับของผู้ใช้ ให้ปฏิเสธ
+            if (!string.IsNullOrEmpty(CurrentUserDepartment) && 
+                !string.IsNullOrEmpty(departmentId))
+            {
+                return CurrentUserDepartment.Equals(departmentId, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return true;
+        }
+
+        // เพิ่มฟังก์ชันสำหรับตรวจสอบสิทธิ์การเข้าถึงข้อมูลพนักงาน
+        protected bool CanAccessEmployeeData(string employeeDepartmentId)
+        {
+            // Admin สามารถเข้าถึงได้ทุกข้อมูล
+            if (IsCurrentUserAdmin)
+                return true;
+
+            // ถ้าแผนกไม่ตรงกับของผู้ใช้ ให้ปฏิเสธ
+            if (!string.IsNullOrEmpty(CurrentUserDepartment) && 
+                !string.IsNullOrEmpty(employeeDepartmentId))
+            {
+                return CurrentUserDepartment.Equals(employeeDepartmentId, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return true;
+        }
+
+        // เพิ่มฟังก์ชันสำหรับตรวจสอบสิทธิ์การแก้ไขข้อมูลพนักงานตามแผนก
+        protected bool CanEditEmployeeData(string employeeDepartmentId)
+        {
+            // Admin สามารถแก้ไขได้ทุกข้อมูล
+            if (IsCurrentUserAdmin)
+                return true;
+
+            // ตรวจสอบสิทธิ์แก้ไขและแผนก
+            if (CheckPermission("CanEdit") && 
+                !string.IsNullOrEmpty(CurrentUserDepartment) && 
+                !string.IsNullOrEmpty(employeeDepartmentId))
+            {
+                return CurrentUserDepartment.Equals(employeeDepartmentId, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        // เพิ่มฟังก์ชันสำหรับตรวจสอบสิทธิ์การลบข้อมูลพนักงานตามแผนก
+        protected bool CanDeleteEmployeeData(string employeeDepartmentId)
+        {
+            // Admin สามารถลบได้ทุกข้อมูล
+            if (IsCurrentUserAdmin)
+                return true;
+
+            // ตรวจสอบสิทธิ์ลบและแผนก
+            if (CheckPermission("CanDelete") && 
+                !string.IsNullOrEmpty(CurrentUserDepartment) && 
+                !string.IsNullOrEmpty(employeeDepartmentId))
+            {
+                return CurrentUserDepartment.Equals(employeeDepartmentId, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
         }
 
         protected IActionResult ErrorResponse(string message, int statusCode = 400)

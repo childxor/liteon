@@ -4,7 +4,7 @@
 
 @{
     ViewData["Title"] = "ระบบจัดการทรัพย์สิน IT";
-    
+
     var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
     bool canAdd = permissions?["CanAdd"] ?? false;
     bool canEdit = permissions?["CanEdit"] ?? false;
@@ -15,26 +15,49 @@
 <div class="container-fluid mt-4">
     <!-- สถิติทรัพย์สิน -->
     <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-primary">
+                    <i class="fas fa-chart-bar me-2"></i>สรุปข้อมูลทรัพย์สิน
+                </h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnRefreshDashboard" 
+                        title="รีเฟรชข้อมูลสรุปทรัพย์สิน (อัปเดตอัตโนมัติทุก 30 วินาที)">
+                    <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestFilter" 
+                        title="ทดสอบการกรอง">
+                    <i class="fas fa-filter me-1"></i>ทดสอบ
+                </button>
+            </div>
+        </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-primary text-white h-100">
+            <div class="card bg-primary text-white h-100 dashboard-card" data-status="all" style="cursor: pointer;">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="mb-0">ทรัพย์สินทั้งหมด</h6>
-                            <h2 class="mb-0 mt-2" id="totalAssets">0</h2>
+                            <h6 class="mb-1"><i class="fas fa-laptop me-2"></i>ทรัพย์สินทั้งหมด</h6>
+                            <h2 class="mb-2" id="totalAssets">0</h2>
+                            <div class="small">
+                                <span id="withMac" class="badge bg-success me-1">มี Mac: 0</span>
+                                <span id="withoutMac" class="badge bg-light text-dark">ไม่มี Mac: 0</span>
+                            </div>
                         </div>
-                        <i class="fas fa-laptop fa-3x opacity-50"></i>
+                        <i class="fas fa-chart-pie fa-2x opacity-50"></i>
                     </div>
+                    <div class="small mt-2" id="typeSummary"></div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-success text-white h-100">
+            <div class="card bg-success text-white h-100 dashboard-card" data-status="1" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-0">ใช้งานได้</h6>
-                            <h2 class="mb-0 mt-2" id="activeAssets">0</h2>
+                            <h6 class="mb-1"><i class="fas fa-check-circle me-2"></i>ใช้งานได้</h6>
+                            <h2 class="mb-0" id="activeAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="activePercent">0%</span> ของทั้งหมด
+                            </div>
                         </div>
                         <i class="fas fa-check-circle fa-3x opacity-50"></i>
                     </div>
@@ -42,12 +65,15 @@
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-white h-100">
+            <div class="card bg-warning text-white h-100 dashboard-card" data-status="2" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-0">กำลังซ่อม</h6>
-                            <h2 class="mb-0 mt-2" id="repairAssets">0</h2>
+                            <h6 class="mb-1"><i class="fas fa-tools me-2"></i>กำลังซ่อม</h6>
+                            <h2 class="mb-0" id="repairAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="repairPercent">0%</span> ของทั้งหมด
+                            </div>
                         </div>
                         <i class="fas fa-tools fa-3x opacity-50"></i>
                     </div>
@@ -55,15 +81,134 @@
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-danger text-white h-100">
+            <div class="card bg-danger text-white h-100 dashboard-card" data-status="3" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-0">ชำรุด</h6>
-                            <h2 class="mb-0 mt-2" id="damagedAssets">0</h2>
+                            <h6 class="mb-1"><i class="fas fa-exclamation-triangle me-2"></i>ชำรุด</h6>
+                            <h2 class="mb-0" id="damagedAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="damagedPercent">0%</span> ของทั้งหมด
+                            </div>
                         </div>
                         <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- สถิติเพิ่มเติม -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-secondary text-white h-100 dashboard-card" data-status="4" style="cursor: pointer;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1"><i class="fas fa-recycle me-2"></i>จำหน่าย</h6>
+                            <h2 class="mb-0" id="disposedAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="disposedPercent">0%</span> ของทั้งหมด
+                            </div>
+                        </div>
+                        <i class="fas fa-recycle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white h-100 dashboard-card" data-status="5" style="cursor: pointer;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1"><i class="fas fa-pause-circle me-2"></i>ไม่ใช้งาน</h6>
+                            <h2 class="mb-0" id="inactiveAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="inactivePercent">0%</span> ของทั้งหมด
+                            </div>
+                        </div>
+                        <i class="fas fa-pause-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-purple text-white h-100 dashboard-card" data-status="6" style="cursor: pointer;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1"><i class="fas fa-boxes me-2"></i>อะไหล่</h6>
+                            <h2 class="mb-0" id="spareAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="sparePercent">0%</span> ของทั้งหมด
+                            </div>
+                        </div>
+                        <i class="fas fa-boxes fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-dark text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1"><i class="fas fa-clock me-2"></i>เพิ่มเดือนนี้</h6>
+                            <h2 class="mb-0" id="recentAssets">0</h2>
+                            <div class="small mt-1">
+                                <span id="maintenanceCount">0</span> ต้องบำรุงรักษา
+                            </div>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ฟิลเตอร์สำหรับตาราง -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light py-3">
+            <h6 class="mb-0 text-primary">
+                <i class="fas fa-filter me-2"></i>ตัวกรองข้อมูล
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="filterStatus" class="form-label">สถานะ</label>
+                    <select class="form-select" id="filterStatus">
+                        <option value="">-- สถานะทั้งหมด --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterType" class="form-label">ประเภท</label>
+                    <select class="form-select" id="filterType">
+                        <option value="">-- ประเภททั้งหมด --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterDept" class="form-label">แผนก</label>
+                    <select class="form-select" id="filterDept">
+                        <option value="">-- แผนกทั้งหมด --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterLocation" class="form-label">สถานที่</label>
+                    <select class="form-select" id="filterLocation">
+                        <option value="">-- สถานที่ทั้งหมด --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filterSearch" class="form-label">ค้นหา</label>
+                    <input type="text" class="form-control" id="filterSearch" placeholder="ค้นหาทรัพย์สิน...">
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnClearFilter">
+                        <i class="fas fa-times me-1"></i>ล้างตัวกรอง
+                    </button>
                 </div>
             </div>
         </div>
@@ -80,12 +225,6 @@
                 </div>
                 <div class="col-md-6">
                     <div class="d-flex gap-2 justify-content-md-end">
-                        <div class="input-group" style="max-width: 300px;">
-                            <span class="input-group-text bg-light border-end-0">
-                                <i class="fas fa-search text-primary"></i>
-                            </span>
-                            <input type="text" class="form-control border-start-0" id="searchInput" placeholder="ค้นหาทรัพย์สิน...">
-                        </div>
                         @if (canAdd)
                         {
                             <button type="button" class="btn btn-primary" id="btnAddAsset">
@@ -97,55 +236,9 @@
             </div>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table id="assetTable" class="table table-hover align-middle mb-0 bg-white">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-barcode me-2 text-primary"></i>รหัสทรัพย์สิน
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-laptop me-2 text-primary"></i>ชื่อทรัพย์สิน
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-tag me-2 text-primary"></i>ประเภท
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-user me-2 text-primary"></i>ผู้รับผิดชอบ
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-building me-2 text-primary"></i>แผนก
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-info-circle me-2 text-primary"></i>สถานะ
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>วันที่รับ
-                                </div>
-                            </th>
-                            <th class="border-0 text-nowrap px-4 py-3 text-center">
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-cogs me-2 text-primary"></i>การจัดการ
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- ข้อมูลจะถูกเพิ่มผ่าน DataTable -->
-                    </tbody>
+            <div class="table-responsive shadow-sm rounded-3 p-3">
+                <table id="assetTable" class="table table-hover table-striped table-bordered align-middle fs-6 mb-0">
+                    <!-- DataTable จะ render thead/tbody -->
                 </table>
             </div>
         </div>
@@ -157,36 +250,28 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="assetModalLabel"><i class="fas fa-plus-circle me-2"></i>เพิ่มทรัพย์สิน IT</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="assetModalLabel"><i class="fas fa-plus-circle me-2"></i>เพิ่มทรัพย์สิน IT
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="assetForm" class="needs-validation" novalidate>
                     <input type="hidden" id="assetId" name="Id" />
-                    
-                    <!-- ข้อมูลพื้นฐาน -->
+
+                    <!-- ข้อมูลหลัก (จำเป็น) -->
                     <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>ข้อมูลพื้นฐาน</h6>
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-star me-2"></i>ข้อมูลหลัก (จำเป็น)</h6>
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label for="assetCode" class="form-label"><i class="fas fa-barcode me-1"></i>รหัสทรัพย์สิน <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
-                                        <input type="text" class="form-control" id="assetCode" name="Code" required placeholder="ระบุรหัสทรัพย์สิน">
-                                        <div class="invalid-feedback">
-                                            กรุณาระบุรหัสทรัพย์สิน
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <label for="assetName" class="form-label"><i class="fas fa-laptop me-1"></i>ชื่อทรัพย์สิน <span class="text-danger">*</span></label>
+                                    <label for="name" class="form-label fw-bold"><i class="fas fa-laptop me-1"></i>ชื่อทรัพย์สิน *</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-tag"></i></span>
-                                        <input type="text" class="form-control" id="assetName" name="Name" required placeholder="ระบุชื่อทรัพย์สิน">
+                                        <input type="text" class="form-control" id="name" name="Name" required
+                                            placeholder="ระบุชื่อทรัพย์สินใหม่">
                                         <div class="invalid-feedback">
                                             กรุณาระบุชื่อทรัพย์สิน
                                         </div>
@@ -194,10 +279,10 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label for="assetType" class="form-label"><i class="fas fa-tags me-1"></i>ประเภททรัพย์สิน <span class="text-danger">*</span></label>
+                                    <label for="type" class="form-label fw-bold"><i class="fas fa-tags me-1"></i>ประเภททรัพย์สิน *</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                        <select class="form-select" id="assetType" name="Type" required>
+                                        <select class="form-select" id="type" name="Type" required>
                                             <option value="">-- เลือกประเภท --</option>
                                             <option value="1">คอมพิวเตอร์</option>
                                             <option value="2">โน๊ตบุ๊ค</option>
@@ -214,149 +299,204 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label for="assetStatus" class="form-label"><i class="fas fa-info-circle me-1"></i>สถานะ <span class="text-danger">*</span></label>
+                                    <label for="status" class="form-label fw-bold"><i class="fas fa-toggle-on me-1"></i>สถานะ *</label>
                                     <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-toggle-on"></i></span>
-                                        <select class="form-select" id="assetStatus" name="Status" required>
+                                        <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                                        <select class="form-select" id="status" name="Status" required>
                                             <option value="1">ใช้งานได้</option>
                                             <option value="2">กำลังซ่อม</option>
                                             <option value="3">ชำรุด</option>
                                             <option value="4">จำหน่าย</option>
+                                            <option value="5">ไม่ใช้งาน</option>
                                         </select>
                                         <div class="invalid-feedback">
                                             กรุณาเลือกสถานะ
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- ข้อมูลการใช้งาน -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-user-cog me-2"></i>ข้อมูลการใช้งาน</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-8">
-                                    <label for="assetOwner" class="form-label"><i class="fas fa-user me-1"></i>ผู้รับผิดชอบ</label>
-                                    <select class="form-select select2" id="assetOwner" name="Owner">
-                                        <option value="">-- เลือกพนักงาน --</option>
+                                <div class="col-md-6">
+                                    <label for="location" class="form-label fw-bold"><i class="fas fa-map-marker-alt me-1"></i>สถานที่จัดเก็บ *</label>
+                                    <select class="form-select" id="location" name="Location" required>
+                                        <option value="">-- เลือกสถานที่จัดเก็บ --</option>
+                                        <option value="PD">พื้นที่ไลน์ผลิต</option>
+                                        <option value="RMW">Raw material WH</option>
+                                        <option value="EW">Electronic WH</option>
+                                        <option value="POR">ออฟฟิศ</option>
+                                        <option value="MR">ห้องบอส</option>
+                                        <option value="BTR">ห้องประชุม</option>
+                                        <option value="MICR">ห้องเซิฟเวอร์</option>
+                                        <option value="JIG">ห้องเก็บอะไหล่</option>
+                                        <option value="DCC">ห้องเก็บของเล็กข้างห้องเซิฟเวอร์</option>
+                                        <option value="TC">ห้องเทรนงานชั้น 2</option>
+                                        <option value="CF">ห้องประชุมชั้น 2</option>
+                                        <option value="OFPD">ออฟฟิศไลน์ผลิต</option>
+                                        <option value="PR">ห้องปลิ้นติ้ง</option>
+                                        <option value="OM">ห้องผสมสี</option>
+                                        <option value="SC">ห้องแผ่นสกีนรูม</option>
+                                        <option value="PTR">ห้องยาม</option>
+                                        <option value="SLSC">ที่พักพนักงาน</option>
+                                        <option value="CR">ห้องเปลี่ยนรองเท้า</option>
+                                        <option value="RSFPW">Raw materials & semi Finished WH</option>
+                                        <option value="DQE">DQE LAB</option>
+                                        <option value="IQC">IQC room</option>
+                                        <option value="FA">พื้นที่รับของสโตร์</option>
                                     </select>
+                                    <div class="invalid-feedback">
+                                        กรุณาเลือกสถานที่จัดเก็บ
+                                    </div>
+                                </div>
+
+                                <div class="col-md-8">
+                                    <label for="owner" class="form-label fw-bold"><i class="fas fa-user me-1"></i>ผู้รับผิดชอบ *</label>
+                                    <select class="form-select" id="owner" name="Owner" required>
+                                        <option value="">-- เลือกผู้รับผิดชอบ --</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        กรุณาเลือกผู้รับผิดชอบ
+                                    </div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label for="assetDepartment" class="form-label"><i class="fas fa-building me-1"></i>แผนก</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
-                                        <select class="form-select" id="assetDepartment" name="Department">
-                                            <option value="">-- เลือกแผนก --</option>
-                                            <option value="1">IT</option>
-                                            <option value="2">HR</option>
-                                            <option value="3">Finance</option>
-                                            <option value="4">Marketing</option>
-                                            <option value="5">Sales</option>
-                                        </select>
-                                    </div>
+                                    <label for="ownerName" class="form-label"><i class="fas fa-user me-1"></i>ชื่อผู้รับผิดชอบ</label>
+                                    <input type="text" class="form-control" id="ownerName" name="OwnerName" readonly>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label for="assetPurchaseDate" class="form-label"><i class="fas fa-calendar-alt me-1"></i>วันที่รับ</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-                                        <input type="date" class="form-control" id="assetPurchaseDate" name="PurchaseDate">
-                                    </div>
+                                    <label for="department" class="form-label"><i class="fas fa-building me-1"></i>แผนก</label>
+                                    <input type="text" class="form-control" id="department" name="Department" readonly>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label for="assetWarranty" class="form-label"><i class="fas fa-shield-alt me-1"></i>ประกัน</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
-                                        <input type="date" class="form-control" id="assetWarranty" name="Warranty">
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label for="assetLocation" class="form-label"><i class="fas fa-map-marker-alt me-1"></i>สถานที่จัดเก็บ <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
-                                        <select class="form-select" id="assetLocation" name="Location" required>
-                                            <option value="">-- เลือกสถานที่ --</option>
-                                            <optgroup label="พื้นที่ผลิต">
-                                                <option value="PD">พื้นที่ไลน์ผลิต</option>
-                                            </optgroup>
-                                            <optgroup label="คลังสินค้า">
-                                                <option value="RSFPW">Raw materials & semi Finished WH</option>
-                                                <option value="RMW">Raw material WH</option>
-                                                <option value="EW">Electronic WH</option>
-                                            </optgroup>
-                                            <optgroup label="ห้องแล็บและตรวจสอบ">
-                                                <option value="DQE">DQE LAB</option>
-                                                <option value="IQC">IQC room</option>
-                                            </optgroup>
-                                            <optgroup label="พื้นที่จัดเก็บ">
-                                                <option value="FA">พื้นที่รับของสโตร์</option>
-                                                <option value="JIG">ห้องเก็บอะไหล่</option>
-                                                <option value="DCC">ห้องเก็บของเล็กข้างห้องเซิฟเวอร์</option>
-                                            </optgroup>
-                                            <optgroup label="สำนักงานและห้องประชุม">
-                                                <option value="POR">ออฟฟิศ</option>
-                                                <option value="MR">ห้องบอส</option>
-                                                <option value="BTR">ห้องประชุม</option>
-                                                <option value="TC">ห้องเทรนงานชั้น 2</option>
-                                                <option value="CF">ห้องประชุมชั้น 2</option>
-                                                <option value="OFPD">ออฟฟิศไลน์ผลิต</option>
-                                            </optgroup>
-                                            <optgroup label="ห้องปฏิบัติการ">
-                                                <option value="PR">ห้องปลิ้นติ้ง</option>
-                                                <option value="OM">ห้องผสมสี</option>
-                                                <option value="SC">ห้องแผ่นสกีนรูม</option>
-                                            </optgroup>
-                                            <optgroup label="อื่นๆ">
-                                                <option value="PTR">ห้องยาม</option>
-                                                <option value="SLSC">ที่พักพนักงาน</option>
-                                                <option value="MICR">ห้องเซิฟเวอร์</option>
-                                                <option value="CR">ห้องเปลี่ยนรองเท้า</option>
-                                            </optgroup>
-                                        </select>
-                                        <div class="invalid-feedback">
-                                            กรุณาเลือกสถานที่จัดเก็บ
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6" id="productionLineContainer" style="display: none;">
-                                    <label for="productionLine" class="form-label"><i class="fas fa-industry me-1"></i>ไลน์ผลิต <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-conveyor-belt"></i></span>
-                                        <select class="form-select" id="productionLine" name="ProductionLine">
-                                            <option value="">-- เลือกไลน์ผลิต --</option>
-                                            <option value="L1">Line 1</option>
-                                            <option value="L2">Line 2</option>
-                                            <option value="L3">Line 3</option>
-                                            <option value="L4">Line 4</option>
-                                            <option value="L5">Line 5</option>
-                                            <option value="L6">Line 6</option>
-                                            <option value="L7">Line 7</option>
-                                            <option value="L8">Line 8</option>
-                                        </select>
-                                        <div class="invalid-feedback">
-                                            กรุณาเลือกไลน์ผลิต
-                                        </div>
-                                    </div>
+                                    <label for="line" class="form-label"><i class="fas fa-industry me-1"></i>ไลน์ผลิต</label>
+                                    <select class="form-select" id="line" name="Line">
+                                        <option value="">-- เลือกไลน์ผลิต --</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- รายละเอียดเพิ่มเติม -->
-                    <div class="card">
+                    <!-- ข้อมูลเพิ่มเติม (ไม่จำเป็น) -->
+                    <div class="card mb-3">
                         <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>รายละเอียดเพิ่มเติม</h6>
+                            <h6 class="mb-0">
+                                <i class="fas fa-plus-circle me-2"></i>ข้อมูลเพิ่มเติม (ไม่จำเป็น)
+                                <button type="button" class="btn btn-sm btn-outline-primary float-end" id="btnToggleDetails">
+                                    <i class="fas fa-chevron-down"></i> แสดงรายละเอียด
+                                </button>
+                            </h6>
                         </div>
-                        <div class="card-body">
-                            <textarea class="form-control" id="assetDescription" name="Description" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
+                        <div class="card-body" id="detailsSection" style="display: none;">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="assetNo" class="form-label"><i class="fas fa-barcode me-1"></i>รหัสทรัพย์สิน</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                        <input type="text" class="form-control" id="assetNo" name="AssetNo" placeholder="ระบุรหัสทรัพย์สิน">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="productSerial" class="form-label"><i class="fas fa-laptop me-1"></i>Serial Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                        <input type="text" class="form-control" id="productSerial" name="ProductSerial" placeholder="ระบุ Serial Number">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="windowsVersion" class="form-label"><i class="fas fa-desktop me-1"></i>เวอร์ชั่น Windows</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fab fa-windows"></i></span>
+                                        <select class="form-select" id="windowsVersion" name="WindowsVersion">
+                                            <option value="">-- เลือกเวอร์ชั่น Windows --</option>
+                                            <option value="Windows 10">Windows 10</option>
+                                            <option value="Windows 11">Windows 11</option>
+                                            <option value="Windows Server 2019">Windows Server 2019</option>
+                                            <option value="Windows Server 2022">Windows Server 2022</option>
+                                            <option value="อื่นๆ">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="model" class="form-label"><i class="fas fa-tag me-1"></i>รุ่น/Model</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                                        <input type="text" class="form-control" id="model" name="Model" placeholder="ระบุรุ่น/Model">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="manufacturer" class="form-label"><i class="fas fa-industry me-1"></i>ผู้ผลิต</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                        <input type="text" class="form-control" id="manufacturer" name="Manufacturer" placeholder="ระบุผู้ผลิต">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="countryOfOrigin" class="form-label"><i class="fas fa-flag me-1"></i>ประเทศผู้ผลิต</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                        <input type="text" class="form-control" id="countryOfOrigin" name="CountryOfOrigin" placeholder="ระบุประเทศผู้ผลิต">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="installationDate" class="form-label"><i class="fas fa-calendar-alt me-1"></i>วันที่ติดตั้ง</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                        <input type="date" class="form-control" id="installationDate" name="InstallationDate">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="startDate" class="form-label"><i class="fas fa-play-circle me-1"></i>วันที่เริ่มใช้งาน</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
+                                        <input type="date" class="form-control" id="startDate" name="StartDate">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="endDate" class="form-label"><i class="fas fa-stop-circle me-1"></i>วันที่สิ้นสุดการใช้งาน</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar-times"></i></span>
+                                        <input type="date" class="form-control" id="endDate" name="EndDate">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="locationDetail" class="form-label"><i class="fas fa-map-pin me-1"></i>รายละเอียดสถานที่</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                                        <input type="text" class="form-control" id="locationDetail" name="LocationDetail" placeholder="ระบุรายละเอียดสถานที่">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="customerNo" class="form-label"><i class="fas fa-user-tie me-1"></i>รหัสลูกค้า</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                        <input type="text" class="form-control" id="customerNo" name="CustomerNo" placeholder="ระบุรหัสลูกค้า">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="customerName" class="form-label"><i class="fas fa-user me-1"></i>ชื่อลูกค้า</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user-circle"></i></span>
+                                        <input type="text" class="form-control" id="customerName" name="CustomerName" placeholder="ระบุชื่อลูกค้า">
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="assetDescription" class="form-label"><i class="fas fa-file-alt me-1"></i>รายละเอียดเพิ่มเติม</label>
+                                    <textarea class="form-control" id="assetDescription" name="Description" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -379,12 +519,14 @@
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title"><i class="fas fa-trash-alt me-2"></i>ยืนยันการลบ</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="text-center mb-3">
                     <i class="fas fa-exclamation-triangle text-warning fa-4x mb-3"></i>
-                    <p>คุณต้องการลบทรัพย์สิน <span id="deleteItemName" class="fw-bold text-danger"></span> ใช่หรือไม่?</p>
+                    <p>คุณต้องการลบทรัพย์สิน <span id="deleteItemName" class="fw-bold text-danger"></span> ใช่หรือไม่?
+                    </p>
                     <p class="text-muted small">การลบข้อมูลนี้ไม่สามารถเรียกคืนได้</p>
                 </div>
             </div>
@@ -402,502 +544,1248 @@
 
 @section Scripts {
     <!-- นำเข้า Select2 CSS และ JS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    
+    <!-- Select2 ถูกโหลดใน Layout แล้ว -->
+
     <style>
-        /* ปรับแต่ง Card */
-        .card {
-            border: none;
-            border-radius: 10px;
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+        
+        .bg-custom-purple {
+            background-color: #6f42c1 !important;
+        }
+        
+        /* CSS สำหรับ Modal ที่ปรับปรุงแล้ว */
+        .modal-lg {
+            max-width: 900px;
+        }
+        
+        .card-header.bg-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+        }
+        
+        .form-label.fw-bold {
+            color: #495057;
+            font-weight: 600 !important;
+        }
+        
+        .form-label.fw-bold::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        #btnToggleDetails {
             transition: all 0.3s ease;
         }
         
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+        #btnToggleDetails:hover {
+            background-color: #007bff;
+            color: white;
         }
         
-        /* ปรับแต่ง Table */
-        .table {
-            --bs-table-hover-bg: rgba(13, 110, 253, 0.04);
-            --bs-table-hover-color: inherit;
-            border-collapse: separate;
-            border-spacing: 0;
+        #detailsSection {
+            border-top: 1px solid #dee2e6;
+            margin-top: 0.5rem;
+            padding-top: 1rem;
         }
-
-        .table th {
-            font-weight: 600;
-            color: #495057;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            background-color: #f8f9fa;
-            padding: 1rem;
-            vertical-align: middle;
-            white-space: nowrap;
-            border-bottom: 2px solid #dee2e6;
+        
+        /* Animation สำหรับการแสดง/ซ่อนรายละเอียด */
+        .slide-enter {
+            opacity: 0;
+            transform: translateY(-10px);
         }
-
-        .table td {
-            padding: 1rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #dee2e6;
-            color: #495057;
+        
+        .slide-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        
+        .slide-exit {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .slide-exit-active {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+        
+        /* CSS สำหรับสีสถานะที่ตรงกัน */
+        .dashboard-card.bg-success {
+            background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+        }
+        
+        .dashboard-card.bg-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+            color: #000 !important;
+        }
+        
+        .dashboard-card.bg-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
+        }
+        
+        .dashboard-card.bg-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+        }
+        
+        .dashboard-card.bg-info {
+            background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%) !important;
+        }
+        
+        .dashboard-card.bg-purple {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%) !important;
+        }
+        
+        /* ปรับสีข้อความสำหรับ card ที่มีพื้นหลังสีอ่อน */
+        .dashboard-card.bg-warning .card-body,
+        .dashboard-card.bg-warning h6,
+        .dashboard-card.bg-warning h2,
+        .dashboard-card.bg-warning .small {
+            color: #000 !important;
+        }
+        
+        .dashboard-card.bg-info .card-body,
+        .dashboard-card.bg-info h6,
+        .dashboard-card.bg-info h2,
+        .dashboard-card.bg-info .small {
+            color: #000 !important;
+        }
+        
+        /* CSS สำหรับ badge ในส่วนสรุป */
+        .dashboard-card .badge {
+            font-size: 0.7rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+        }
+        
+        .dashboard-card .badge.bg-success {
+            background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dashboard-card .badge.bg-light {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #495057 !important;
+        }
+        
+        /* ปรับสี badge สำหรับ card ที่มีพื้นหลังสีอ่อน */
+        .dashboard-card.bg-warning .badge.bg-success,
+        .dashboard-card.bg-info .badge.bg-success {
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+        
+        .dashboard-card.bg-warning .badge.bg-light,
+        .dashboard-card.bg-info .badge.bg-light {
+            border: 1px solid rgba(0, 0, 0, 0.3);
+        }
+        
+        /* CSS สำหรับ Status Dropdown */
+        .status-dropdown .dropdown-toggle {
+            border: none;
+            background: transparent;
+            padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
-
-        .table tbody tr:last-child td {
-            border-bottom: none;
+        
+        .status-dropdown .dropdown-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 0.375rem;
         }
-
-        .table-hover tbody tr {
+        
+        .status-dropdown .dropdown-toggle:focus {
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        .status-dropdown .dropdown-menu {
+            min-width: 200px;
+            padding: 0.5rem 0;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+        }
+        
+        .status-dropdown .dropdown-item {
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
             transition: all 0.2s ease;
         }
         
-        /* ปรับแต่ง Badge */
-        .badge {
-            padding: 0.5em 0.8em;
-            font-weight: 500;
-            letter-spacing: 0.3px;
+        .status-dropdown .dropdown-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .status-dropdown .dropdown-item .badge {
             font-size: 0.75rem;
-        }
-        
-        /* ปรับแต่ง Button */
-        .btn {
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            border-radius: 5px;
-            transition: all 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-        
-        .btn-sm {
             padding: 0.25rem 0.5rem;
         }
         
-        /* ปรับแต่ง Input */
-        .form-control, .form-select {
-            padding: 0.5rem 0.75rem;
-            border-radius: 5px;
-            border: 1px solid #dee2e6;
-            transition: all 0.2s;
+        /* Animation สำหรับการเปลี่ยนสถานะ */
+        .status-changing {
+            opacity: 0.7;
+            pointer-events: none;
         }
         
-        .form-control:focus, .form-select:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.1);
+        .status-changing .badge {
+            animation: pulse 1s infinite;
         }
         
-        /* ปรับแต่ง Select2 */
-        .select2-container {
-            width: 100% !important;
-            z-index: 9999;
+        @@keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
-
-        .select2-container--bootstrap-5 .select2-selection {
-            height: calc(3.5rem + 2px);
-            padding: 1rem 0.75rem;
-            font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.5;
-            color: #212529;
-            background-color: #fff;
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        
+        .dashboard-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            position: relative;
         }
-
-        .select2-container--bootstrap-5 .select2-selection--single {
-            padding: 0.375rem 0.75rem;
-            height: calc(1.5em + 0.75rem + 2px);
+        
+        .dashboard-card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
         }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            padding: 0;
-            line-height: 1.5;
-            color: #212529;
+        
+        .dashboard-card .card-body {
+            padding: 1.5rem;
         }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
-            color: #6c757d;
+        
+        .dashboard-card h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
         }
-
-        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
-        .select2-container--bootstrap-5.select2-container--open .select2-selection {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        
+        .dashboard-card h6 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
         }
-
-        .select2-container--bootstrap-5 .select2-dropdown {
-            border-color: #86b7fe;
-            border-radius: 0.375rem;
-            z-index: 9999;
+        
+        .dashboard-card .small {
+            font-size: 0.75rem;
+            opacity: 0.9;
         }
-
-        .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
-            border-radius: 0.375rem;
-            border: 1px solid #ced4da;
-            padding: 0.375rem 0.75rem;
+        
+        .dashboard-card .badge {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
         }
-
-        .select2-container--bootstrap-5 .select2-dropdown .select2-results__options {
-            max-height: 200px;
-            overflow-y: auto;
+        
+        .dashboard-card i.fa-3x {
+            font-size: 3rem;
         }
-
-        .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
-            padding: 0.5rem 0.75rem;
-            font-size: 1rem;
+        
+        .dashboard-card i.fa-2x {
+            font-size: 2rem;
         }
-
-        .select2-container--bootstrap-5 .select2-dropdown .select2-results__option--highlighted {
-            background-color: #0d6efd;
-            color: #fff;
+        
+        /* Animation สำหรับการโหลดข้อมูล */
+        .loading {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
         }
-
-        .modal-body .select2-container {
-            z-index: 1056;
+        
+        .loading:hover {
+            opacity: 1;
         }
-
-        .select2-dropdown {
-            z-index: 1056;
+        
+        /* CSS สำหรับ tooltip รายละเอียดเพิ่มเติม */
+        .tooltip-inner {
+            max-width: 400px;
+            text-align: left;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-            height: 100%;
+        
+        .tooltip.bs-tooltip-top .tooltip-arrow::before {
+            border-top-color: #2c3e50;
+        }
+        
+        .tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+            border-bottom-color: #2c3e50;
+        }
+        
+        .tooltip.bs-tooltip-start .tooltip-arrow::before {
+            border-left-color: #2c3e50;
+        }
+        
+        .tooltip.bs-tooltip-end .tooltip-arrow::before {
+            border-right-color: #2c3e50;
+        }
+        
+        /* สไตล์สำหรับชื่อทรัพย์สินที่มีรายละเอียดเพิ่มเติม */
+        .text-primary.fw-medium[data-bs-toggle="tooltip"] {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .text-primary.fw-medium[data-bs-toggle="tooltip"]:hover {
+            color: #0056b3 !important;
+            text-decoration: underline;
+        }
+        
+        .text-primary.fw-medium[data-bs-toggle="tooltip"] .fas.fa-info-circle {
+            transition: all 0.2s ease;
+        }
+        
+        .text-primary.fw-medium[data-bs-toggle="tooltip"]:hover .fas.fa-info-circle {
+            transform: scale(1.2);
+            color: #0056b3 !important;
+        }
+        
+        /* Tooltip สำหรับ dashboard cards */
+        .dashboard-card[title]:hover::after {
+            content: attr(title);
             position: absolute;
-            top: 0;
-            right: 0;
-            width: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
-            border-color: #6c757d transparent transparent transparent;
-            border-style: solid;
-            border-width: 0.3em 0.3em 0 0.3em;
-            height: 0;
+            bottom: 100%;
             left: 50%;
-            margin-left: -0.15em;
-            margin-top: -0.15em;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .dashboard-card[title]:hover::before {
+            content: '';
             position: absolute;
-            top: 50%;
-            width: 0;
-        }
-
-        /* ปรับแต่ง DataTable Controls */
-        .dataTables_wrapper .dataTables_length select {
-            min-width: 80px;
-            font-size: 0.875rem;
-            padding: 0.25rem 2rem 0.25rem 0.75rem;
-            border-radius: 0.375rem;
-            background-position: right 0.5rem center;
-        }
-
-        .dataTables_wrapper .dataTables_filter input {
-            min-width: 250px;
-            font-size: 0.875rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 0.375rem;
-            border: 1px solid #dee2e6;
-            background-color: #fff;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            padding: 0.375rem 0.75rem;
-            margin: 0 0.125rem;
-            border-radius: 0.375rem;
-            border: none !important;
-            background: none !important;
-            color: #6c757d !important;
-            font-size: 0.875rem;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background-color: #e9ecef !important;
-            color: #0d6efd !important;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background-color: #0d6efd !important;
-            color: #fff !important;
-        }
-
-        .dataTables_wrapper .dataTables_info {
-            font-size: 0.875rem;
-            color: #6c757d;
-            padding-top: 0.5rem;
-        }
-
-        /* ปรับแต่ง Action Buttons */
-        .btn-action {
-            width: 32px;
-            height: 32px;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 0.375rem;
-            transition: all 0.2s;
-        }
-
-        .btn-action:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-action + .btn-action {
-            margin-left: 0.5rem;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            pointer-events: none;
         }
     </style>
-    
+
     <script>
-        $(document).ready(function() {
-            // กำหนดค่าเริ่มต้นสำหรับ Select2
-            function initSelect2() {
-                $('#assetOwner').select2({
-                    theme: 'bootstrap-5',
-                    dropdownParent: $('#assetModal'),
-                    placeholder: 'เลือกพนักงาน',
-                    allowClear: true,
-                    width: '100%',
-                    language: {
-                        noResults: function() {
-                            return "ไม่พบข้อมูลพนักงาน";
-                        },
-                        searching: function() {
-                            return "กำลังค้นหา...";
-                        }
-                    }
-                }).on('select2:open', function() {
-                    document.querySelector('.select2-search__field').focus();
+        // ประกาศตัวแปร appBasePath และ permissions
+        var appBasePath = '@Url.Content("~/")';
+        var canAdd = @Json.Serialize(canAdd);
+        var canEdit = @Json.Serialize(canEdit);
+        var canDelete = @Json.Serialize(canDelete);
+        var canView = @Json.Serialize(canView);
+
+        window.statusMap = {};
+
+        function loadStatuses() {
+            $.get(appBasePath + 'Asset/GetAssetStatuses', function (data) {
+                var statusSelect = $('#status');
+                statusSelect.empty();
+                statusSelect.append('<option value=\"">-- เลือกสถานะ --</option>');
+                window.statusMap = {}; // reset
+                data.forEach(function (item) {
+                    statusSelect.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                    window.statusMap[item.Id] = item.Text;
+                });
+            });
+        }
+
+        // ใช้ใน DataTable render
+        function getStatusName(status) {
+            return window.statusMap[status] || 'ไม่ระบุ';
+        }
+
+        // เรียกใช้ loadStatuses() ตอน ready
+        $(document).ready(function () {
+            loadStatuses();
+        });
+
+        // โหลด option สถานะ
+        function loadStatusesForFilter() {
+            $.get(appBasePath + 'Asset/GetAssetStatuses', function (data) {
+                var $sel = $('#filterStatus');
+                $sel.empty().append('<option value=\"">-- สถานะทั้งหมด --</option>');
+                if (data && data.length > 0) {
+                    data.forEach(function (item) {
+                        $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                    });
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('ไม่สามารถโหลดสถานะได้:', error);
+                // ใช้ข้อมูลสถานะแบบ hardcode เป็น fallback
+                var fallbackStatuses = [
+                    { Id: '1', Text: 'ใช้งานได้' },
+                    { Id: '2', Text: 'กำลังซ่อม' },
+                    { Id: '3', Text: 'ชำรุด' },
+                    { Id: '4', Text: 'จำหน่าย' },
+                    { Id: '5', Text: 'ไม่ใช้งาน' },
+                    { Id: '6', Text: 'อะไหล่' }
+                ];
+                var $sel = $('#filterStatus');
+                $sel.empty().append('<option value=\"">-- สถานะทั้งหมด --</option>');
+                fallbackStatuses.forEach(function (item) {
+                    $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                });
+            });
+        }
+
+        // โหลด option ประเภท
+        function loadTypesForFilter() {
+            $.get(appBasePath + 'Asset/GetAssetTypes', function (data) {
+                var $sel = $('#filterType');
+                $sel.empty().append('<option value=\"">-- ประเภททั้งหมด --</option>');
+                if (data && data.length > 0) {
+                    data.forEach(function (item) {
+                        $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                    });
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('ไม่สามารถโหลดประเภทได้:', error);
+                // ใช้ข้อมูลประเภทแบบ hardcode เป็น fallback
+                var fallbackTypes = [
+                    { Id: '1', Text: 'คอมพิวเตอร์' },
+                    { Id: '2', Text: 'โน๊ตบุ๊ค' },
+                    { Id: '3', Text: 'แท็บเล็ต' },
+                    { Id: '4', Text: 'โทรศัพท์' },
+                    { Id: '5', Text: 'เครื่องพิมพ์' },
+                    { Id: '6', Text: 'อุปกรณ์เครือข่าย' },
+                    { Id: '7', Text: 'อื่นๆ' }
+                ];
+                var $sel = $('#filterType');
+                $sel.empty().append('<option value=\"">-- ประเภททั้งหมด --</option>');
+                fallbackTypes.forEach(function (item) {
+                    $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                });
+            });
+        }
+
+        // โหลด option แผนก
+        function loadDeptsForFilter() {
+            $.get(appBasePath + 'Asset/GetDepartments', function (data) {
+                var $sel = $('#filterDept');
+                $sel.empty().append('<option value=\"">-- แผนกทั้งหมด --</option>');
+                if (data && data.length > 0) {
+                    data.forEach(function (item) {
+                        var deptName = item.name || item.Name || item.deptName || item.DeptName || item.Text || item.Id;
+                        var deptId = item.Id || item.id || item.deptID || item.DeptID || deptName;
+                        $sel.append('<option value=\"' + deptId + '\">' + deptName + '</option>');
+                    });
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('ไม่สามารถโหลดข้อมูลแผนกได้:', error);
+                // ใช้ข้อมูลแผนกแบบ hardcode เป็น fallback
+                var fallbackDepts = [
+                    { Id: 'IT', Text: 'IT' },
+                    { Id: 'HR', Text: 'HR' },
+                    { Id: 'Finance', Text: 'Finance' },
+                    { Id: 'Production', Text: 'Production' }
+                ];
+                var $sel = $('#filterDept');
+                $sel.empty().append('<option value=\"">-- แผนกทั้งหมด --</option>');
+                fallbackDepts.forEach(function (item) {
+                    $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                });
+            });
+        }
+
+        // โหลด option สถานที่
+        function loadLocationsForFilter() {
+            $.get(appBasePath + 'Asset/GetLocations', function (data) {
+                var $sel = $('#filterLocation');
+                $sel.empty().append('<option value=\"">-- สถานที่ทั้งหมด --</option>');
+                if (data && data.length > 0) {
+                    data.forEach(function (item) {
+                        $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                    });
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('ไม่สามารถโหลดสถานที่ได้:', error);
+                // ใช้ข้อมูลสถานที่แบบ hardcode เป็น fallback
+                var fallbackLocations = [
+                    { Id: 'PD', Text: 'พื้นที่ไลน์ผลิต' },
+                    { Id: 'RMW', Text: 'Raw material WH' },
+                    { Id: 'EW', Text: 'Electronic WH' },
+                    { Id: 'POR', Text: 'ออฟฟิศ' },
+                    { Id: 'MR', Text: 'ห้องบอส' },
+                    { Id: 'BTR', Text: 'ห้องประชุม' }
+                ];
+                var $sel = $('#filterLocation');
+                $sel.empty().append('<option value=\"">-- สถานที่ทั้งหมด --</option>');
+                fallbackLocations.forEach(function (item) {
+                    $sel.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                });
+            });
+        }
+
+        // เรียกโหลด option filter ตอน ready
+        $(document).ready(function () {
+            loadStatusesForFilter();
+            loadTypesForFilter();
+            loadDeptsForFilter();
+            loadLocationsForFilter();
+        });
+
+        function getTypeName(type) {
+            const types = {
+                '1': 'คอมพิวเตอร์',
+                '2': 'โน๊ตบุ๊ค',
+                '3': 'แท็บเล็ต',
+                '4': 'โทรศัพท์',
+                '5': 'เครื่องพิมพ์',
+                '6': 'อุปกรณ์เครือข่าย',
+                '7': 'อื่นๆ'
+            };
+            return types[type] || 'ไม่ระบุ';
+        }
+
+        function getStatusName(status) {
+            return window.statusMap[status] || 'ไม่ระบุ';
+        }
+
+        function loadStatuses() {
+            $.get(appBasePath + 'Asset/GetAssetStatuses', function (data) {
+                var statusSelect = $('#status');
+                statusSelect.empty();
+                statusSelect.append('<option value=\"">-- เลือกสถานะ --</option>');
+                window.statusMap = {}; // reset
+                data.forEach(function (item) {
+                    statusSelect.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
+                    window.statusMap[item.Id] = item.Text;
+                });
+            });
+        }
+
+        // เรียกใช้ loadStatuses() ตอน ready หรือก่อนเปิด modal
+        $(document).ready(function () {
+            loadStatuses();
+        });
+
+        function getLocationName(location) {
+            const locations = {
+                'PD': 'พื้นที่ไลน์ผลิต',
+                'RMW': 'Raw material WH',
+                'EW': 'Electronic WH',
+                'RSFPW': 'Raw materials & semi Finished WH',
+                'DQE': 'DQE LAB',
+                'IQC': 'IQC room',
+                'FA': 'พื้นที่รับของสโตร์',
+                'JIG': 'ห้องเก็บอะไหล่',
+                'DCC': 'ห้องเก็บของเล็กข้างห้องเซิฟเวอร์',
+                'POR': 'ออฟฟิศ',
+                'MR': 'ห้องบอส',
+                'BTR': 'ห้องประชุม',
+                'TC': 'ห้องเทรนงานชั้น 2',
+                'CF': 'ห้องประชุมชั้น 2',
+                'OFPD': 'ออฟฟิศไลน์ผลิต',
+                'PR': 'ห้องปลิ้นติ้ง',
+                'OM': 'ห้องผสมสี',
+                'SC': 'ห้องแผ่นสกีนรูม',
+                'PTR': 'ห้องยาม',
+                'SLSC': 'ที่พักพนักงาน',
+                'MICR': 'ห้องเซิฟเวอร์',
+                'CR': 'ห้องเปลี่ยนรองเท้า'
+            };
+            return locations[location] || 'ไม่ระบุ';
+        }
+
+        $(document).ready(function () {
+            // โหลดข้อมูลไลน์ผลิต
+            function loadLines() {
+                $.get(appBasePath + 'Asset/GetLines', function (data) {
+                    var lineSelect = $('#line');
+                    lineSelect.empty();
+                    lineSelect.append('<option value="">-- เลือกไลน์ผลิต --</option>');
+
+                    data.forEach(function (item) {
+                        lineSelect.append('<option value="' + item.Id + '">' + item.Text + '</option>');
+                    });
                 });
             }
 
+            // เรียกใช้ฟังก์ชันโหลดข้อมูลไลน์
+            loadLines();
+
+            // Event handler สำหรับการเลือกไลน์ผลิต
+            $('#line').on('change', function () {
+                var selectedLine = $(this).val();
+                var locationSelect = $('#location');
+
+                if (selectedLine && selectedLine !== "") {
+                    // ถ้าเลือกไลน์ผลิตแล้ว ให้กำหนดสถานที่เป็น "พื้นที่ไลน์ผลิต" เท่านั้น
+                    locationSelect.val('PD');
+                    locationSelect.prop('disabled', true);
+                } else {
+                    // ถ้าไม่เลือกไลน์ผลิต ให้สามารถเลือกสถานที่ได้
+                    locationSelect.prop('disabled', false);
+                }
+            });
+
+            // ฟังก์ชันสำหรับตั้งค่า Select2 เมื่อมีข้อมูลเริ่มต้น
+            function setSelect2Value(selectElement, value, text) {
+                if (value && text) {
+                    // สร้าง option ใหม่
+                    var newOption = new Option(text, value, true, true);
+                    selectElement.append(newOption).trigger('change');
+                }
+            }
+
+            // กำหนดค่าเริ่มต้นสำหรับ Select2
+            function initSelect2() {
+                if (!$('#owner').hasClass('select2-hidden-accessible')) {
+                    $('#owner').select2({
+                        ajax: {
+                            url: appBasePath + 'Asset/GetPersons',
+                            dataType: 'json',
+                            delay: 250,
+                            data: function (params) {
+                                return {
+                                    q: params.term || '' // ส่งคำค้นหาไปที่ controller
+                                };
+                            },
+                            processResults: function (data) {
+                                return {
+                                    results: data.map(function (item) {
+                                        return { id: item.value, text: item.text };
+                                    })
+                                };
+                            },
+                            cache: true
+                        },
+                        theme: 'bootstrap-5',
+                        placeholder: 'เลือกผู้รับผิดชอบ',
+                        allowClear: false,
+                        dropdownParent: $('#assetModal'),
+                        minimumInputLength: 0,
+                        language: {
+                            noResults: function () {
+                                return "ไม่พบข้อมูล";
+                            },
+                            searching: function () {
+                                return "กำลังค้นหา...";
+                            }
+                        }
+                    }).on('select2:open', function () {
+                        setTimeout(function () {
+                            document.querySelector('.select2-search__field').focus();
+                        }, 100);
+                    }).on('select2:select', function (e) {
+                        var empNo = e.params.data.id;
+                        if (empNo) {
+                            $.get(appBasePath + 'Asset/GetPersonName', { empNo: empNo }, function (data) {
+                                $('#ownerName').val(data.name || '');
+                                $('#department').val(data.deptName || '');
+                            });
+                        }
+                    }).on('change', function () {
+                        var empNo = $(this).val();
+                        if (empNo) {
+                            $.get(appBasePath + 'Asset/GetPersonName', { empNo: empNo }, function (data) {
+                                $('#ownerName').val(data.name || '');
+                                $('#department').val(data.deptName || '');
+                            });
+                        } else {
+                            $('#ownerName').val('');
+                            $('#department').val('');
+                        }
+                    });
+                }
+            }
+
+            // ฟังก์ชัน Mac Address ถูกย้ายไปยังไฟล์ mac-address-management.js แล้ว
+
+            // Mapping กลุ่มกับคลาสสี Bootstrap
+            const groupColorMap = {
+                'THNA': 'table-primary',
+                'THDA': 'table-success',
+                'THDF': 'table-warning',
+                // เพิ่มกลุ่มอื่นๆ ตามต้องการ
+            };
+
             // DataTable
-            const table = $('#assetTable').DataTable({
+            assetTable = $('#assetTable').DataTable({
                 ajax: {
-                    url: '/Asset/GetAll',
+                    url: appBasePath + 'Asset/GetAll',
                     type: 'POST',
-                    dataSrc: ''
+                    dataSrc: function(json) {
+                        return json;
+                    }
                 },
                 columns: [
-                    { 
-                        data: 'code',
-                        render: function(data) {
-                            return `<span class="fw-semibold">${data}</span>`;
+                    {
+                        className: 'details-control',
+                        orderable: false,
+                        data: null,
+                        defaultContent: '<i class="fas fa-plus-circle text-primary"></i>',
+                        title: '<i class="fas fa-plus-circle me-1 text-primary"></i>',
+                        width: '30px'
+                    },
+                    {
+                        data: 'AssetNo',
+                        title: '<i class="fas fa-barcode me-1 text-primary"></i>รหัสทรัพย์สิน',
+                        className: 'text-nowrap fw-medium'
+                    },
+                    {
+                        data: 'ProductSerial',
+                        title: '<i class="fas fa-tag me-1 text-info"></i>Serial Number',
+                        className: 'text-nowrap'
+                    },
+                    {
+                        data: 'Name',
+                        title: '<i class="fas fa-laptop me-1 text-success"></i>ชื่อทรัพย์สิน',
+                        className: 'fw-medium',
+                        render: function (data, type, row) {
+                            // ตรวจสอบว่ามีรายละเอียดเพิ่มเติมหรือไม่
+                            var hasDetails = row.AssetNo || row.ProductSerial || row.WindowsVersion || row.Model || 
+                                           row.Manufacturer || row.InstallationDate || row.StartDate || row.EndDate || 
+                                           row.LocationDetail || row.CountryOfOrigin || row.CustomerNo || row.CustomerName || row.Remarks;
+                            
+                            var tooltipText = '';
+                            if (hasDetails) {
+                                tooltipText = 'รายละเอียดเพิ่มเติม:\n';
+                                if (row.AssetNo) tooltipText += '• รหัสทรัพย์สิน: ' + row.AssetNo + '\n';
+                                if (row.ProductSerial) tooltipText += '• Serial Number: ' + row.ProductSerial + '\n';
+                                if (row.WindowsVersion) tooltipText += '• Windows: ' + row.WindowsVersion + '\n';
+                                if (row.Model) tooltipText += '• รุ่น/Model: ' + row.Model + '\n';
+                                if (row.Manufacturer) tooltipText += '• ผู้ผลิต: ' + row.Manufacturer + '\n';
+                                if (row.CountryOfOrigin) tooltipText += '• ประเทศผู้ผลิต: ' + row.CountryOfOrigin + '\n';
+                                if (row.InstallationDate) tooltipText += '• วันที่ติดตั้ง: ' + new Date(row.InstallationDate).toLocaleDateString('th-TH') + '\n';
+                                if (row.StartDate) tooltipText += '• วันที่เริ่มใช้งาน: ' + new Date(row.StartDate).toLocaleDateString('th-TH') + '\n';
+                                if (row.EndDate) tooltipText += '• วันที่สิ้นสุด: ' + new Date(row.EndDate).toLocaleDateString('th-TH') + '\n';
+                                if (row.LocationDetail) tooltipText += '• รายละเอียดสถานที่: ' + row.LocationDetail + '\n';
+                                if (row.CustomerNo) tooltipText += '• รหัสลูกค้า: ' + row.CustomerNo + '\n';
+                                if (row.CustomerName) tooltipText += '• ชื่อลูกค้า: ' + row.CustomerName + '\n';
+                                if (row.Remarks) tooltipText += '• หมายเหตุ: ' + row.Remarks + '\n';
+                                
+                                return `<span class="text-primary fw-medium" data-bs-toggle="tooltip" data-bs-html="true" 
+                                         title="${tooltipText.replace(/\n/g, '<br>')}" style="cursor: help;">
+                                         ${data} <i class="fas fa-info-circle text-info ms-1" style="font-size: 0.8em;"></i>
+                                       </span>`;
+                            } else {
+                                return `<span class="fw-medium">${data}</span>`;
+                            }
                         }
                     },
-                    { 
-                        data: 'name',
-                        render: function(data) {
-                            return `<span class="text-primary fw-semibold">${data}</span>`;
+                    {
+                        data: 'Type',
+                        title: '<i class="fas fa-tags me-1 text-warning"></i>ประเภท',
+                        className: 'text-center',
+                        render: function (data) {
+                            return getTypeName(data);
                         }
                     },
-                    { 
-                        data: 'type',
-                        render: function(data) {
-                            const types = {
-                                '1': '<span class="badge bg-primary">คอมพิวเตอร์</span>',
-                                '2': '<span class="badge bg-info">โน๊ตบุ๊ค</span>',
-                                '3': '<span class="badge bg-success">แท็บเล็ต</span>',
-                                '4': '<span class="badge bg-warning text-dark">โทรศัพท์</span>',
-                                '5': '<span class="badge bg-secondary">เครื่องพิมพ์</span>',
-                                '6': '<span class="badge bg-dark">อุปกรณ์เครือข่าย</span>',
-                                '7': '<span class="badge bg-light text-dark">อื่นๆ</span>'
-                            };
-                            return types[data] || '<span class="badge bg-secondary">ไม่ระบุ</span>';
+                    {
+                        data: 'Status',
+                        title: '<i class="fas fa-toggle-on me-1 text-primary"></i>สถานะ',
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            // แปลงรหัสเป็นชื่อ
+                            var name = getStatusName(data);
+                            // กำหนดสี badge ตามรหัส
+                            var color = 'secondary';
+                            switch (data) {
+                                case '1': color = 'success'; break;      // ใช้งานได้
+                                case '2': color = 'warning'; break;      // กำลังซ่อม
+                                case '3': color = 'danger'; break;       // ชำรุด
+                                case '4': color = 'secondary'; break;    // จำหน่าย
+                                case '5': color = 'info'; break;         // ไม่ใช้งาน
+                                case '6': color = 'custom-purple'; break; // อะไหล่
+                            }
+                            
+                            // สร้าง dropdown สำหรับเปลี่ยนสถานะ
+                            if (window.canEdit) {
+                                return `<div class="dropdown status-dropdown">
+                                    <button class="btn btn-sm btn-outline-${color} dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="คลิกเพื่อเปลี่ยนสถานะ (${name})" data-bs-toggle="tooltip">
+                                        <span class="badge bg-${color}">${name}</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" onclick="changeStatus(${row.Id}, '1', 'ใช้งานได้');return false;"><span class="badge bg-success me-2">ใช้งานได้</span></a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changeStatus(${row.Id}, '2', 'กำลังซ่อม');return false;"><span class="badge bg-warning me-2">กำลังซ่อม</span></a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changeStatus(${row.Id}, '3', 'ชำรุด');return false;"><span class="badge bg-danger me-2">ชำรุด</span></a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changeStatus(${row.Id}, '4', 'จำหน่าย');return false;"><span class="badge bg-secondary me-2">จำหน่าย</span></a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changeStatus(${row.Id}, '5', 'ไม่ใช้งาน');return false;"><span class="badge bg-info me-2">ไม่ใช้งาน</span></a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changeStatus(${row.Id}, '6', 'อะไหล่');return false;"><span class="badge bg-custom-purple me-2">อะไหล่</span></a></li>
+                                    </ul>
+                                </div>`;
+                            } else {
+                                return `<span class="badge bg-${color}">${name}</span>`;
+                            }
                         }
                     },
-                    { 
-                        data: 'ownerName',
-                        render: function(data) {
-                            return data ? `<div class="d-flex align-items-center">
-                                            <div class="avatar-sm bg-light rounded-circle me-2 d-flex align-items-center justify-content-center">
-                                                <i class="fas fa-user text-primary"></i>
-                                            </div>
-                                            <span>${data}</span>
-                                        </div>` : '-';
+                    {
+                        data: 'OwnerName',
+                        title: '<i class="fas fa-user me-1 text-info"></i>ผู้รับผิดชอบ',
+                        className: 'text-nowrap',
+                        render: function (data, type, row) {
+                            var ownerName = data || '';
+                            var empResignDate = row.EmpResignDate;
+                            
+                            if (empResignDate && empResignDate !== null && empResignDate !== '') {
+                                // แปลงวันที่เป็นรูปแบบไทย
+                                var resignDate = new Date(empResignDate);
+                                var thaiDate = resignDate.toLocaleDateString('th-TH');
+                                
+                                return `<div>
+                                    <span class="text-danger fw-medium">${ownerName}</span>
+                                    <br>
+                                    <small class="text-danger">
+                                        <i class="fas fa-user-times me-1"></i>ลาออกแล้ว (${thaiDate})
+                                    </small>
+                                </div>`;
+                            } else {
+                                return `<span class="fw-medium">${ownerName}</span>`;
+                            }
                         }
                     },
-                    { 
-                        data: 'departmentName',
-                        render: function(data) {
-                            return data ? `<span class="badge bg-light text-dark">${data}</span>` : '-';
+                    {
+                        data: 'DepartmentName',
+                        title: '<i class="fas fa-building me-1 text-secondary"></i>แผนก',
+                        className: 'text-nowrap'
+                    },
+                    {
+                        data: 'LineName',
+                        title: '<i class="fas fa-industry me-1 text-dark"></i>ไลน์',
+                        className: 'text-nowrap'
+                    },
+                    {
+                        data: 'Location',
+                        title: '<i class="fas fa-map-marker-alt me-1 text-danger"></i>สถานที่',
+                        className: 'text-nowrap',
+                        render: function (data) {
+                            return getLocationName(data);
                         }
                     },
-                    { 
-                        data: 'status',
-                        render: function(data) {
-                            const statuses = {
-                                '1': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ใช้งานได้</span>',
-                                '2': '<span class="badge bg-warning text-dark"><i class="fas fa-tools me-1"></i>กำลังซ่อม</span>',
-                                '3': '<span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>ชำรุด</span>',
-                                '4': '<span class="badge bg-secondary"><i class="fas fa-archive me-1"></i>จำหน่าย</span>'
-                            };
-                            return statuses[data] || '<span class="badge bg-secondary">ไม่ระบุ</span>';
+                    {
+                        data: 'WindowsVersion',
+                        title: '<i class="fab fa-windows me-1 text-info"></i>Windows',
+                        className: 'text-nowrap'
+                    },
+                    {
+                        data: 'MacAddressCount',
+                        title: '<i class="fas fa-network-wired me-1 text-info"></i>Mac Address',
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            const count = data || 0;
+                            let badgeClass = 'bg-secondary';
+                            let icon = 'fas fa-times';
+                            
+                            if (count > 0) {
+                                badgeClass = 'bg-success';
+                                icon = 'fas fa-check';
+                            }
+                            
+                            return `<span class="badge ${badgeClass}">
+                                        <i class="${icon}"></i> ${count}
+                                    </span>`;
                         }
                     },
-                    { 
-                        data: 'purchaseDate',
-                        render: function(data) {
-                            if (!data) return '-';
-                            const date = new Date(data);
-                            return `<div class="d-flex align-items-center">
-                                        <i class="fas fa-calendar-alt text-primary me-2"></i>
-                                        <span>${date.toLocaleDateString('th-TH', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}</span>
-                                    </div>`;
+                    {
+                        data: 'CreatedDate',
+                        title: '<i class="fas fa-calendar-alt me-1 text-success"></i>วันที่สร้าง',
+                        className: 'text-center text-nowrap',
+                        render: function (data) {
+                            return data ? new Date(data).toLocaleDateString('th-TH') : '';
                         }
                     },
                     {
                         data: null,
+                        title: '<i class="fas fa-cogs me-1 text-primary"></i>จัดการ',
                         className: 'text-center',
-                        render: function(data) {
-                            let actions = '';
-                            if (canEdit) {
-                                actions += `
-                                    <button class="btn btn-warning btn-action btn-edit" data-id="${data.id}" data-bs-toggle="tooltip" title="แก้ไข">
-                                        <i class="fas fa-edit"></i>
-                                    </button>`;
-                            }
-                            if (canDelete) {
-                                actions += `
-                                    <button class="btn btn-danger btn-action btn-delete" data-id="${data.id}" data-name="${data.name}" data-bs-toggle="tooltip" title="ลบ">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>`;
-                            }
-                            return actions || '<span class="text-muted">ไม่มีสิทธิ์</span>';
-                        },
-                        orderable: false
+                        orderable: false,
+                        render: function (data, type, row) {
+                            let dropdown = `<div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="เมนูจัดการ">
+                                    <i class="fas fa-cogs"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    ${window.canEdit ? `<li><a class="dropdown-item" href="#" onclick="editAsset(${row.Id});return false;"><i class='fas fa-edit me-2 text-primary'></i>แก้ไข</a></li>` : ''}
+                                    <li><a class="dropdown-item" href="#" onclick="duplicateAsset(${row.Id});return false;"><i class='fas fa-copy me-2 text-secondary'></i>ทำซ้ำ</a></li>
+                                    ${window.canDelete ? `<li><a class="dropdown-item" href="#" onclick="deleteAsset(${row.Id}, '${row.Name}');return false;"><i class='fas fa-trash me-2 text-danger'></i>ลบ</a></li>` : ''}
+                                    <li><a class="dropdown-item" href="#" onclick="manageMacAddress(${row.Id}, '${row.Name}');return false;"><i class='fas fa-network-wired me-2 text-info'></i>Mac Address</a></li>
+                                </ul>
+                            </div>`;
+                            return dropdown;
+                        }
                     }
                 ],
                 language: {
-                    url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Thai.json",
+                    url: appBasePath + 'js/datatables/i18n/Thai.json',
                     searchPlaceholder: "ค้นหาทรัพย์สิน..."
                 },
                 dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row align-items-center mt-3"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
                 ordering: true,
-                order: [[0, 'asc']],
+                order: [[3, 'asc']],
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, -1], ['10', '25', '50', 'ทั้งหมด']],
                 responsive: true,
                 autoWidth: false,
                 searching: true,
                 processing: true,
-                initComplete: function() {
-                    // เพิ่ม class และ placeholder ให้กับ input ค้นหา
-                    $('.dataTables_filter input')
-                        .addClass('form-control form-control-sm')
-                        .attr('placeholder', 'ค้นหาทรัพย์สิน...');
+                                initComplete: function () {
                     
                     // เพิ่ม class ให้กับ select
                     $('.dataTables_length select').addClass('form-select form-select-sm');
                     
-                    // เพิ่ม tooltip
-                    $('[data-bs-toggle="tooltip"]').tooltip();
+                    // เพิ่ม tooltip สำหรับรายละเอียดเพิ่มเติม
+                    $('[data-bs-toggle="tooltip"]').tooltip({
+                        html: true,
+                        placement: 'top',
+                        trigger: 'hover',
+                        container: 'body'
+                    });
+                    
+                    // เพิ่ม tooltip สำหรับ status dropdown
+                    $('.status-dropdown button[data-bs-toggle="tooltip"]').tooltip();
+                    
+                },
+                rowCallback: function(row, data, index) {
+                    // ลบคลาสสีเดิมก่อน
+                    $(row).removeClass('table-primary table-success table-warning table-danger table-info table-secondary table-light table-dark');
+                    // หาคีย์กลุ่มจาก 4 ตัวอักษรแรกของชื่อ
+                    if (data.Name && data.Name.length >= 4) {
+                        const prefix = data.Name.substring(0, 4);
+                        if (groupColorMap[prefix]) {
+                            $(row).addClass(groupColorMap[prefix]);
+                        }
+                    }
+                },
+            });
+
+            // เพิ่มฟังก์ชันสำหรับ child row
+            function formatChildRow(d) {
+                return `
+                            <div class="p-3 bg-light border-start border-primary border-4">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>รายละเอียดเพิ่มเติม</h6>
+                                        <table class="table table-sm table-borderless">
+                                            <tr><td class="fw-bold">รหัสทรัพย์สิน:</td><td>${d.AssetNo || '-'}</td></tr>
+                                            <tr><td class="fw-bold">Serial Number:</td><td>${d.ProductSerial || '-'}</td></tr>
+                                            <tr><td class="fw-bold">รุ่น/Model:</td><td>${d.Model || '-'}</td></tr>
+                                            <tr><td class="fw-bold">ผู้ผลิต:</td><td>${d.Manufacturer || '-'}</td></tr>
+                                            <tr><td class="fw-bold">เวอร์ชั่น Windows:</td><td>${d.WindowsVersion || '-'}</td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-network-wired me-2"></i>Mac Address</h6>
+                                        <div id="macAddresses-${d.Id}">
+                                            <div class="text-center text-muted">
+                                                <i class="fas fa-spinner fa-spin"></i> กำลังโหลด...
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="addMacAddress(${d.Id})">
+                                            <i class="fas fa-plus me-1"></i>เพิ่ม Mac Address
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+            }
+
+            // Event listener สำหรับเปิด/ปิด child row
+            $('#assetTable tbody').on('click', 'td.details-control', function () {
+                var tr = $(this).closest('tr');
+                var row = assetTable.row(tr);
+
+                if (row.child.isShown()) {
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    $(this).html('<i class="fas fa-plus-circle text-primary"></i>');
+                } else {
+                    row.child(formatChildRow(row.data())).show();
+                    tr.addClass('shown');
+                    $(this).html('<i class="fas fa-minus-circle text-primary"></i>');
+                    // โหลด Mac Address
+                    const assetId = row.data().Id;
+                    if (assetId && assetId > 0) {
+                        loadMacAddresses(assetId);
+                    } else {
+                        $('#macAddresses-' + assetId).html('<div class="text-center text-danger">ไม่พบข้อมูลทรัพย์สิน</div>');
+                    }
                 }
             });
 
             // ค้นหาแบบ real-time พร้อม debounce
             let searchTimeout;
-            $('#searchInput').on('keyup', function() {
+            $('#searchInput').on('keyup', function () {
                 clearTimeout(searchTimeout);
                 const value = $(this).val();
                 searchTimeout = setTimeout(() => {
-                    table.search(value).draw();
+                    assetTable.search(value).draw();
                 }, 300);
             });
 
+            // ฟังก์ชันสำหรับแก้ไข Asset
+            window.editAsset = function (id) {
+                if (!window.canEdit) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่มีสิทธิ์',
+                        text: 'คุณไม่มีสิทธิ์ในการแก้ไขทรัพย์สิน',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+
+                $.ajax({
+                    url: `${appBasePath}Asset/Get/${id}`,
+                    type: 'GET',
+                    success: function (data) {
+                        $('#assetId').val(data.Id);
+                        $('#assetNo').val(data.AssetNo || '');
+                        $('#productSerial').val(data.ProductSerial || '');
+                        $('#name').val(data.Name || '');
+                        $('#type').val(data.Type || '');
+                        $('#status').val(data.Status || '');
+                        $('#windowsVersion').val(data.WindowsVersion || '');
+                        $('#ownerName').val(data.OwnerName || '');
+                        $('#department').val(data.Department || '');
+                        $('#location').val(data.Location || '');
+                        $('#model').val(data.Model || '');
+                        $('#manufacturer').val(data.Manufacturer || '');
+                        $('#installationDate').val(data.InstallationDate ? new Date(data.InstallationDate).toISOString().split('T')[0] : '');
+                        $('#startDate').val(data.StartDate ? new Date(data.StartDate).toISOString().split('T')[0] : '');
+                        $('#locationDetail').val(data.LocationDetail || '');
+                        $('#countryOfOrigin').val(data.CountryOfOrigin || '');
+                        $('#customerNo').val(data.CustomerNo || '');
+                        $('#customerName').val(data.CustomerName || '');
+                        $('#endDate').val(data.EndDate ? new Date(data.EndDate).toISOString().split('T')[0] : '');
+
+                        loadLines(); // โหลดข้อมูลไลน์ใหม่
+
+                        // เปิด Modal ก่อน
+                        $('#assetModalLabel').html('<i class="fas fa-edit me-2"></i>แก้ไขทรัพย์สิน IT');
+                        $('#assetModal').modal('show');
+
+                        // รอให้ Modal เปิดเสร็จแล้วค่อย init Select2
+                        $('#assetModal').on('shown.bs.modal', function () {
+                            initSelect2();
+                            $('#owner').val(null).trigger('change'); // Reset owner select2
+
+                            // แสดงรายละเอียดเพิ่มเติมถ้ามีข้อมูล
+                            if (data.AssetNo || data.ProductSerial || data.WindowsVersion || data.Model || 
+                                data.Manufacturer || data.InstallationDate || data.StartDate || data.EndDate || 
+                                data.LocationDetail || data.CountryOfOrigin || data.CustomerNo || data.CustomerName) {
+                                $('#detailsSection').show();
+                                $('#btnToggleDetails').html('<i class="fas fa-chevron-up"></i> ซ่อนรายละเอียด');
+                            } else {
+                                $('#detailsSection').hide();
+                                $('#btnToggleDetails').html('<i class="fas fa-chevron-down"></i> แสดงรายละเอียด');
+                            }
+
+                            // รอให้ Select2 โหลดเสร็จแล้วค่อยตั้งค่า
+                            setTimeout(() => {
+                                if (data.Owner) {
+                                    // ดึงข้อมูลชื่อพนักงานจาก API เพื่อตั้งค่า Select2
+                                    $.get(appBasePath + 'Asset/GetPersonName', { empNo: data.Owner }, function (personData) {
+                                        if (personData && personData.name) {
+                                            var fullName = personData.name + ' (' + data.Owner + ')';
+                                            setSelect2Value($('#owner'), data.Owner, fullName);
+                                        } else {
+                                            // ถ้าไม่พบข้อมูลชื่อ ให้ใช้แค่รหัสพนักงาน
+                                            setSelect2Value($('#owner'), data.Owner, data.Owner);
+                                        }
+                                    });
+                                }
+                                if (data.Line) {
+                                    $('#line').val(data.Line).trigger('change');
+                                }
+                            }, 1000);
+
+                            // ลบ event listener นี้หลังจากใช้ครั้งเดียว
+                            $('#assetModal').off('shown.bs.modal');
+                        });
+
+                        $('#assetDescription').val(data.Remarks || '');
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถโหลดข้อมูลได้'
+                        });
+                    }
+                });
+            };
+
+            // ฟังก์ชันสำหรับลบ Asset
+            window.deleteAsset = function (id, name) {
+                if (!window.canDelete) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่มีสิทธิ์',
+                        text: 'คุณไม่มีสิทธิ์ในการลบทรัพย์สิน',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการลบ',
+                    text: `คุณต้องการลบทรัพย์สิน "${name}" ใช่หรือไม่?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'ลบ',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `${appBasePath}Asset/Delete/${id}`,
+                            type: 'DELETE',
+                                                    success: function () {
+                            assetTable.ajax.reload(function() {
+                                // เพิ่ม tooltip ใหม่หลังจาก reload
+                                setTimeout(function() {
+                                    $('.status-dropdown button[data-bs-toggle="tooltip"]').tooltip();
+                                    // อัปเดต tooltip สำหรับรายละเอียดเพิ่มเติม
+                                    $('[data-bs-toggle="tooltip"]').tooltip({
+                                        html: true,
+                                        placement: 'top',
+                                        trigger: 'hover',
+                                        container: 'body'
+                                    });
+                                }, 100);
+                            });
+                            // อัปเดตข้อมูลสรุป
+                            onAssetDataChanged();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ลบทรัพย์สินสำเร็จ',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'เกิดข้อผิดพลาด',
+                                    text: xhr.responseText || 'ไม่สามารถลบข้อมูลได้'
+                                });
+                            }
+                        });
+                    }
+                });
+            };
+
+            // ฟังก์ชัน Mac Address ถูกย้ายไปยังไฟล์ mac-address-management.js แล้ว
+
             // เปิด Modal เพิ่มทรัพย์สิน
-            $('#btnAddAsset').click(function() {
+            $('#btnAddAsset').click(function () {
+                if (!window.canAdd) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่มีสิทธิ์',
+                        text: 'คุณไม่มีสิทธิ์ในการเพิ่มทรัพย์สิน',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+
                 $('#assetForm')[0].reset();
                 $('#assetId').val('');
                 $('#assetModalLabel').html('<i class="fas fa-plus-circle me-2"></i>เพิ่มทรัพย์สิน IT');
+                loadLines(); // โหลดข้อมูลไลน์ใหม่
+
+                // Reset Select2
+                if ($('#owner').hasClass('select2-hidden-accessible')) {
+                    $('#owner').val(null).trigger('change');
+                }
+
+                // ซ่อนรายละเอียดเพิ่มเติมเมื่อเปิด modal ใหม่
+                $('#detailsSection').hide();
+                $('#btnToggleDetails').html('<i class="fas fa-chevron-down"></i> แสดงรายละเอียด');
+
+                // โหลดข้อมูลพนักงานก่อนแล้วค่อย init Select2
                 initSelect2();
+                $('#location').prop('disabled', false); // Reset location dropdown
                 $('#assetModal').modal('show');
             });
 
-            // เปิด Modal แก้ไขทรัพย์สิน
-            $(document).on('click', '.btn-edit', function() {
-                const id = $(this).data('id');
+            // Event handler สำหรับปุ่มแสดง/ซ่อนรายละเอียด
+            $('#btnToggleDetails').click(function() {
+                const $detailsSection = $('#detailsSection');
+                const $btn = $(this);
+                const $icon = $btn.find('i');
                 
-                $.ajax({
-                    url: `/Asset/Get/${id}`,
-                    type: 'GET',
-                    success: function(data) {
-                        $('#assetId').val(data.id);
-                        $('#assetCode').val(data.code);
-                        $('#assetName').val(data.name);
-                        $('#assetType').val(data.type);
-                        $('#assetStatus').val(data.status);
-                        $('#assetDepartment').val(data.department);
-                        
-                        initSelect2();
-                        setTimeout(() => {
-                            $('#assetOwner').val(data.owner).trigger('change');
-                        }, 500);
-                        
-                        $('#assetPurchaseDate').val(data.purchaseDate);
-                        $('#assetWarranty').val(data.warranty);
-                        $('#assetDescription').val(data.description);
-                        
-                        $('#assetModalLabel').html('<i class="fas fa-edit me-2"></i>แก้ไขทรัพย์สิน IT');
-                        $('#assetModal').modal('show');
-                    }
-                });
+                if ($detailsSection.is(':visible')) {
+                    $detailsSection.slideUp(300);
+                    $btn.html('<i class="fas fa-chevron-down"></i> แสดงรายละเอียด');
+                } else {
+                    $detailsSection.slideDown(300);
+                    $btn.html('<i class="fas fa-chevron-up"></i> ซ่อนรายละเอียด');
+                }
+            });
+
+            // เปิด Modal แก้ไขทรัพย์สิน
+            $(document).on('click', '.btn-edit', function () {
+                const id = $(this).data('id');
+                editAsset(id);
+            });
+
+            // ยืนยันการลบ
+            $('#btnConfirmDelete').click(function () {
+                const id = $(this).data('id');
+                deleteAsset(id, $('#deleteItemName').text());
+                $('#deleteModal').modal('hide');
             });
 
             // เพิ่มการตรวจสอบข้อมูลก่อนบันทึก
             function validateForm() {
-                const code = $('#assetCode').val();
-                const name = $('#assetName').val();
-                const type = $('#assetType').val();
-                const status = $('#assetStatus').val();
-                const location = $('#assetLocation').val();
-                
+                const name = $('#name').val();
+                const type = $('#type').val();
+                const status = $('#status').val();
+                const owner = $('#owner').val();
+                const location = $('#location').val();
+
                 let isValid = true;
                 let errorMessage = '';
-                
-                if (!code) {
-                    errorMessage += 'กรุณาระบุรหัสทรัพย์สิน\n';
-                    isValid = false;
-                }
-                
+
                 if (!name) {
                     errorMessage += 'กรุณาระบุชื่อทรัพย์สิน\n';
                     isValid = false;
                 }
-                
+
                 if (!type) {
                     errorMessage += 'กรุณาเลือกประเภททรัพย์สิน\n';
                     isValid = false;
                 }
-                
+
                 if (!status) {
                     errorMessage += 'กรุณาเลือกสถานะ\n';
                     isValid = false;
                 }
-                
+
+                if (!owner) {
+                    errorMessage += 'กรุณาเลือกผู้รับผิดชอบ\n';
+                    isValid = false;
+                }
+
                 if (!location) {
                     errorMessage += 'กรุณาเลือกสถานที่จัดเก็บ\n';
                     isValid = false;
                 }
-                
-                if (location === 'PD' && !$('#productionLine').val()) {
-                    errorMessage += 'กรุณาเลือกไลน์ผลิต\n';
+
+                // ตรวจสอบวันที่
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+                    errorMessage += 'วันที่เริ่มใช้งานต้องไม่เกินวันที่สิ้นสุดการใช้งาน\n';
                     isValid = false;
                 }
-                
+
+                // ตรวจสอบชื่อทรัพย์สินต้องเป็นภาษาอังกฤษพิมพ์ใหญ่เท่านั้น
+                if (!/^[A-Z0-9 .\\-_/]+$/.test(name)) {
+                    errorMessage += 'กรุณากรอกชื่อทรัพย์สินเป็นภาษาอังกฤษพิมพ์ใหญ่เท่านั้น\n';
+                    isValid = false;
+                }
+
                 if (!isValid) {
                     Swal.fire({
                         icon: 'error',
@@ -906,61 +1794,90 @@
                         confirmButtonText: 'ตกลง'
                     });
                 }
-                
+
                 return isValid;
             }
 
             // ปรับปรุงฟังก์ชันบันทึก
-            $('#btnSaveAsset').click(function() {
+            $('#btnSaveAsset').click(function () {
                 if (!validateForm()) {
                     return;
                 }
-                
+
                 const formData = {
                     Id: $('#assetId').val() || 0,
-                    Code: $('#assetCode').val(),
-                    Name: $('#assetName').val(),
-                    Type: $('#assetType').val(),
-                    Status: $('#assetStatus').val(),
-                    Owner: $('#assetOwner').val(),
-                    Department: $('#assetDepartment').val(),
-                    PurchaseDate: $('#assetPurchaseDate').val(),
-                    Warranty: $('#assetWarranty').val(),
-                    Description: $('#assetDescription').val()
+                    AssetNo: $('#assetNo').val() || null,
+                    ProductSerial: $('#productSerial').val() || null,
+                    Name: $('#name').val(),
+                    Type: $('#type').val(),
+                    Status: $('#status').val(),
+                    CustomerNo: $('#customerNo').val() || '', // ใช้ค่าจากฟอร์ม
+                    CustomerName: $('#customerName').val() || '', // ใช้ค่าจากฟอร์ม
+                    Owner: $('#owner').val(),
+                    OwnerName: $('#ownerName').val() || '',
+                    Department: $('#department').val(),
+                    DepartmentName: $('#department').val() || '',
+                    Line: $('#line').val() || null,
+                    LineName: $('#line option:selected').text() || '',
+                    Location: $('#location').val(),
+                    LocationDetail: $('#locationDetail').val() || '', // ใช้ค่าจากฟอร์ม
+                    Model: $('#model').val() || '', // ใช้ค่าจากฟอร์ม
+                    Manufacturer: $('#manufacturer').val() || '', // ใช้ค่าจากฟอร์ม
+                    CountryOfOrigin: $('#countryOfOrigin').val() || '', // ใช้ค่าจากฟอร์ม
+                    WindowsVersion: $('#windowsVersion').val() || null,
+                    InstallationDate: $('#installationDate').val() ? new Date($('#installationDate').val()) : null,
+                    StartDate: $('#startDate').val() ? new Date($('#startDate').val()) : null,
+                    EndDate: $('#endDate').val() ? new Date($('#endDate').val()) : null,
+                    Remarks: $('#assetDescription').val() || null
                 };
-                
+
                 const isNew = !formData.Id || formData.Id == "0";
-                const url = isNew ? '/Asset/Create' : '/Asset/Update';
+                const url = isNew ? `${appBasePath}Asset/Create` : `${appBasePath}Asset/Update`;
                 const method = isNew ? 'POST' : 'PUT';
-                
+
                 $.ajax({
                     url: url,
                     type: method,
                     data: JSON.stringify(formData),
                     contentType: 'application/json',
-                    success: function() {
-                        table.ajax.reload();
-                        $('#assetModal').modal('hide');
-                        
-                        // แสดง Toast แจ้งเตือน
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true,
-                            didOpen: (toast) => {
-                                toast.addEventListener('mouseenter', Swal.stopTimer)
-                                toast.addEventListener('mouseleave', Swal.resumeTimer)
-                            }
-                        });
+                                            success: function () {
+                            assetTable.ajax.reload(function() {
+                                // เพิ่ม tooltip ใหม่หลังจาก reload
+                                setTimeout(function() {
+                                    $('.status-dropdown button[data-bs-toggle="tooltip"]').tooltip();
+                                    // อัปเดต tooltip สำหรับรายละเอียดเพิ่มเติม
+                                    $('[data-bs-toggle="tooltip"]').tooltip({
+                                        html: true,
+                                        placement: 'top',
+                                        trigger: 'hover',
+                                        container: 'body'
+                                    });
+                                }, 100);
+                            });
+                            $('#assetModal').modal('hide');
+                            
+                            // อัปเดตข้อมูลสรุป
+                            onAssetDataChanged();
+                            
+                            // แสดง Toast แจ้งเตือน
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                didOpen: (toast) => {
+                                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                                }
+                            });
 
-                        Toast.fire({
-                            icon: 'success',
-                            title: isNew ? 'เพิ่มทรัพย์สินสำเร็จ' : 'แก้ไขทรัพย์สินสำเร็จ'
-                        });
-                    },
-                    error: function(xhr) {
+                            Toast.fire({
+                                icon: 'success',
+                                title: isNew ? 'เพิ่มทรัพย์สินสำเร็จ' : 'แก้ไขทรัพย์สินสำเร็จ'
+                            });
+                        },
+                    error: function (xhr) {
                         Swal.fire({
                             icon: 'error',
                             title: 'เกิดข้อผิดพลาด',
@@ -970,82 +1887,1038 @@
                 });
             });
 
-            // เปิด Modal ยืนยันการลบ
-            $(document).on('click', '.btn-delete', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
+            // อัปเดตสถิติแบบ real-time
+            // หมายเหตุ: หากต้องการใช้ WebSocket ให้แก้ไข URL ให้ถูกต้อง
+            // const socket = new WebSocket('wss://your-websocket-server');
+            // socket.onmessage = function (event) {
+            //     const data = JSON.parse(event.data);
+            //     if (data.type === 'statistics') {
+            //         updateStatistics(data.statistics);
+            //     }
+            // };
+
+            // โหลดสถิติเริ่มต้น
+            function loadStatistics() {
+                $.get(appBasePath + 'Asset/GetStatistics', function (data) {
+                    updateStatistics(data);
+                }).fail(function (xhr, status, error) {
+                    // ใช้ข้อมูลสถิติแบบ default
+                    updateStatistics({
+                        total: 0,
+                        active: 0,
+                        repair: 0,
+                        damaged: 0,
+                        disposed: 0,
+                        inactive: 0
+                    });
+                });
+            }
+
+            // โหลดข้อมูลสรุป Dashboard
+            function loadDashboardSummary() {
+                // แสดง loading state
+                $('.dashboard-card h2').addClass('loading').text('...');
                 
-                $('#deleteItemName').text(name);
-                $('#btnConfirmDelete').data('id', id);
-                $('#deleteModal').modal('show');
+                $.get(appBasePath + 'Asset/GetDashboardSummary', function(data) {
+                    updateDashboardSummary(data);
+                    // ลบ loading state
+                    $('.dashboard-card h2').removeClass('loading');
+                }).fail(function (xhr, status, error) {
+                    // ลบ loading state และแสดงข้อความผิดพลาด
+                    $('.dashboard-card h2').removeClass('loading').text('0');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถโหลดข้อมูลสรุปได้: ' + error,
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                });
+            }
+
+            // เรียกใช้ฟังก์ชันโหลดสถิติ
+            loadStatistics();
+            loadDashboardSummary();
+
+            // อัปเดตข้อมูลอัตโนมัติทุก 30 วินาที
+            setInterval(function() {
+                loadDashboardSummary();
+            }, 30000);
+
+            // Event handler สำหรับปุ่มรีเฟรช
+            $('#btnRefreshDashboard').on('click', function() {
+                const $btn = $(this);
+                const $icon = $btn.find('i');
+                
+                // แสดง loading state
+                $btn.prop('disabled', true);
+                $icon.addClass('fa-spin');
+                
+                // รีเฟรชข้อมูล
+                refreshDashboardData();
+                
+                // ซ่อน loading state หลังจาก 2 วินาที
+                setTimeout(function() {
+                    $btn.prop('disabled', false);
+                    $icon.removeClass('fa-spin');
+                    
+                    // แสดง Toast แจ้งเตือน
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'อัปเดตข้อมูลสำเร็จ'
+                    });
+                }, 2000);
             });
 
-            // ยืนยันการลบ
-            $('#btnConfirmDelete').click(function() {
-                const id = $(this).data('id');
+            // Event handler สำหรับปุ่มรีเฟรช (คลิกขวาเพื่อดูข้อมูลเพิ่มเติม)
+            $('#btnRefreshDashboard').on('contextmenu', function(e) {
+                e.preventDefault();
                 
-                $.ajax({
-                    url: `/Asset/Delete/${id}`,
-                    type: 'DELETE',
-                    success: function() {
-                        table.ajax.reload();
-                        $('#deleteModal').modal('hide');
-                        
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        });
-
-                        Toast.fire({
-                            icon: 'success',
-                            title: 'ลบทรัพย์สินสำเร็จ'
-                        });
-                    },
-                    error: function(xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด',
-                            text: xhr.responseText || 'ไม่สามารถลบข้อมูลได้'
-                        });
-                    }
+                Swal.fire({
+                    title: 'ข้อมูลระบบ',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>อัปเดตอัตโนมัติ:</strong> ทุก 30 วินาที</p>
+                            <p><strong>การใช้งาน:</strong></p>
+                            <ul class="text-start">
+                                <li>คลิกซ้าย: รีเฟรชข้อมูลทันที</li>
+                                <li>คลิกขวาที่ card: ดูข้อมูลเพิ่มเติม</li>
+                                <li>คลิกซ้ายที่ card: กรองข้อมูลในตาราง</li>
+                            </ul>
+                            <hr>
+                            <p class="small text-muted">ข้อมูลจะอัปเดตอัตโนมัติเมื่อมีการเปลี่ยนแปลงในระบบ</p>
+                        </div>
+                    `,
+                    icon: 'info',
+                    confirmButtonText: 'เข้าใจแล้ว',
+                    width: '500px'
                 });
             });
 
-            // อัปเดตสถิติแบบ real-time
-            const socket = new WebSocket('wss://your-websocket-server');
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'statistics') {
-                    updateStatistics(data.statistics);
-                }
-            };
+            // Event handler สำหรับปุ่มทดสอบ
+            $('#btnTestFilter').on('click', function() {
+                // ทดสอบกรองสถานะ "1" (ใช้งานได้)
+                $('#filterStatus').val('1').trigger('change');
+            });
 
             // อัปเดทสถิติ
             function updateStatistics(statistics) {
-                $('#totalAssets').text(statistics.total);
-                $('#activeAssets').text(statistics.active);
-                $('#repairAssets').text(statistics.repair);
-                $('#damagedAssets').text(statistics.damaged);
+                $('#totalAssets').text(statistics.total || 0);
+                $('#activeAssets').text(statistics.active || 0);
+                $('#repairAssets').text(statistics.repair || 0);
+                $('#damagedAssets').text(statistics.damaged || 0);
+            }
+
+            // อัปเดทข้อมูลสรุป Dashboard
+            function updateDashboardSummary(data) {
+                const total = data.total || 0;
+                
+                // อัปเดทข้อมูลหลัก
+                $('#totalAssets').text(total);
+                $('#activeAssets').text(data.active || 0);
+                $('#repairAssets').text(data.repair || 0);
+                $('#damagedAssets').text(data.damaged || 0);
+                $('#disposedAssets').text(data.disposed || 0);
+                $('#inactiveAssets').text(data.inactive || 0);
+                $('#spareAssets').text(data.spare || 0);
+                $('#recentAssets').text(data.recentCount || 0);
+                $('#maintenanceCount').text(data.maintenanceCount || 0);
+
+                // อัปเดทข้อมูล Mac Address
+                $('#withMac').text('มี Mac: ' + (data.withMac || 0));
+                $('#withoutMac').text('ไม่มี Mac: ' + (data.withoutMac || 0));
+
+                // คำนวณเปอร์เซ็นต์
+                if (total > 0) {
+                    $('#activePercent').text(Math.round((data.active || 0) / total * 100) + '%');
+                    $('#repairPercent').text(Math.round((data.repair || 0) / total * 100) + '%');
+                    $('#damagedPercent').text(Math.round((data.damaged || 0) / total * 100) + '%');
+                    $('#disposedPercent').text(Math.round((data.disposed || 0) / total * 100) + '%');
+                    $('#inactivePercent').text(Math.round((data.inactive || 0) / total * 100) + '%');
+                    $('#sparePercent').text(Math.round((data.spare || 0) / total * 100) + '%');
+                } else {
+                    // ถ้าไม่มีข้อมูล ให้แสดง 0%
+                    $('#activePercent').text('0%');
+                    $('#repairPercent').text('0%');
+                    $('#damagedPercent').text('0%');
+                    $('#disposedPercent').text('0%');
+                    $('#inactivePercent').text('0%');
+                    $('#sparePercent').text('0%');
+                }
+
+                // อัปเดทสรุปประเภท
+                if (data.byType && Object.keys(data.byType).length > 0) {
+                    let typeText = [];
+                    for (const [type, count] of Object.entries(data.byType)) {
+                        typeText.push(getTypeName(type) + ': ' + count);
+                    }
+                    $('#typeSummary').text(typeText.slice(0, 3).join(' | '));
+                } else {
+                    $('#typeSummary').text('ไม่มีข้อมูล');
+                }
             }
 
             // แสดง/ซ่อนฟิลด์ไลน์ผลิตตามสถานที่ที่เลือก
-            $('#assetLocation').change(function() {
+            $('#location').change(function () {
                 const selectedLocation = $(this).val();
-                const productionLineContainer = $('#productionLineContainer');
-                const productionLineSelect = $('#productionLine');
+                // Removed production line logic as it's not in the new model
+            });
+
+            window.duplicateAsset = function (id) {
+                $.ajax({
+                    url: `${appBasePath}Asset/Duplicate/${id}`,
+                    type: 'GET',
+                    success: function (data) {
+                        // เคลียร์ค่า Id, AssetNo, Name, ProductSerial
+                        $('#assetId').val('');
+                        $('#assetNo').val('');
+                        $('#productSerial').val('');
+                        $('#name').val('');
+                        $('#type').val(data.Type || '');
+                        $('#status').val(data.Status || '');
+                        $('#windowsVersion').val(data.WindowsVersion || '');
+                        $('#ownerName').val(data.OwnerName || '');
+                        $('#department').val(data.Department || '');
+                        $('#location').val(data.Location || '');
+                        $('#model').val(data.Model || '');
+                        $('#manufacturer').val(data.Manufacturer || '');
+                        $('#installationDate').val(data.InstallationDate ? new Date(data.InstallationDate).toISOString().split('T')[0] : '');
+                        $('#startDate').val(data.StartDate ? new Date(data.StartDate).toISOString().split('T')[0] : '');
+                        $('#locationDetail').val(data.LocationDetail || '');
+                        $('#countryOfOrigin').val(data.CountryOfOrigin || '');
+                        $('#customerNo').val(data.CustomerNo || '');
+                        $('#customerName').val(data.CustomerName || '');
+                        $('#endDate').val(data.EndDate ? new Date(data.EndDate).toISOString().split('T')[0] : '');
+                        if (typeof loadLines === 'function') loadLines();
+                        $('#assetModalLabel').html('<i class="fas fa-copy me-2"></i>ทำซ้ำทรัพย์สิน IT');
+                        $('#assetModal').modal('show');
+                        $('#assetModal').on('shown.bs.modal', function () {
+                            if (typeof initSelect2 === 'function') initSelect2();
+                            
+                            // แสดงรายละเอียดเพิ่มเติมถ้ามีข้อมูล
+                            if (data.AssetNo || data.ProductSerial || data.WindowsVersion || data.Model || 
+                                data.Manufacturer || data.InstallationDate || data.StartDate || data.EndDate || 
+                                data.LocationDetail || data.CountryOfOrigin || data.CustomerNo || data.CustomerName) {
+                                $('#detailsSection').show();
+                                $('#btnToggleDetails').html('<i class="fas fa-chevron-up"></i> ซ่อนรายละเอียด');
+                            } else {
+                                $('#detailsSection').hide();
+                                $('#btnToggleDetails').html('<i class="fas fa-chevron-down"></i> แสดงรายละเอียด');
+                            }
+                            
+                            setTimeout(() => {
+                                if (data.Owner) {
+                                    $.get(appBasePath + 'Asset/GetPersonName', { empNo: data.Owner }, function (personData) {
+                                        if (personData && personData.name) {
+                                            var fullName = personData.name + ' (' + data.Owner + ')';
+                                            if (typeof setSelect2Value === 'function') setSelect2Value($('#owner'), data.Owner, fullName);
+                                        } else {
+                                            if (typeof setSelect2Value === 'function') setSelect2Value($('#owner'), data.Owner, data.Owner);
+                                        }
+                                    });
+                                }
+                                if (data.Line) {
+                                    $('#line').val(data.Line).trigger('change');
+                                }
+                            }, 1000);
+                            $('#assetModal').off('shown.bs.modal');
+                        });
+                        $('#assetDescription').val(data.Remarks || '');
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: xhr.responseText || 'ไม่สามารถโหลดข้อมูลได้'
+                        });
+                    }
+                });
+            };
+
+            // 1. บังคับให้พิมพ์เป็นตัวใหญ่ทันที
+            $('#name').on('input', function () {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9 .\\-_/]/g, '');
+            });
+
+            // Event handlers สำหรับ filter
+            $('#filterStatus, #filterType, #filterDept, #filterLocation').on('change', function () {
+                assetTable.draw();
+            });
+
+            $('#filterSearch').on('keyup', function () {
+                assetTable.search(this.value).draw();
+            });
+
+            // ปุ่มล้างตัวกรอง
+            $('#btnClearFilter').on('click', function () {
+                $('#filterStatus').val('');
+                $('#filterType').val('');
+                $('#filterDept').val('');
+                $('#filterLocation').val('');
+                $('#filterSearch').val('');
+                assetTable.search('').draw();
+            });
+
+            // Custom filter สำหรับ DataTable
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                var status = $('#filterStatus').val();
+                var type = $('#filterType').val();
+                var dept = $('#filterDept').val();
+                var location = $('#filterLocation').val();
+                var search = $('#filterSearch').val().toLowerCase();
+
+                // ดึงข้อมูลจริงจาก DataTable row
+                var rowData = assetTable.row(dataIndex).data();
                 
-                if (selectedLocation === 'PD') {
-                    productionLineContainer.slideDown();
-                    productionLineSelect.prop('required', true);
+                // ถ้าไม่มีข้อมูล rowData ให้ return true (แสดงแถว)
+                if (!rowData) {
+                    return true;
+                }
+
+                var rowStatusCode = rowData.Status || '';
+                var rowType = rowData.Type || '';
+                var rowDept = rowData.DepartmentName || '';
+                var rowLocation = rowData.Location || '';
+                var rowAssetNo = rowData.AssetNo || '';
+                var rowSerial = rowData.ProductSerial || '';
+                var rowName = rowData.Name || '';
+
+                // ตรวจสอบสถานะ (เปรียบเทียบรหัส)
+                if (status && rowStatusCode !== status) {
+                    return false;
+                }
+                // ตรวจสอบประเภท (เปรียบเทียบรหัส)
+                if (type && rowType !== type) {
+                    return false;
+                }
+                // ตรวจสอบแผนก (เปรียบเทียบชื่อแผนก)
+                if (dept && rowDept && !rowDept.toLowerCase().includes(dept.toLowerCase())) {
+                    return false;
+                }
+                // ตรวจสอบสถานที่ (เปรียบเทียบรหัส)
+                if (location && rowLocation !== location) {
+                    return false;
+                }
+                // ตรวจสอบการค้นหา
+                if (search) {
+                    var searchText = (rowAssetNo + ' ' + rowSerial + ' ' + rowName).toLowerCase();
+                    if (!searchText.includes(search)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+
+
+
+            // Event คลิก card เพื่อกรอง
+            $('.dashboard-card').on('click', function() {
+                const status = $(this).data('status');
+                const cardTitle = $(this).find('h6').text().trim();
+                const count = $(this).find('h2').text();
+                
+                if (status === 'all') {
+                    $('#filterStatus').val('').trigger('change');
+                    $('#filterType').val('').trigger('change');
+                    $('#filterDept').val('').trigger('change');
+                    $('#filterLocation').val('').trigger('change');
+                    $('#filterSearch').val('').trigger('keyup');
                 } else {
-                    productionLineContainer.slideUp();
-                    productionLineSelect.prop('required', false);
-                    productionLineSelect.val('');
+                    $('#filterStatus').val(status).trigger('change');
+                }
+                
+                // Toast แจ้งเตือน
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'info',
+                    title: `กรองข้อมูล: ${cardTitle}`,
+                    text: `จำนวน: ${count} รายการ`
+                });
+            });
+
+            // เพิ่ม hover effect สำหรับ card
+            $('.dashboard-card').hover(
+                function() {
+                    $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)');
+                    
+                    // แสดง tooltip ข้อมูลเพิ่มเติม
+                    const status = $(this).data('status');
+                    const count = $(this).find('h2').text();
+                    const percent = $(this).find('.small span').text();
+                    
+                    if (status && status !== 'all') {
+                        const statusName = getStatusName(status);
+                        $(this).attr('title', `${statusName}: ${count} รายการ (${percent})`);
+                    } else if (status === 'all') {
+                        $(this).attr('title', `คลิกเพื่อล้างตัวกรอง | คลิกขวาเพื่อดูข้อมูลเพิ่มเติม`);
+                    }
+                },
+                function() {
+                    $(this).removeClass('shadow-lg').css('transform', 'translateY(0)');
+                    // ไม่ลบ title เพื่อให้ tooltip ยังทำงานได้
+                }
+            );
+
+
+
+            // เรียกใช้ฟังก์ชันอัปเดตหลังจากบันทึก/ลบ/แก้ไข
+            function onAssetDataChanged() {
+                // โหลดข้อมูลสรุป Dashboard
+                $.get(appBasePath + 'Asset/GetDashboardSummary', function(data) {
+                    // อัปเดทข้อมูลสรุป Dashboard
+                    const total = data.total || 0;
+                    
+                    // อัปเดทข้อมูลหลัก
+                    $('#totalAssets').text(total);
+                    $('#activeAssets').text(data.active || 0);
+                    $('#repairAssets').text(data.repair || 0);
+                    $('#damagedAssets').text(data.damaged || 0);
+                    $('#disposedAssets').text(data.disposed || 0);
+                    $('#inactiveAssets').text(data.inactive || 0);
+                    $('#spareAssets').text(data.spare || 0);
+                    $('#recentAssets').text(data.recentCount || 0);
+                    $('#maintenanceCount').text(data.maintenanceCount || 0);
+
+                    // อัปเดทข้อมูล Mac Address
+                    $('#withMac').text('มี Mac: ' + (data.withMac || 0));
+                    $('#withoutMac').text('ไม่มี Mac: ' + (data.withoutMac || 0));
+
+                    // คำนวณเปอร์เซ็นต์
+                    if (total > 0) {
+                        $('#activePercent').text(Math.round((data.active || 0) / total * 100) + '%');
+                        $('#repairPercent').text(Math.round((data.repair || 0) / total * 100) + '%');
+                        $('#damagedPercent').text(Math.round((data.damaged || 0) / total * 100) + '%');
+                        $('#disposedPercent').text(Math.round((data.disposed || 0) / total * 100) + '%');
+                        $('#inactivePercent').text(Math.round((data.inactive || 0) / total * 100) + '%');
+                        $('#sparePercent').text(Math.round((data.spare || 0) / total * 100) + '%');
+                    } else {
+                        // ถ้าไม่มีข้อมูล ให้แสดง 0%
+                        $('#activePercent').text('0%');
+                        $('#repairPercent').text('0%');
+                        $('#damagedPercent').text('0%');
+                        $('#disposedPercent').text('0%');
+                        $('#inactivePercent').text('0%');
+                        $('#sparePercent').text('0%');
+                    }
+
+                    // อัปเดทสรุปประเภท
+                    if (data.byType && Object.keys(data.byType).length > 0) {
+                        let typeText = [];
+                        for (const [type, count] of Object.entries(data.byType)) {
+                            typeText.push(getTypeName(type) + ': ' + count);
+                        }
+                        $('#typeSummary').text(typeText.slice(0, 3).join(' | '));
+                    } else {
+                        $('#typeSummary').text('ไม่มีข้อมูล');
+                    }
+                }).fail(function (xhr, status, error) {
+                    // ไม่สามารถโหลดข้อมูลสรุปได้
+                });
+                
+                // โหลดสถิติ
+                $.get(appBasePath + 'Asset/GetStatistics', function (data) {
+                    // อัปเดทสถิติ
+                    $('#totalAssets').text(data.total || 0);
+                    $('#activeAssets').text(data.active || 0);
+                    $('#repairAssets').text(data.repair || 0);
+                    $('#damagedAssets').text(data.damaged || 0);
+                }).fail(function (xhr, status, error) {
+                    // ไม่สามารถโหลดสถิติได้
+                });
+                
+                // อัปเดตจำนวน Mac Address ในตารางหลัก
+                setTimeout(function() {
+                    loadAllMacAddressCounts();
+                }, 500);
+            }
+
+            // Event คลิกขวาที่ card เพื่อแสดงข้อมูลเพิ่มเติม
+            $('.dashboard-card').on('contextmenu', function(e) {
+                e.preventDefault();
+                
+                const status = $(this).data('status');
+                const cardTitle = $(this).find('h6').text().trim();
+                const count = $(this).find('h2').text();
+                
+                if (status === 'all') {
+                    Swal.fire({
+                        title: cardTitle,
+                        html: `
+                            <div class="text-start">
+                                <p><strong>จำนวนทั้งหมด:</strong> ${count} รายการ</p>
+                                <p><strong>มี Mac Address:</strong> <span id="withMacDetail">0</span> รายการ</p>
+                                <p><strong>ไม่มี Mac Address:</strong> <span id="withoutMacDetail">0</span> รายการ</p>
+                                <hr>
+                                <p><strong>สรุปตามประเภท:</strong></p>
+                                <div id="typeDetail"></div>
+                            </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonText: 'ปิด',
+                        width: '500px'
+                    });
+                    
+                    // โหลดข้อมูลเพิ่มเติม
+                    $.get(appBasePath + 'Asset/GetDashboardSummary', function(data) {
+                        $('#withMacDetail').text(data.withMac || 0);
+                        $('#withoutMacDetail').text(data.withoutMac || 0);
+                        
+                        if (data.byType && Object.keys(data.byType).length > 0) {
+                            let typeHtml = '';
+                            for (const [type, count] of Object.entries(data.byType)) {
+                                typeHtml += `<p class="mb-1">• ${getTypeName(type)}: ${count} รายการ</p>`;
+                            }
+                            $('#typeDetail').html(typeHtml);
+                        }
+                    });
+                } else {
+                    const statusName = getStatusName(status);
+                    Swal.fire({
+                        title: `${cardTitle} - ${statusName}`,
+                        html: `
+                            <div class="text-start">
+                                <p><strong>จำนวน:</strong> ${count} รายการ</p>
+                                <p><strong>สถานะ:</strong> ${statusName}</p>
+                                <hr>
+                                <p>คลิก "ดูรายการ" เพื่อดูข้อมูลทั้งหมดในตาราง</p>
+                            </div>
+                        `,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'ดูรายการ',
+                        cancelButtonText: 'ปิด',
+                        width: '400px'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // กรองข้อมูลในตาราง
+                            $('#filterStatus').val(status).trigger('change');
+                            // เลื่อนไปที่ตาราง
+                            $('html, body').animate({
+                                scrollTop: $('#assetTable').offset().top - 100
+                            }, 500);
+                        }
+                    });
                 }
             });
+        });
+
+        // ฟังก์ชันสำหรับโหลดจำนวน Mac Address ทั้งหมด
+        function loadAllMacAddressCounts() {
+            // ดึงข้อมูลทั้งหมดจากตาราง
+            var data = assetTable.data().toArray();
+            data.forEach(function (row) {
+                loadMacAddressCount(row.Id);
+            });
+            
+            // เพิ่ม tooltip สำหรับ status dropdown และรายละเอียดเพิ่มเติม หลังจากโหลดข้อมูล
+            setTimeout(function() {
+                $('.status-dropdown button[data-bs-toggle="tooltip"]').tooltip();
+                // อัปเดต tooltip สำหรับรายละเอียดเพิ่มเติม
+                $('[data-bs-toggle="tooltip"]').tooltip({
+                    html: true,
+                    placement: 'top',
+                    trigger: 'hover',
+                    container: 'body'
+                });
+            }, 100);
+        }
+
+        // ฟังก์ชันสำหรับโหลดจำนวน Mac Address ของทรัพย์สินเดียว
+        function loadMacAddressCount(assetId) {
+            const $badge = $(`.mac-count-badge[data-asset-id="${assetId}"]`);
+            if ($badge.length === 0) return;
+
+            $.get(appBasePath + 'Asset/GetAssetMacAddresses?assetId=' + assetId, function (data) {
+                const count = data ? data.length : 0;
+                let badgeClass = 'bg-secondary';
+                let icon = 'fas fa-times';
+                
+                if (count > 0) {
+                    badgeClass = 'bg-success';
+                    icon = 'fas fa-check';
+                }
+                
+                $badge.removeClass('bg-info bg-secondary bg-success')
+                      .addClass(badgeClass)
+                      .html(`<i class="${icon}"></i> ${count}`);
+            }).fail(function () {
+                $badge.removeClass('bg-info bg-secondary bg-success')
+                      .addClass('bg-danger')
+                      .html('<i class="fas fa-exclamation-triangle"></i>');
+            });
+        }
+
+        // ฟังก์ชันสำหรับโหลด Mac Address ใน child row
+        function loadMacAddresses(assetId) {
+            const $container = $('#macAddresses-' + assetId);
+            $container.empty().html('<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</div>');
+            $.get(appBasePath + 'Asset/GetAssetMacAddresses?assetId=' + assetId, function (data) {
+                if (data && data.length > 0) {
+                    let html = '';
+                    data.forEach(function (mac) {
+                        html += `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-info text-dark me-2">${mac.MacAddress ? mac.MacAddress : '-'}</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary btn-action me-1" onclick="editMacAddress(${mac.Id}, ${assetId}, '${mac.MacAddress}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger btn-action" onclick="deleteMacAddress(${mac.Id}, ${assetId})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `; 
+                    });
+                    $container.html(html);
+                } else {
+                    $container.html('<div class="text-center text-muted">ไม่พบ Mac Address</div>');
+                }
+                
+                // อัปเดตจำนวน Mac Address ในตารางหลัก
+                loadMacAddressCount(assetId);
+            }).fail(function () {
+                $container.html('<div class="text-center text-muted">ไม่สามารถโหลด Mac Address ได้</div>');
+                loadMacAddressCount(assetId);
+            });
+        }
+
+        // ฟังก์ชันสำหรับจัดการ Mac Address (Modal)
+        window.manageMacAddress = function(assetId, assetName) {
+            Swal.fire({
+                title: `จัดการ Mac Address - ${assetName}`,
+                html: `
+                    <div class="text-start">
+                        <p><strong>รหัสทรัพย์สิน:</strong> ${assetId}</p>
+                        <p><strong>ชื่อทรัพย์สิน:</strong> ${assetName}</p>
+                        <hr>
+                        <div id="macAddressList-${assetId}">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> กำลังโหลด...
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary btn-sm" onclick="addMacAddressFromModal(${assetId})">
+                                <i class="fas fa-plus me-1"></i>เพิ่ม Mac Address
+                            </button>
+                        </div>
+                    </div>
+                `,
+                width: '600px',
+                showConfirmButton: false,
+                showCloseButton: true,
+                didOpen: () => {
+                    loadMacAddressesForModal(assetId);
+                }
+            });
+        };
+
+        // ฟังก์ชันสำหรับโหลด Mac Address ใน Modal
+        function loadMacAddressesForModal(assetId) {
+            const $container = $(`#macAddressList-${assetId}`);
+            $container.html('<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</div>');
+            
+            $.get(appBasePath + 'Asset/GetAssetMacAddresses?assetId=' + assetId, function (data) {
+                if (data && data.length > 0) {
+                    let html = '<div class="table-responsive"><table class="table table-sm">';
+                    html += '<thead><tr><th>Mac Address</th><th>ประเภท</th><th>การจัดการ</th></tr></thead><tbody>';
+                    
+                    data.forEach(function (mac) {
+                        html += `
+                            <tr>
+                                <td><span class="badge bg-info text-dark">${mac.MacAddress || '-'}</span></td>
+                                <td>${mac.NetworkType || 'Ethernet'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editMacAddress(${mac.Id}, ${assetId}, '${mac.MacAddress}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMacAddress(${mac.Id}, ${assetId})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    $container.html(html);
+                } else {
+                    $container.html('<div class="text-center text-muted">ไม่พบ Mac Address</div>');
+                }
+            }).fail(function () {
+                $container.html('<div class="text-center text-danger">ไม่สามารถโหลด Mac Address ได้</div>');
+            });
+        }
+
+        // ฟังก์ชันสำหรับเพิ่ม Mac Address จาก Modal
+        window.addMacAddressFromModal = function(assetId) {
+            addMacAddress(assetId);
+        };
+
+        function deleteMacAddress(macId, assetId) {
+            Swal.fire({
+                title: 'ยืนยันการลบ',
+                text: 'คุณต้องการลบ Mac Address นี้ใช่หรือไม่?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ลบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: appBasePath + 'Asset/DeleteMacAddress/' + macId,
+                        type: 'DELETE',
+                        success: function () {
+                            loadMacAddresses(assetId);
+                            // อัปเดตจำนวน Mac Address ในตารางหลัก
+                            loadMacAddressCount(assetId); 
+                            // รีเฟรช Modal ถ้ามีการเปิดอยู่
+                            if (Swal.isVisible()) {
+                                loadMacAddressesForModal(assetId);
+                            }
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ลบ Mac Address สำเร็จ',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถลบ Mac Address ได้'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ฟังก์ชันสำหรับแก้ไข Mac Address
+        function editMacAddress(macId, assetId, oldMac) {
+            Swal.fire({
+                title: 'แก้ไข Mac Address',
+                input: 'text',
+                inputLabel: 'Mac Address ใหม่',
+                inputValue: oldMac,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณากรอก Mac Address';
+                    }
+                    // แทนที่ - ด้วย :
+                    const normalized = value.trim().replace(/-/g, ':').toUpperCase();
+                    if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(normalized)) {
+                        return 'รูปแบบ Mac Address ไม่ถูกต้อง (เช่น: 00:1A:2B:3C:4D:5E)';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const newMac = result.value.trim().replace(/-/g, ':').toUpperCase();
+                    $.ajax({
+                        url: appBasePath + 'Asset/EditMacAddress',
+                        type: 'PUT',
+                        data: JSON.stringify({ Id: macId, MacAddress: newMac }),
+                        contentType: 'application/json',
+                        success: function () {
+                            loadMacAddresses(assetId);
+                            // อัปเดตจำนวน Mac Address ในตารางหลัก
+                            loadMacAddressCount(assetId);
+                            // รีเฟรช Modal ถ้ามีการเปิดอยู่
+                            if (Swal.isVisible()) {
+                                loadMacAddressesForModal(assetId);
+                            }
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'แก้ไข Mac Address สำเร็จ',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถแก้ไข Mac Address ได้'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        function addMacAddress(assetId) {
+            Swal.fire({
+                title: 'เพิ่ม Mac Address',
+                input: 'text',
+                inputLabel: 'Mac Address (เช่น: 00:1A:2B:3C:4D:5E หรือ 00-1A-2B-3C-4D-5E)',
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณากรอก Mac Address';
+                    }
+                    // แทนที่ - ด้วย :
+                    const normalized = value.trim().replace(/-/g, ':').toUpperCase();
+                    if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(normalized)) {
+                        return 'รูปแบบ Mac Address ไม่ถูกต้อง (เช่น: 00:1A:2B:3C:4D:5E)';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const newMac = result.value.trim().replace(/-/g, ':').toUpperCase();
+                    $.ajax({
+                        url: appBasePath + 'Asset/AddMacAddress',
+                        type: 'POST',
+                        data: JSON.stringify({
+                            AssetId: assetId,
+                            MacAddress: newMac,
+                            NetworkType: 'Ethernet'
+                        }),
+                        contentType: 'application/json',
+                        success: function () {
+                            loadMacAddresses(assetId);
+                            // อัปเดตจำนวน Mac Address ในตารางหลัก
+                            loadMacAddressCount(assetId);
+                            // รีเฟรช Modal ถ้ามีการเปิดอยู่
+                            if (Swal.isVisible()) {
+                                loadMacAddressesForModal(assetId);
+                            }
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'เพิ่ม Mac Address สำเร็จ',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถเพิ่ม Mac Address ได้'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ฟังก์ชันสำหรับรีเฟรชข้อมูล Dashboard
+        function refreshDashboardData() {
+            // โหลดข้อมูลสรุป Dashboard
+            $.get(appBasePath + 'Asset/GetDashboardSummary', function(data) {
+                // อัปเดทข้อมูลสรุป Dashboard
+                const total = data.total || 0;
+                
+                // อัปเดทข้อมูลหลัก
+                $('#totalAssets').text(total);
+                $('#activeAssets').text(data.active || 0);
+                $('#repairAssets').text(data.repair || 0);
+                $('#damagedAssets').text(data.damaged || 0);
+                $('#disposedAssets').text(data.disposed || 0);
+                $('#inactiveAssets').text(data.inactive || 0);
+                $('#spareAssets').text(data.spare || 0);
+                $('#recentAssets').text(data.recentCount || 0);
+                $('#maintenanceCount').text(data.maintenanceCount || 0);
+
+                // อัปเดทข้อมูล Mac Address
+                $('#withMac').text('มี Mac: ' + (data.withMac || 0));
+                $('#withoutMac').text('ไม่มี Mac: ' + (data.withoutMac || 0));
+
+                // คำนวณเปอร์เซ็นต์
+                if (total > 0) {
+                    $('#activePercent').text(Math.round((data.active || 0) / total * 100) + '%');
+                    $('#repairPercent').text(Math.round((data.repair || 0) / total * 100) + '%');
+                    $('#damagedPercent').text(Math.round((data.damaged || 0) / total * 100) + '%');
+                    $('#disposedPercent').text(Math.round((data.disposed || 0) / total * 100) + '%');
+                    $('#inactivePercent').text(Math.round((data.inactive || 0) / total * 100) + '%');
+                    $('#sparePercent').text(Math.round((data.spare || 0) / total * 100) + '%');
+                } else {
+                    // ถ้าไม่มีข้อมูล ให้แสดง 0%
+                    $('#activePercent').text('0%');
+                    $('#repairPercent').text('0%');
+                    $('#damagedPercent').text('0%');
+                    $('#disposedPercent').text('0%');
+                    $('#inactivePercent').text('0%');
+                    $('#sparePercent').text('0%');
+                }
+
+                // อัปเดทสรุปประเภท
+                if (data.byType && Object.keys(data.byType).length > 0) {
+                    let typeText = [];
+                    for (const [type, count] of Object.entries(data.byType)) {
+                        typeText.push(getTypeName(type) + ': ' + count);
+                    }
+                    $('#typeSummary').text(typeText.slice(0, 3).join(' | '));
+                } else {
+                    $('#typeSummary').text('ไม่มีข้อมูล');
+                }
+            }).fail(function (xhr, status, error) {
+                console.error('ไม่สามารถโหลดข้อมูลสรุปได้:', error);
+                console.error('Response:', xhr.responseText);
+                // ลบ loading state และแสดงข้อความผิดพลาด
+                $('.dashboard-card h2').removeClass('loading').text('0');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถโหลดข้อมูลสรุปได้: ' + error,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+            
+            // โหลดสถิติ
+            $.get(appBasePath + 'Asset/GetStatistics', function (data) {
+                // อัปเดทสถิติ
+                $('#totalAssets').text(data.total || 0);
+                $('#activeAssets').text(data.active || 0);
+                $('#repairAssets').text(data.repair || 0);
+                $('#damagedAssets').text(data.damaged || 0);
+            }).fail(function (xhr, status, error) {
+                console.error('ไม่สามารถโหลดสถิติได้:', error);
+                console.error('Response:', xhr.responseText);
+                // ใช้ข้อมูลสถิติแบบ default
+                $('#totalAssets').text(0);
+                $('#activeAssets').text(0);
+                $('#repairAssets').text(0);
+                $('#damagedAssets').text(0);
+            });
+        }
+
+        // ฟังก์ชันสำหรับเปลี่ยนสถานะแบบ inline
+        window.changeStatus = function(assetId, newStatus, statusName) {
+            if (!window.canEdit) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่มีสิทธิ์',
+                    text: 'คุณไม่มีสิทธิ์ในการแก้ไขทรัพย์สิน',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการเปลี่ยนสถานะ',
+                text: `คุณต้องการเปลี่ยนสถานะเป็น "${statusName}" ใช่หรือไม่?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'เปลี่ยนสถานะ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // แสดง loading state
+                    const $dropdown = $(`.status-dropdown button[onclick*="changeStatus(${assetId}"]`).closest('.status-dropdown');
+                    const $button = $dropdown.find('button');
+                    const originalContent = $button.html();
+                    
+                    // เพิ่ม class สำหรับ animation
+                    $dropdown.addClass('status-changing');
+                    $button.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+                    $.ajax({
+                        url: `${appBasePath}Asset/ChangeStatus`,
+                        type: 'PUT',
+                        data: JSON.stringify({
+                            Id: assetId,
+                            Status: newStatus
+                        }),
+                        contentType: 'application/json',
+                        success: function (response) {
+                            // อัปเดตข้อมูลในตาราง
+                            assetTable.ajax.reload(function() {
+                                // โหลดจำนวน Mac Address หลังจาก reload ตาราง
+                                setTimeout(function() {
+                                    loadAllMacAddressCounts();
+                                }, 500);
+                                
+                                // เพิ่ม tooltip ใหม่หลังจาก reload
+                                setTimeout(function() {
+                                    $('.status-dropdown button[data-bs-toggle="tooltip"]').tooltip();
+                                    // อัปเดต tooltip สำหรับรายละเอียดเพิ่มเติม
+                                    $('[data-bs-toggle="tooltip"]').tooltip({
+                                        html: true,
+                                        placement: 'top',
+                                        trigger: 'hover',
+                                        container: 'body'
+                                    });
+                                }, 100);
+                            });
+                            
+                            // อัปเดตข้อมูลสรุป
+                            onAssetDataChanged();
+                            
+                            // แสดง Toast แจ้งเตือน
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                didOpen: (toast) => {
+                                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                                }
+                            });
+
+                            Toast.fire({
+                                icon: 'success',
+                                title: `เปลี่ยนสถานะเป็น "${statusName}" สำเร็จ`
+                            });
+                        },
+                        error: function (xhr) {
+                            // คืนค่าเดิมเมื่อเกิดข้อผิดพลาด
+                            $dropdown.removeClass('status-changing');
+                            $button.html(originalContent).prop('disabled', false);
+                            
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถเปลี่ยนสถานะได้'
+                            });
+                        }
+                    });
+                }
+            });
+        };
+
+        // ฟังก์ชันสำหรับอัปเดตข้อมูลเมื่อมีการเปลี่ยนแปลง
+        function onAssetDataChanged() {
+            refreshDashboardData();
+            // อัปเดตจำนวน Mac Address ในตารางหลัก
+            setTimeout(function() {
+                loadAllMacAddressCounts();
+            }, 500);
+        }
+
+        $('#assetModal').on('hidden.bs.modal', function () {
+            $('#btnAddAsset').focus();
         });
     </script>
 }

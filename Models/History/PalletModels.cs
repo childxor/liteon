@@ -76,7 +76,7 @@ namespace IPS_TH.Models.History
 
     public class CloseCartonDto
     {
-        public string CartonNo { get; set; }
+        public string CartonNo { get; set; } = string.Empty;
         public decimal CloseEmpId { get; set; }
     }
 
@@ -87,8 +87,21 @@ namespace IPS_TH.Models.History
 
     public class OpenCartonDto
     {
-        public string CartonNo { get; set; }
+        public string CartonNo { get; set; } = string.Empty;
         public decimal OpenEmpId { get; set; }
+        
+        // Constructor เพื่อให้แน่ใจว่าข้อมูลไม่เป็น null
+        public OpenCartonDto()
+        {
+            CartonNo = string.Empty;
+            OpenEmpId = 0;
+        }
+        
+        public OpenCartonDto(string cartonNo, decimal openEmpId)
+        {
+            CartonNo = cartonNo ?? string.Empty;
+            OpenEmpId = openEmpId;
+        }
     }
 
     public class OpenPalletDto

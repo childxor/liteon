@@ -14,7 +14,7 @@
 }
 
 <!-- เพิ่มการอ้างอิงไลบรารี SheetJS (XLSX) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- XLSX ถูกโหลดใน Layout แล้ว -->
 
 <div class="container-fluid p-3">
     <div class="card">
@@ -412,6 +412,9 @@
 
 @section Scripts {
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         // เพิ่มตัวแปร JavaScript สำหรับเก็บค่าสิทธิ์การแก้ไข
         var canEdit = @(canEdit ? "true" : "false");  
         loadLanguageData('@ViewBag.ModuleId');
@@ -510,7 +513,7 @@
                     }
                 },
                 ajax: {
-                    url: '/Attendance/GetAllEmployeeBreakEvents',
+                    url: appBasePath + 'Attendance/GetAllEmployeeBreakEvents',
                     type: 'GET',
                     data: function() {
                         var isDateRange = $('#dateRangeSwitch').is(':checked');
@@ -1063,7 +1066,7 @@
                     if (result.isConfirmed) {
                         // ส่งข้อมูลไปยัง server
                         $.ajax({
-                            url: '/Attendance/AdjustBreakTime',
+                            url: appBasePath + 'Attendance/AdjustBreakTime',
                             type: 'POST',
                             data: {
                                 id: id,

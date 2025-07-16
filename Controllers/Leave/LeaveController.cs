@@ -49,7 +49,7 @@ namespace IPS_TH.Controllers.Leave
 
         public async Task<IActionResult> Summary()
         {
-            LoadPermissions("Leave", "Summary");
+                            await LoadPermissions("Leave", "Summary");
             if (CurrentPermissions["CanApprove"])
             {
                 var employeeResult = await GetEmployeeList();

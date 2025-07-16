@@ -1,17 +1,17 @@
 var SetProcessApp = {
     // กำหนดค่าเริ่มต้น
     config: {
-        baseUrl: '/OracleStations',
+        baseUrl: typeof appBasePath !== 'undefined' ? appBasePath + 'OracleStations' : '/OracleStations',
         serialDelimiters: ['\n', '\r\n', ',', ';'],
         maxSerialNumbers: 1000
-    },
+    }, 
 
     // เริ่มต้นแอพ
-    init: function() {
+    init: function() { 
         console.log('SetProcessApp initialized');
         this.bindEvents();
         this.loadDropdownData();
-        this.updateSerialCount();
+        this.updateSerialCount(); 
     },
 
     // ผูกเหตุการณ์ต่างๆ
@@ -79,7 +79,7 @@ var SetProcessApp = {
     // โหลดข้อมูลสำหรับ dropdown
     loadDropdownData: function() {
         // โหลด factories
-        $.get(this.config.baseUrl + '/GetFactories')
+        $.get(this.config.baseUrl + '/GetFactories') 
             .done((data) => {
                 this.populateDropdown('#factorySelect', data);
             })
@@ -281,7 +281,7 @@ var SetProcessApp = {
                 return false; // หยุดลูป
             }
         });
-
+ 
         if (serialNumbers.length === 0) {
             serialNumbers = [input];
         }

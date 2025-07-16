@@ -87,7 +87,7 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                LoadPermissions("Cabinet", "Index");
+                await LoadPermissions("Cabinet", "Index");
                 return View("~/Views/AssetFactory/Cabinet.cshtml");
             }
             catch (Exception ex)

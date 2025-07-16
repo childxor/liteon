@@ -3,8 +3,8 @@
 @{
     // กรองโมดูลที่ซ้ำกันออก โดยใช้ Name และ Url เป็นตัวกำหนด
     var distinctModules = Model.GroupBy(m => new { Name = (string)m.Name, Url = (string)m.Url })
-                               .Select(g => g.First())
-                               .ToList();
+    .Select(g => g.First())
+    .ToList();
 }
 
 @foreach (var module in distinctModules)
@@ -13,10 +13,10 @@
     {
         // กรองเมนูย่อยที่ซ้ำกันด้วย
         var distinctChildren = ((IEnumerable<dynamic>)module.Children)
-                             .GroupBy(c => new { Name = (string)c.Name, Url = (string)c.Url })
-                             .Select(g => g.First())
-                             .ToList();
-        
+        .GroupBy(c => new { Name = (string)c.Name, Url = (string)c.Url })
+        .Select(g => g.First())
+        .ToList();
+
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="@module.Icon"></i> @module.Name
@@ -25,20 +25,20 @@
                 @foreach (var child in distinctChildren)
                 {
                     <li>
-                        <a class="dropdown-item" href="@child.Url">
-                            <i class="@child.Icon"></i> @child.Name 
+                        <a class="dropdown-item" href="@Url.Content("~" + child.Url)">
+                            <i class="@child.Icon"></i> @child.Name
                         </a>
                     </li>
                 }
             </ul>
-        </li> 
+        </li>
     }
     else
     {
         <li class="nav-item">
-            <a class="nav-link" href="@module.Url">
-                <i class="@module.Icon"></i> @module.Name 
+            <a class="nav-link" href="@Url.Content("~" + module.Url)">
+                <i class="@module.Icon"></i> @module.Name
             </a>
         </li>
     }
-} 
+}

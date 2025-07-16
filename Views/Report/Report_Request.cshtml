@@ -230,6 +230,9 @@
 
 @section Scripts {
     <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
+        
         $(document).ready(function () {
             // Initialize DataTable
             var table = $('#employeeTable').DataTable({
@@ -237,7 +240,7 @@
                 serverSide: true,
                 pageLength: 100,
                 ajax: {
-                    url: '/Report/GetEmployees',
+                    url: appBasePath + 'Report/GetEmployees',
                     type: 'GET',
                     data: function (d) {
                         d.search = d.search.value;
@@ -274,7 +277,7 @@
                     }
                 ],
                 language: {
-                    url: '/lib/datatables/th.json'
+                    url: appBasePath + 'lib/datatables/th.json'
                 },
                 order: [[3, 'asc']],
                 responsive: true
@@ -349,7 +352,7 @@
                 
                 // AJAX call to export report
                 $.ajax({
-                    url: '/Report/ExportReport',
+                    url: appBasePath + 'Report/ExportReport',
                     type: 'POST',
                     data: {
                         reportType: reportType,
@@ -399,7 +402,7 @@
             // Function to update employee statistics
             function updateEmployeeStats() {
                 $.ajax({
-                    url: '/Report/GetEmployeeStats',
+                    url: appBasePath + 'Report/GetEmployeeStats',
                     type: 'GET',
                     data: {
                         department: $('.filter-department').val(),

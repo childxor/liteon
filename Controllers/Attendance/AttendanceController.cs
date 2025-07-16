@@ -6,10 +6,12 @@ using System.Linq; // เพิ่ม Linq namespace
 using System.Text;
 using Dapper;
 using IPS_TH.Data;
+using IPS_TH.Models.AssetFactory;
 using IPS_TH.Models.Attendance; // ใช้ namespace ที่ถูกต้อง
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json; // เพิ่มการนำเข้าสำหรับ JsonConvert
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -56,7 +58,7 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                LoadPermissions("Attendance", "Workplan");
+                await LoadPermissions("Attendance", "Workplan");
                 return View("~/Views/Attendance/Workplan.cshtml");
             }
             catch (Exception ex)
@@ -112,20 +114,21 @@ namespace IPS_TH.Controllers.Employee
             try
             {
                 // ดึงข้อมูลแผนก จาก sql944
+                await LoadPermissions("Attendance", "CheckIn");
                 using (var defaultconnection = new SqlConnection(_connectionString))
                 using (var connection = new SqlConnection(_sql944ConnectionString))
                 {
                     var userDept = HttpContext.Session.GetString("Department");
                     var query = @"SELECT * FROM Dept";
 
-                    // ถ้าไม่มีสิทธิ์ edit ให้แสดงเฉพาะแผนกของผู้ใช้
-                    if (!CheckPermission("Edit"))
-                    {
-                        query += " WHERE name = @userDept";
-                    }
-
-                    var dept = await connection.QueryAsync<dynamic>(query, new { userDept });
+                    var dept = await connection.QueryAsync<dynamic>(query);
                     ViewBag.Dept = dept;
+
+                    // เพิ่ม debug log
+                    _logger.LogInformation(
+                        $"CheckIn: ดึงข้อมูลแผนกได้ {dept?.Count() ?? 0} รายการ"
+                    );
+                    _logger.LogInformation($"CheckIn: userDept = {userDept}");
 
                     // เพิ่มข้อมูล Shiftdept
                     var shiftDeptQuery =
@@ -134,7 +137,11 @@ namespace IPS_TH.Controllers.Employee
                     ViewBag.Shiftdept = shiftDept;
                 }
                 ViewBag.UserName = HttpContext.Session.GetString("UserName");
-                LoadPermissions("Attendance", "CheckIn");
+
+                // เพิ่มการตั้งค่า ViewData สำหรับเปรียบเทียบ session department
+                ViewData["CurrentUserDepartment"] = HttpContext.Session.GetString("Department");
+                Console.WriteLine(ViewData["CurrentUserDepartment"]);
+
                 return View();
             }
             catch (Exception ex)
@@ -144,21 +151,42 @@ namespace IPS_TH.Controllers.Employee
             }
         }
 
-        private async Task<List<emp_shift>> GetShifts()
+        [HttpGet]
+        public async Task<IActionResult> GetShifts()
         {
             try
             {
-                // ดึงข้อมูลกะทั้งหมดจากฐานข้อมูล
-                var shifts = await _dbContext.emp_shift.OrderBy(s => s.sort).ToListAsync();
+                var shifts = await _dbContext
+                    .emp_shift.Where(s => s.record_status == "N")
+                    .OrderBy(s => s.sort)
+                    .Select(s => new
+                    {
+                        s.Id,
+                        s.shift_code,
+                        s.shift_name,
+                        s.shift_group,
+                        s.start_time,
+                        start_duration = s.start_time, // Assuming start_duration is the same as start_time
+                        break_start_time = (string)null, // เปลี่ยนเป็น string
+                        break_end_time = (string)null, // เปลี่ยนเป็น string
+                        break_duration = (TimeSpan?)null,
+                        s.end_time,
+                        end_duration = s.end_time, // Assuming end_duration is the same as end_time
+                        work_3rd_start_time = (string)null, // เปลี่ยนเป็น string
+                        work_3rd_end_time = (string)null, // เปลี่ยนเป็น string
+                        work_3rd_duration = (TimeSpan?)null,
+                        s.sort,
+                        ot_start_time = (string)null, // เปลี่ยนเป็น string
+                        ot_end_time = (string)null, // เปลี่ยนเป็น string
+                        ot_duration = (TimeSpan?)null,
+                    })
+                    .ToListAsync();
 
-                _logger.LogInformation($"Retrieved {shifts.Count} shifts for dropdown");
-
-                return shifts;
+                return Json(new { data = shifts });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error retrieving shifts: {ex.Message}");
-                return new List<emp_shift>();
+                return Json(new { error = ex.Message });
             }
         }
 
@@ -304,6 +332,9 @@ namespace IPS_TH.Controllers.Employee
                 // ดึงข้อมูลตู้เก็บของ
                 var cabinetResult = await GetCabinetData();
 
+                // 2.1 ดึงข้อมูลคอมพิวเตอร์ทั้งหมด
+                var computersByOwner = await GetComputersByOwnerAsync();
+
                 var personShifts =
                     ((personShiftResult as JsonResult)?.Value as dynamic)?.data
                     ?? new List<dynamic>();
@@ -371,7 +402,8 @@ namespace IPS_TH.Controllers.Employee
                         cabinetResult,
                         hideResigned,
                         hideAbsent,
-                        showIncomplete
+                        showIncomplete,
+                        computersByOwner
                     );
                 }
 
@@ -583,6 +615,20 @@ namespace IPS_TH.Controllers.Employee
                 {
                     var query =
                         @"
+                        WITH RankedOT AS (
+                            SELECT 
+                                OTReqNo, OTSeqNo, SuspReqNo, EmpNo, BossId, ShiftCode, 
+                                WrkDate, DteTmeStr, DteTmeEnd, SecCode, CostCenter,
+                                TmpBossId, TmpSecCode, TmpCostCenter, ActionType, 
+                                ActionReason, CreateDate, CreateBy, FlagDel, CaseId,
+                                TotalOTHrs, ApprStatus, ApprDate, Year, Month, Period,
+                                Remark, OTBfrQty, OTBfrRate, OTNrmQty, OTNrmRate,
+                                OTAftQty, OTAftRate, NextAppr, CEInd, Abnormalrun,
+                                ISNULL(OTBfrQty, 0) + ISNULL(OTNrmQty, 0) + ISNULL(OTAftQty, 0) as TotalHours,
+                                ROW_NUMBER() OVER (PARTITION BY EmpNo ORDER BY CreateDate DESC) as rn
+                            FROM TOTPlan
+                            WHERE CAST(WrkDate AS DATE) = @WrkDate AND (ApprStatus in ('Approved', 'On Approve'))
+                        )
                         SELECT 
                             OTReqNo, OTSeqNo, SuspReqNo, EmpNo, BossId, ShiftCode, 
                             WrkDate, DteTmeStr, DteTmeEnd, SecCode, CostCenter,
@@ -591,9 +637,9 @@ namespace IPS_TH.Controllers.Employee
                             TotalOTHrs, ApprStatus, ApprDate, Year, Month, Period,
                             Remark, OTBfrQty, OTBfrRate, OTNrmQty, OTNrmRate,
                             OTAftQty, OTAftRate, NextAppr, CEInd, Abnormalrun,
-                            ISNULL(OTBfrQty, 0) + ISNULL(OTNrmQty, 0) + ISNULL(OTAftQty, 0) as TotalHours
-                        FROM TOTPlan
-                        WHERE CAST(WrkDate AS DATE) = @WrkDate AND (ApprStatus in ('Approved', 'On Approve'))";
+                            TotalHours
+                        FROM RankedOT
+                        WHERE rn = 1";
 
                     var otData = await connection.QueryAsync(
                         query,
@@ -632,6 +678,30 @@ namespace IPS_TH.Controllers.Employee
             return result;
         }
 
+        // ฟังก์ชันนี้จะดึงข้อมูลคอมพิวเตอร์ทั้งหมดและจัดกลุ่มตาม Owner (รหัสพนักงานเจ้าของ)
+        private async Task<ILookup<string, dynamic>> GetComputersByOwnerAsync()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var query = @"
+                    SELECT Id, ProductSerial, AssetNo, CustomerNo, CustomerName, Department, DepartmentName, Line, 
+                        LineName, Owner, OwnerName, Name, Type, Status, Location, LocationDetail, Model, Manufacturer, CountryOfOrigin, 
+                        InstallationDate, StartDate, EndDate, Remarks, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, IsDeleted, DeletedDate, DeletedBy, WindowsVersion
+                    FROM asset 
+                    WHERE IsDeleted = 'False'
+                ";
+                var data = await connection.QueryAsync<dynamic>(query);
+                foreach (var item in data)
+                {
+                    item.Type = AssetType.GetDisplayName(item.Type);
+                }
+
+                // จัดกลุ่มข้อมูลตาม Owner (รหัสพนักงานเจ้าของ)
+                // ถ้า Owner เป็น null ให้ใช้ string ว่าง
+                return data.ToLookup(x => (string)(x.Owner ?? "").ToString().Trim(), x => x);
+            }
+        }
+    
         // แยกฟังก์ชันย่อยสำหรับประมวลผลข้อมูลรายคน
         private async Task ProcessDateData(
             string currentDate,
@@ -645,7 +715,8 @@ namespace IPS_TH.Controllers.Employee
             List<dynamic> cabinetResult = null,
             bool hideResigned = false,
             bool hideAbsent = false,
-            bool showIncomplete = false
+            bool showIncomplete = false,
+            ILookup<string, dynamic> computersByOwner = null
         )
         {
             using (var connection = new SqlConnection(_ces941ConnectionString))
@@ -673,7 +744,8 @@ namespace IPS_TH.Controllers.Employee
                         cabinetResult,
                         hideResigned,
                         hideAbsent,
-                        showIncomplete
+                        showIncomplete,
+                        computersByOwner
                     );
 
                     if (personData != null)
@@ -887,6 +959,7 @@ namespace IPS_TH.Controllers.Employee
                                 eventTime,
                                 SUBSTRING(personID, 1, LEN(personID) - 2) as basePersonID,
                                 personID,
+                                eventName,
                                 eventCard,
                                 personName, 
                                 deptCode,
@@ -1239,6 +1312,13 @@ namespace IPS_TH.Controllers.Employee
             return false;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> getTypeComputer()
+        {
+            var assets = AssetType.GetAllTypes();
+            return Json(assets);
+        }
+
         // แก้ไขฟังก์ชัน FilterPersonEvents ให้รองรับ dynamic type
         private List<dynamic> FilterPersonEvents(List<dynamic> events, string personId)
         {
@@ -1273,7 +1353,8 @@ namespace IPS_TH.Controllers.Employee
             List<dynamic> cabinetResult = null,
             bool hideResigned = false,
             bool hideAbsent = false,
-            bool showIncomplete = false
+            bool showIncomplete = false,
+            ILookup<string, dynamic> computersByOwner = null
         )
         {
             try
@@ -1299,6 +1380,9 @@ namespace IPS_TH.Controllers.Employee
                 }
 
                 var empNo = personId.Replace("-1", "")?.Trim();
+                string empNoStr = empNo ?? "";
+                var computers = computersByOwner[empNoStr] ?? Enumerable.Empty<dynamic>();
+                int computerCount = computers.Count();
 
                 // ตรวจสอบสถานะการลาออกก่อน
                 bool isResigned = false;
@@ -1692,6 +1776,7 @@ namespace IPS_TH.Controllers.Employee
                     resignDate = resignDate,
                     overtimeInfo = overtimeInfo,
                     cabinetInfo = cabinet,
+                    computerCount = computerCount,
                 };
             }
             catch (Exception ex)
@@ -1846,7 +1931,7 @@ namespace IPS_TH.Controllers.Employee
         [HttpGet]
         public async Task<IActionResult> inOut()
         {
-            LoadPermissions("Attendance", "inOut");
+            await LoadPermissions("Attendance", "inOut");
 
             try
             {
@@ -3612,6 +3697,179 @@ namespace IPS_TH.Controllers.Employee
             }
             catch (Exception ex)
             {
+                return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteScanRecord(
+            int rowAutoId,
+            string personId,
+            string eventTime
+        )
+        {
+            try
+            {
+                // ตรวจสอบสิทธิ์การใช้งาน - เฉพาะ Adisak S. เท่านั้นที่สามารถลบข้อมูลได้
+                var employeeName = HttpContext.Session.GetString("EmployeeName");
+                if (employeeName != "Adisak S.")
+                {
+                    return Json(
+                        new { success = false, message = "คุณไม่มีสิทธิ์ในการลบประวัติการสแกน" }
+                    );
+                }
+
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // ตรวจสอบว่าข้อมูลมีอยู่จริงหรือไม่
+                    var checkQuery = "SELECT COUNT(*) FROM PubEvent WHERE rowAutoID = @rowAutoId";
+                    var exists = await connection.ExecuteScalarAsync<int>(
+                        checkQuery,
+                        new { rowAutoId }
+                    );
+
+                    if (exists == 0)
+                    {
+                        return Json(
+                            new { success = false, message = "ไม่พบข้อมูลการสแกนที่ต้องการลบ" }
+                        );
+                    }
+
+                    // ดึงข้อมูลการสแกนก่อนลบเพื่อบันทึกประวัติ
+                    var getRecordQuery = "SELECT * FROM PubEvent WHERE rowAutoID = @rowAutoId";
+                    var record = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        getRecordQuery,
+                        new { rowAutoId }
+                    );
+
+                    // ลบข้อมูลจากตาราง PubEvent
+                    var deleteQuery = "DELETE FROM PubEvent WHERE rowAutoID = @rowAutoId";
+                    var result = await connection.ExecuteAsync(deleteQuery, new { rowAutoId });
+
+                    if (result > 0)
+                    {
+                        // บันทึกประวัติการลบ
+                        var logQuery =
+                            @"
+                            INSERT INTO emp_scan_delete_log (
+                                row_auto_id, person_id, person_name, event_time, 
+                                device_name, event_code, deleted_by, deleted_at, 
+                                original_data
+                            ) VALUES (
+                                @rowAutoId, @personId, @personName, @eventTime,
+                                @deviceName, @eventCode, @deletedBy, @deletedAt,
+                                @originalData
+                            )";
+
+                        var logParams = new
+                        {
+                            rowAutoId = rowAutoId,
+                            personId = record?.personID,
+                            personName = record?.personName,
+                            eventTime = record?.eventTime,
+                            deviceName = record?.deviceName,
+                            eventCode = record?.eventCode,
+                            deletedBy = employeeName,
+                            deletedAt = DateTime.Now,
+                            originalData = JsonConvert.SerializeObject(record),
+                        };
+
+                        try
+                        {
+                            await connection.ExecuteAsync(logQuery, logParams);
+                        }
+                        catch (Exception logEx)
+                        {
+                            _logger.LogWarning($"ไม่สามารถบันทึกประวัติการลบได้: {logEx.Message}");
+                        }
+
+                        return Json(
+                            new { success = true, message = "ลบประวัติการสแกนเรียบร้อยแล้ว" }
+                        );
+                    }
+                    else
+                    {
+                        return Json(new { success = false, message = "ไม่สามารถลบข้อมูลได้" });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"เกิดข้อผิดพลาดในการลบประวัติการสแกน: {ex.Message}");
+                return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetScanDeleteLog(
+            string personId = null,
+            string startDate = null,
+            string endDate = null
+        )
+        {
+            try
+            {
+                // ตรวจสอบสิทธิ์การใช้งาน - เฉพาะ Adisak S. เท่านั้นที่สามารถดูประวัติได้
+                var employeeName = HttpContext.Session.GetString("EmployeeName");
+                if (employeeName != "Adisak S.")
+                {
+                    return Json(
+                        new { success = false, message = "คุณไม่มีสิทธิ์ในการดูประวัติการลบ" }
+                    );
+                }
+
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var query =
+                        @"
+                        SELECT 
+                            id,
+                            row_auto_id,
+                            person_id,
+                            person_name,
+                            event_time,
+                            device_name,
+                            event_code,
+                            deleted_by,
+                            deleted_at,
+                            original_data
+                        FROM emp_scan_delete_log
+                        WHERE 1=1";
+
+                    var parameters = new DynamicParameters();
+
+                    if (!string.IsNullOrEmpty(personId))
+                    {
+                        query += " AND person_id LIKE @personId";
+                        parameters.Add("personId", $"%{personId}%");
+                    }
+
+                    if (!string.IsNullOrEmpty(startDate))
+                    {
+                        query += " AND CAST(deleted_at AS DATE) >= @startDate";
+                        parameters.Add("startDate", DateTime.Parse(startDate));
+                    }
+
+                    if (!string.IsNullOrEmpty(endDate))
+                    {
+                        query += " AND CAST(deleted_at AS DATE) <= @endDate";
+                        parameters.Add("endDate", DateTime.Parse(endDate));
+                    }
+
+                    query += " ORDER BY deleted_at DESC";
+
+                    var result = await connection.QueryAsync<dynamic>(query, parameters);
+
+                    return Json(new { success = true, data = result });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"เกิดข้อผิดพลาดในการดึงประวัติการลบ: {ex.Message}");
                 return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
             }
         }
