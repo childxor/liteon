@@ -83,6 +83,22 @@
                                             id="filterButton">
                                             <i class="fas fa-filter me-2"></i>กรองข้อมูล
                                         </button>
+                                        @if (isAdmin)
+                                        {
+                                            <button type="button"
+                                                class="btn btn-success btn-hover-translate rounded-pill shadow-sm"
+                                                id="fingerprintManagementButton">
+                                                <i class="fas fa-fingerprint me-2"></i>จัดการข้อมูลลายนิ้วมือ
+                                            </button>
+                                        }
+                                        @if (canAdd)
+                                        {
+                                            <button type="button"
+                                                class="btn btn-warning btn-hover-translate rounded-pill shadow-sm"
+                                                id="fingerprintEditButton">
+                                                <i class="fas fa-edit me-2"></i>แก้ไขข้อมูลลายนิ้วมือ
+                                            </button>
+                                        }
                                     </div>
                                 </div>
                             </div>
@@ -99,7 +115,10 @@
                                 <h5 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>ข้อมูลพนักงาน</h5>
                                 <div class="d-flex align-items-center gap-2">
                                     <div id="current-filters" class="d-flex flex-wrap gap-2 me-2"></div>
-                                    @if (canAdd && isAdmin)
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill" id="reloadTableButton" title="รีโหลดตาราง">
+                                        <i class="fas fa-sync-alt me-1"></i>รีโหลด
+                                    </button>
+                                    @if (canAdd)
                                     {
                                         <button class="btn btn-sm btn-success rounded-pill add-employee"><i
                                                 class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน</button>
@@ -107,8 +126,23 @@
                                 </div>
                             </div>
                             <div class="card-body p-0">
+                                <style>
+                                    /* ปรับให้แถวบางลง เฉพาะตารางพนักงานเท่านั้น */
+                                    #employeeTable.table-sm thead th,
+                                    #employeeTable.table-sm tbody td {
+                                        padding-top: 0.25rem;
+                                        padding-bottom: 0.25rem;
+                                        padding-left: 0.5rem;
+                                        padding-right: 0.5rem;
+                                        vertical-align: middle;
+                                    }
+                                    #employeeTable tbody tr { line-height: 1.1; }
+                                    #employeeTable .badge { font-size: 0.70rem; }
+                                    #employeeTable small { font-size: 0.75rem; }
+                                    #employeeTable i.fas, #employeeTable i.far { font-size: 0.85em; }
+                                </style>
                                 <div class="table-responsive">
-                                    <table class="table table-striped table-hover table-modern" id="employeeTable"
+                                    <table class="table table-striped table-hover table-modern table-sm" id="employeeTable"
                                         style="width:100%"></table>
                                 </div>
                             </div>
@@ -197,30 +231,23 @@
                                         <div class="col-12">
                                             <div class="form-floating">
                                                 <select class="form-select" name="deptName" id="deptName" required>
-                                                    @if (isAdmin)
-                                                    {
-                                                        <option value="" selected>เลือกแผนก</option>
-                                                        <option value="4070">Liteon Thailand IPS</option>
-                                                        <option value="S6211">MFG</option>
-                                                        <option value="S6212">QRA</option>
-                                                        <option value="S6213">CSC</option>
-                                                        <option value="S6214">OFFICE</option>
-                                                        <option value="S6215">WH</option>
-                                                        <option value="S6216">IE</option>
-                                                        <option value="S6217">PMC</option>
-                                                        <option value="S6218">รปภ.</option>
-                                                        <option value="S6219">CH</option>
-                                                        <option value="S6220">แม่บ้าน</option>
-                                                        <option value="S6221">ME</option>
-                                                        <option value="S6224">ITS</option>
-                                                        <option value="S6225">PE</option>
-                                                        <option value="S6226">BOI</option>
-                                                        <option value="S6227">PC</option>
-                                                    }
-                                                    else
-                                                    {
-                                                        <option value="@ViewData["CurrentUserDepartment"]" selected>@ViewData["CurrentUserDepartment"]</option>
-                                                    }
+                                                     @if (isAdmin)
+                                                     {
+                                                        @foreach (var dept in ViewBag.Dept)
+                                                        {
+                                                            <option value="@dept.deptID" data-deptid="@dept.deptID">@dept.name</option>
+                                                        }
+                                                     }
+                                                     else
+                                                     {
+                                                        @foreach (var dept in ViewBag.Dept)
+                                                        {
+                                                            if (dept.name.ToLower() == ViewData["CurrentUserDepartment"].ToString().ToLower()){
+                                                                <option value="@dept.deptID" data-deptid="@dept.deptID" selected>@dept.name</option>
+                                                            }
+                                                        }
+                                                     }
+                                                    
                                                 </select>
                                                 <label for="deptName">แผนก<span class="text-danger">*</span></label>
                                                 <div class="invalid-feedback">กรุณาเลือกแผนก</div>
@@ -416,7 +443,7 @@
                                                 <option value="sql944only">มีเฉพาะใน SQL944</option>
                                             </select>
                                             <label><i class="fas fa-toggle-on me-1"></i>สถานะ</label>
-                                        </div>
+                                        </div> 
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
@@ -440,7 +467,6 @@
                                                 <option value="0001001">Build1 - MIS server room</option>
                                                 <option value="0002001">Build1 - Store electonic</option>
                                                 <option value="0001401">Build1 - Store Finish goods 01</option>
-                                                <option value="0001501">Build1 - Store Finish goods 02</option>
                                                 <option value="0001901">Build1 - Store raw material</option>
                                             </select>
                                             <label><i class="fas fa-door-open me-1"></i>ประตู</label>
@@ -481,6 +507,31 @@
             var appBasePath = '@Url.Content("~/")';
              
             $(document).ready(function() {
+
+                $('#reloadTableButton').on('click', function() {
+                    reloadEmployeeTable();
+                });
+                  // ฟังก์ชันรีโหลดตาราง
+            function reloadEmployeeTable() {
+                const reloadButton = $('#reloadTableButton');
+                const icon = reloadButton.find('i');
+                
+                // เพิ่มคลาส spinning และเปลี่ยนข้อความ
+                reloadButton.addClass('spinning');
+                reloadButton.prop('disabled', true);
+                reloadButton.html('<i class="fas fa-sync-alt me-1"></i>กำลังโหลด...');
+                
+                // รีโหลดตาราง
+                $('#employeeTable').DataTable().ajax.reload(function() {
+                    // เมื่อโหลดเสร็จแล้ว
+                    reloadButton.removeClass('spinning');
+                    reloadButton.prop('disabled', false);
+                    reloadButton.html('<i class="fas fa-sync-alt me-1"></i>รีโหลด');
+                    
+                    // แสดงข้อความสำเร็จ
+                    showSuccessToast('โหลดข้อมูลใหม่เรียบร้อยแล้ว');
+                }, false); // false = ไม่รีเซ็ตหน้า
+            }
                 // ตั้งค่า filter เริ่มต้นจาก localStorage หรือค่าเริ่มต้นปกติ
                 const storedFilters = loadFiltersFromLocalStorage();
                 $('#filter-storage').data('status', storedFilters.status || 'active');
@@ -497,8 +548,8 @@
                     orderable: true,
                     ordering: false,
                     searching: true,
-                    pageLength: 50,
-                    lengthMenu: [50, 100, 200, 500],
+                    pageLength: 10,
+                    lengthMenu: [10, 100, 200, 500],
                     info: true,
                     ajax: {
                         url: appBasePath + 'Employee/GetEmployeesData',
@@ -506,7 +557,7 @@
                         data: function(d) {
                             d.status = $('#filter-storage').data('status');
                             d.door = $('#filter-storage').data('door');
-                            d.department = $('#filter-storage').data('department');
+                            d.department = $('#filter-storage').data('department') || (userPermissions.isAdmin ? '' : '@ViewData["CurrentUserDepartment"]');
                             d.shift = $('#filter-storage').data('shift');
                             d.fingerprint = $('#filter-storage').data('fingerprint');
                         },
@@ -537,17 +588,18 @@
                             showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (thrown || error));
                         }
                     }, 
-                    columns: [{
+                    columns: [                        {
                             data: 'personID',
                             title: '<i class="fas fa-plus"></i>',
                             orderable: false,
                             className: 'text-center',
                             render: function(data) {
-                                return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-primary toggle-child-row" data-id="' +
-                                    data +
+                                return '<button class="btn btn-sm btn-icon btn-rounded btn-outline-primary toggle-child-row" ' +
+                                    'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                    'data-id="' + data +
                                     '" data-bs-toggle="tooltip" title="ดูข้อมูลเพิ่มเติม">' +
-                                    '<i class="fas fa-plus"></i></button>';
-                            }
+                                    '<i class="fas fa-plus" style="font-size:1.55em;"></i></button>';
+                            } 
                         },
                         {
                             data: 'cardNumber',
@@ -560,22 +612,49 @@
                                     html +=
                                         '<span class="badge bg-success ms-1" data-bs-toggle="tooltip" title="มีข้อมูลบัตรใน SQL944"><i class="fas fa-id-card"></i></span>';
                                 }
-                                if (row.hasFingerprintData) {
+                                // แสดงสถานะการดึงข้อมูลจากเครื่อง (BioDataGetList)
+                                var result = row.fingerprintResult || "";
+                                var getBioDate = row.getBioDate || "";
+                                var isComplete = result === "Fingerprint data archiving:True";
+                                var isError = result === "no cardnumber" || result === "error";
+                                var hasBioDate = getBioDate && getBioDate.trim() !== "";
+                                
+                                if (result !== "Fingerprint data archiving:True" && result !== "") {
                                     html +=
-                                        '<span class="badge bg-success ms-1" data-bs-toggle="tooltip" title="มีข้อมูลลายนิ้วมือใน SQL944"><i class="fas fa-fingerprint"></i></span>';
+                                        '<span class="badge bg-danger ms-1" data-bs-toggle="tooltip" title="ผิดพลาดในการดึงข้อมูล: ' + result + '"><i class="fas fa-exclamation-triangle"></i></span>';
+                                } else if (hasBioDate === "") {
+                                    html +=
+                                        '<span class="badge bg-warning ms-1" data-bs-toggle="tooltip" title="กำลังประมวลผลข้อมูล: ' + result + '"><i class="fas fa-clock"></i></span>';
+                                } 
+                                
+                                // เพิ่มปุ่มจัดการข้อมูลลายนิ้วมือถัดจากไอคอนสถานะ
+                                // ปรับปุ่มให้มีขนาดเล็กที่สุดโดยใช้ .btn-xs ของ bootstrap5 (ใช้ .btn-sm เล็กสุดแล้ว เพิ่ม style ลด padding/ขนาด font)
+                                if (userPermissions.canAdd) {
+                                    var buttonClass = row.hasFingerprintData ? 'btn-outline-warning' : 'btn-outline-success';
+                                    var buttonIcon = row.hasFingerprintData ? 'fas fa-edit' : 'fas fa-fingerprint';
+                                    var buttonTitle = row.hasFingerprintData ? 'แก้ไขข้อมูลลายนิ้วมือ' : 'เพิ่มข้อมูลลายนิ้วมือ';
+                                    var buttonAction = row.hasFingerprintData ? 'update-fingerprint-inline' : 'insert-fingerprint-inline';
+                                    
+                                    html += '<button class="btn btn-sm btn-icon btn-rounded ' + buttonClass + ' ' + buttonAction + ' ms-1" ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-person-id="' + row.personID + '" ' +
+                                        'data-card-number="' + (row.cardNumber || '') + '" ' +
+                                        'data-person-name="' + (row.name || '') + '" ' +
+                                        'data-dept-id="' + (row.deptID || '') + '" ' +
+                                        'data-dept-name="' + (row.department || '') + '" ' +
+                                        'data-has-fingerprint="' + row.hasFingerprintData + '" ' +
+                                        'data-bs-toggle="tooltip" title="' + buttonTitle + '">' +
+                                        '<i class="' + buttonIcon + '" style="font-size:1.55em;"></i>' +
+                                        '</button>';
                                 }
-                                html += '</div></div>';
+                                
+                                html += '</div>';
+                                
+                                html += '</div>';
                                 return html;
                             }
                         },
-                        {
-                            data: 'personID',
-                            title: '<i class="fas fa-user me-1"></i> รหัสพนักงาน',
-                            render: function(data) {
-                                return '<span class="badge bg-info text-white">' + data +
-                                    '</span>';
-                            }
-                        },
+                        
                         {
                             data: null,
                             title: '<i class="fas fa-user-tag me-1"></i> ชื่อ-นามสกุล',
@@ -586,20 +665,46 @@
                                     '<i class="fas fa-venus text-danger me-1"></i>';
                                 // ตรวจสอบอีเมล
                                 var email = row.email || 'ไม่ระบุอีเมล';
-                                // สร้าง HTML สำหรับแสดงข้อมูลพนักงาน
-                                return '<div class="d-flex align-items-center">' +
-                                    '<div class="avatar avatar-circle me-3 bg-soft-primary">' +
+                                
+                                // ตรวจสอบสถานะ note
+                                var noteStatusHtml = '';
+                                if (row.noteStatus && row.noteStatus === 'ข้อมูลรอลบ') {
+                                    noteStatusHtml = '<div class="mt-1"><span class="badge bg-danger text-white"><i class="fas fa-trash me-1"></i>' + row.noteStatus + '</span></div>';
+                                }
+                                
+                                // Badge แสดงระดับ JG แบบกะทัดรัด + สีตามระดับ และเพิ่มไอคอนไฟถ้า >= 12
+                                var jg = (row.jobGrade || '').toString().trim();
+                                var jgBadge = '';
+                                if (jg) {
+                                    var num = parseInt(jg.replace(/[^0-9]/g, ''), 10) || 0;
+                                    var badgeClass = 'bg-secondary';
+                                    if (num >= 18) badgeClass = 'bg-dark';
+                                    else if (num >= 15) badgeClass = 'bg-danger';
+                                    else if (num >= 12) badgeClass = 'bg-warning text-dark';
+                                    else if (num >= 9) badgeClass = 'bg-primary';
+                                    else if (num >= 7) badgeClass = 'bg-primary'; // 7-8
+                                    else if (num >= 5) badgeClass = 'bg-info';    // 5-6
+                                    else if (num >= 3) badgeClass = 'bg-success'; // 3-4
+                                    else badgeClass = 'bg-secondary';             // 1-2
+                                    var icon = '';
+                                    if (num >= 12) {
+                                        icon = '<i class="fas fa-fire fa-beat ms-1 text-danger"></i>';
+                                    } else if (num >= 8) {
+                                        icon = '<i class="fas fa-fire fa-sm ms-1 text-warning"></i>';
+                                    }
+                                    jgBadge = '<span class="badge ' + badgeClass + ' ms-2" data-bs-toggle="tooltip" title="ระดับ JG">JG ' + jg + icon + '</span>';
+                                }
+
+                                // สร้าง HTML สำหรับแสดงข้อมูลพนักงาน (เน้นบาง กะทัดรัด)
+                                return '<div class="flex-grow-1">' +
+                                    '<div class="d-flex align-items-center flex-wrap gap-1">' +
+                                        '<span class="fw-medium text-truncate">' + row.name + '</span>' +
+                                        jgBadge +
+                                        '<small class="badge bg-light text-dark ms-1">' + row.personID + '</small>' +
                                     '</div>' +
-                                    '<div class="flex-grow-1">' +
-                                    '<div class="d-flex justify-content-between align-items-center">' +
-                                    '<span class="fw-medium">' + row.name + '</span>' +
-                                    '<span class="badge bg-light text-dark ms-2">' + row
-                                    .personID + '</span>' +
-                                    '</div>' +
-                                    '<div class="small text-muted">' + genderIcon + email +
-                                    '</div>' +
-                                    '</div>' +
-                                    '</div>';
+                                    '<div class="small text-muted mt-1">' + genderIcon + '<span class="ms-1">' + email + '</span></div>' +
+                                    (noteStatusHtml || '') +
+                                '</div>';
                             }
                         },
                         {
@@ -618,75 +723,28 @@
                             render: function(data, type, row) {
                                 var accessCount = row.accessCount || 0;
                                 var html = '<div class="d-flex align-items-center">' +
-                                    '<div class="me-2">' +
-                                    '<span class="badge bg-success" style="min-width: 30px;">' +
-                                    accessCount + '</span>' +
-                                    '</div>';
+                                    '<small class="badge bg-success me-1">' + accessCount + '</small>';
                                 if (row.hasFingerprint) {
-                                    html +=
-                                        '<div><span class="badge bg-info" data-bs-toggle="tooltip" title="มีข้อมูลลายนิ้วมือ">' +
-                                        '<i class="fas fa-fingerprint"></i>' +
-                                        '</span></div>';
+                                    html += '<small class="badge bg-info" data-bs-toggle="tooltip" title="มีข้อมูลลายนิ้วมือ">' +
+                                        '<i class="fas fa-fingerprint fa-xs"></i>' +
+                                        '</small>';
                                 }
                                 html += '</div>';
                                 return html;
                             }
                         },
-                        {
-                            data: null,
-                            title: '<i class="fas fa-clock me-1"></i> กะการทำงาน',
-                            render: function(data, type, row) {
-                                let shiftName = '';
-                                let shift = row.shift || 'ไม่ระบุ';
-                                switch (shift) {
-                                    case 'D01N01':
-                                        shiftName = 'กะเช้า (รายวัน)';
-                                        break;
-                                    case 'DT1NT1':
-                                        shiftName = 'กะเช้า (รายเดือน)';
-                                        break;
-                                    case 'OFFICE':
-                                        shiftName = 'กะออฟฟิศ (ไม่เข้ากะ)';
-                                        break;
-                                    case 'DAYSHF':
-                                        shiftName = 'กะเช้า (รายวัน)';
-                                        break;
-                                    case 'DAYTCH':
-                                        shiftName = 'กะเช้า (รายเดือน)';
-                                        break;
-                                    case 'N01D01':
-                                        shiftName = 'กะดึก (รายวัน)';
-                                        break;
-                                    case 'NT1DT1':
-                                        shiftName = 'กะดึก (รายเดือน)';
-                                        break;
-                                    case 'OFFICE2':
-                                        shiftName = 'กะออฟฟิศ (ไม่เข้ากะ)';
-                                        break;
-                                    default:
-                                        shiftName = shift;
-                                        break;
-                                }
-                                return '<span class="badge bg-primary">' + shiftName +
-                                    '</span>' +
-                                    '<div class="small text-muted mt-1">' + shift + '</div>';
-                            }
-                        },
+                        
                         {
                             data: null,
                             title: '<i class="fas fa-calendar-alt me-1"></i> วันเริ่มงาน',
                             render: function(data, type, row) {
                                 if (!row.startDate) return '';
                                 var startDate = moment(row.startDate).format('DD/MM/YYYY');
-                                var html =
-                                    '<div><i class="fas fa-play-circle text-success me-1"></i>' +
-                                    startDate + '</div>';
+                                var html = '<small class="text-nowrap">' + startDate + '</small>';
                                 if (row.resignDate) {
                                     var resignDate = moment(row.resignDate).format(
                                         'DD/MM/YYYY');
-                                    html +=
-                                        '<div><i class="fas fa-stop-circle text-danger me-1"></i>' +
-                                        resignDate + '</div>';
+                                    html += '<small class="text-muted ms-2">• ' + resignDate + '</small>';
                                 }
                                 return html;
                             }
@@ -696,11 +754,9 @@
                             title: '<i class="fas fa-phone me-1"></i> เบอร์โทร',
                             render: function(data) {
                                 if (!data) return '';
-                                return '<div><a href="tel:' + data +
-                                    '" class="text-decoration-none">' +
-                                    '<i class="fas fa-phone-alt me-1 text-success"></i>' +
-                                    data +
-                                    '</a></div>';
+                                return '<small><a href="tel:' + data + '" class="text-decoration-none">' +
+                                    '<i class="fas fa-phone-alt me-1 text-success fa-xs"></i>' + data +
+                                    '</a></small>';
                             }
                         },
                         {
@@ -710,16 +766,18 @@
                             render: function(data, type, row) {
                                 // แสดงปุ่มสำหรับทุกคน แต่ disable สำหรับผู้ใช้ที่ไม่ใช่ admin
                                 if (userPermissions.isAdmin) {
-                                    return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info access-door" data-id="' +
-                                        data +
+                                    return '<button class="btn btn-sm btn-icon btn-rounded btn-outline-info access-door" ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-id="' + data +
                                         '" data-bs-toggle="tooltip" title="จัดการสิทธิ์ประตู">' +
-                                        '<i class="fas fa-door-open"></i>' +
+                                        '<i class="fas fa-door-open" style="font-size:1.55em;"></i>' +
                                         '</button>';
                                 } else {
-                                    return '<button class="btn btn-xs btn-icon btn-rounded btn-outline-secondary view-access-door" data-id="' +
-                                        data +
+                                    return '<button class="btn btn-sm btn-icon btn-rounded btn-outline-secondary view-access-door" ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-id="' + data +
                                         '" data-bs-toggle="tooltip" title="ดูสิทธิ์ประตู (เฉพาะดูข้อมูลเท่านั้น)">' +
-                                        '<i class="fas fa-eye"></i>' +
+                                        '<i class="fas fa-eye" style="font-size:1.55em;"></i>' +
                                         '</button>';
                                 }
                             }
@@ -760,38 +818,67 @@
                                 
                                 // ปุ่มดูข้อมูล - แสดงเสมอถ้ามีสิทธิ์ดู
                                 if (userPermissions.canView) {
-                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-info view-employee" data-id="' +
-                                        data + '" data-person-id="' + data +
+                                    buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-outline-info view-employee" ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-id="' + data + '" data-person-id="' + data +
                                         '" data-bs-toggle="tooltip" title="ดูข้อมูล">' +
-                                        '<i class="fas fa-eye"></i>' +
+                                        '<i class="fas fa-eye" style="font-size:1.55em;"></i>' +
                                         '</button>';
                                 }
                                 
                                 // ปุ่มแก้ไข - แสดงเสมอแต่ disable สำหรับผู้ใช้ที่ไม่ใช่ admin
                                 if (userPermissions.isAdmin) {
-                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-warning edit-employee" data-id="' +
-                                        data + '" data-person-id="' + data +
+                                    buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-outline-warning edit-employee" ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-id="' + data + '" data-person-id="' + data +
                                         '" data-bs-toggle="tooltip" title="แก้ไข">' +
-                                        '<i class="fas fa-edit"></i>' +
+                                        '<i class="fas fa-edit" style="font-size:1.55em;"></i>' +
                                         '</button>';
                                 } else {
-                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-secondary" disabled data-bs-toggle="tooltip" title="ไม่มีสิทธิ์แก้ไข">' +
-                                        '<i class="fas fa-edit"></i>' +
+                                    buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-outline-secondary" disabled ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-bs-toggle="tooltip" title="ไม่มีสิทธิ์แก้ไข">' +
+                                        '<i class="fas fa-edit" style="font-size:1.55em;"></i>' +
                                         '</button>';
                                 }
                                 
-                                // ปุ่มลบ - แสดงเสมอแต่ disable สำหรับผู้ใช้ที่ไม่ใช่ admin
+                                // ปุ่มลบ/Rollback - แสดงตามสถานะข้อมูล
                                 if (userPermissions.isAdmin) {
-                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-danger delete-employee" data-id="' +
-                                        data + '" data-person-id="' + data +
-                                        '" data-bs-toggle="tooltip" title="ลบ">' +
-                                        '<i class="fas fa-trash"></i>' +
-                                        '</button>';
+                                    // ตรวจสอบสถานะข้อมูล
+                                    var isMarkedForDeletion = row.noteStatus === 'ข้อมูลรอลบ';
+                                    
+                                    if (isMarkedForDeletion) {
+                                        // แสดงปุ่ม Rollback และปุ่มลบถาวร
+                                        buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-outline-success rollback-employee" ' +
+                                            'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                            'data-id="' + data + '" data-person-id="' + data +
+                                            '" data-bs-toggle="tooltip" title="คืนสถานะข้อมูล">' +
+                                            '<i class="fas fa-undo" style="font-size:1.55em;"></i>' +
+                                            '</button>';
+                                        
+                                        buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-danger delete-employee" ' +
+                                            'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                            'data-id="' + data + '" data-person-id="' + data +
+                                            '" data-bs-toggle="tooltip" title="ลบถาวร (คลิกเพื่อยืนยัน)">' +
+                                            '<i class="fas fa-trash-alt" style="font-size:1.55em;"></i>' +
+                                            '</button>';
+                                    } else {
+                                        // แสดงปุ่มลบปกติ
+                                        buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-outline-danger delete-employee" ' +
+                                            'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                            'data-id="' + data + '" data-person-id="' + data +
+                                            '" data-bs-toggle="tooltip" title="ทำเครื่องหมายเพื่อลบ">' +
+                                            '<i class="fas fa-trash" style="font-size:1.55em;"></i>' +
+                                            '</button>';
+                                    }
                                 } else {
-                                    buttons += '<button class="btn btn-xs btn-icon btn-rounded btn-outline-secondary" disabled data-bs-toggle="tooltip" title="ไม่มีสิทธิ์ลบ">' +
-                                        '<i class="fas fa-trash"></i>' +
+                                    buttons += '<button class="btn btn-sm btn-icon btn-rounded btn-outline-secondary" disabled ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-bs-toggle="tooltip" title="ไม่มีสิทธิ์ลบ">' +
+                                        '<i class="fas fa-trash" style="font-size:1.55em;"></i>' +
                                         '</button>';
                                 }
+                            
                                 
                                 buttons += '</div>';
                                 return buttons;
@@ -846,7 +933,10 @@
                     let filterContent = $('#filterRowTemplate').html();
                     $('#employeeTable').find('tbody').prepend(filterContent);
                     // กำหนดค่าที่เลือกไว้ก่อนหน้า
-                    $('.filter-department').val($('#filter-storage').data('department') || '');
+                    let storedDepartment = $('#filter-storage').data('department');
+                    if (storedDepartment && storedDepartment !== '') {
+                        $('.filter-department').val(storedDepartment);
+                    }
                     $('.filter-shift').val($('#filter-storage').data('shift') || '');
                     $('.filter-status').val($('#filter-storage').data('status') || 'active');
                     $('.filter-door').val($('#filter-storage').data('door') || '');
@@ -859,9 +949,6 @@
                         if (!userPermissions.isAdmin) {
                             // ถ้าไม่ใช่ admin ให้ตั้งค่าแผนกเป็นแผนกของผู้ใช้
                             $('.filter-department').val(userPermissions.currentUserDepartment);
-                        } else {
-                            // ถ้าเป็น admin ให้รีเซ็ตเป็นค่าว่าง
-                            $('.filter-department').val('');
                         }
                     });
                     // จัดการปุ่มตกลง
@@ -917,7 +1004,7 @@
             });
             // เมื่อกดปุ่มแก้ไขพนักงาน
             $('body').on('click', '.edit-employee', function() {
-                let personId = $(this).data('person-id');
+                let personId = $(this).data('person-id'); 
                 resetEmployeeForm();
                 // แสดง Loading
                 Swal.fire({
@@ -1044,15 +1131,36 @@
                 }
             });
             
-            // ลบพนักงาน
+            // ลบพนักงาน (รองรับ 2 ขั้นตอน)
             $('body').on('click', '.delete-employee', function() {
                 let personId = $(this).data('person-id');
+                let buttonElement = $(this);
+                
+                // ตรวจสอบว่าเป็นการลบถาวรหรือไม่
+                let isPermanentDelete = buttonElement.hasClass('btn-danger');
+                
+                let title, text, confirmText, warningLevel;
+                
+                if (isPermanentDelete) {
+                    // การลบถาวร
+                    title = 'ยืนยันการลบถาวร';
+                    text = 'คุณต้องการลบข้อมูลพนักงานนี้ถาวรใช่หรือไม่? การกระทำนี้ไม่สามารถยกเลิกได้!';
+                    confirmText = 'ลบถาวร';
+                    warningLevel = 'error';
+                } else {
+                    // การทำเครื่องหมายเพื่อลบ
+                    title = 'ยืนยันการทำเครื่องหมายเพื่อลบ';
+                    text = 'คุณต้องการทำเครื่องหมายข้อมูลพนักงานนี้เพื่อลบใช่หรือไม่? สามารถคืนสถานะได้ภายหลัง';
+                    confirmText = 'ทำเครื่องหมาย';
+                    warningLevel = 'warning';
+                }
+                
                 Swal.fire({
-                    title: 'ยืนยันการลบ',
-                    text: 'คุณต้องการลบข้อมูลพนักงานนี้ใช่หรือไม่?',
-                    icon: 'warning',
+                    title: title,
+                    text: text,
+                    icon: warningLevel,
                     showCancelButton: true,
-                    confirmButtonText: 'ยืนยัน',
+                    confirmButtonText: confirmText,
                     cancelButtonText: 'ยกเลิก',
                     confirmButtonColor: '#dc3545',
                     reverseButtons: true
@@ -1071,20 +1179,63 @@
                             },
                             success: function(response) {
                                 if (response.success) {
-                                    showSuccessToast('ลบข้อมูลสำเร็จ');
+                                    showSuccessToast(response.message || 'ดำเนินการสำเร็จ');
                                     $('#employeeTable').DataTable().ajax.reload();
                                 } else {
                                     showErrorToast(response.message ||
-                                        'เกิดข้อผิดพลาดในการลบข้อมูล');
+                                        'เกิดข้อผิดพลาดในการดำเนินการ');
                                 }
                             },
                             error: function() {
-                                showErrorToast('เกิดข้อผิดพลาดในการลบข้อมูล');
+                                showErrorToast('เกิดข้อผิดพลาดในการดำเนินการ');
                             }
                         });
                     }
                 });
             });
+
+            // Rollback พนักงาน (คืนสถานะข้อมูล)
+            $('body').on('click', '.rollback-employee', function() {
+                let personId = $(this).data('person-id');
+                Swal.fire({
+                    title: 'ยืนยันการคืนสถานะ',
+                    text: 'คุณต้องการคืนสถานะข้อมูลพนักงานนี้ใช่หรือไม่? ระบบจะเปิดสิทธิ์ประตูพื้นฐานให้อัตโนมัติ',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#28a745',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: appBasePath + 'Employee/RollbackEmployee',
+                            type: 'POST',
+                            data: {
+                                personId: personId
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]')
+                                    .val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    showSuccessToast(response.message || 'คืนสถานะข้อมูลสำเร็จ');
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message ||
+                                        'เกิดข้อผิดพลาดในการคืนสถานะข้อมูล');
+                                }
+                            },
+                            error: function() {
+                                showErrorToast('เกิดข้อผิดพลาดในการคืนสถานะข้อมูล');
+                            }
+                        });
+                    }
+                });
+            });
+            
             // แสดงโมดัลสิทธิ์ประตู
             $('body').on('click', '.access-door', function() {
                 showAccessModal($(this).data('id'), true);
@@ -1578,6 +1729,1026 @@
             function showErrorToast(message) {
                 toastr.error(message);
             }
+            
+            // จัดการการ insert ข้อมูลลายนิ้วมือ
+            $('body').on('click', '.insert-fingerprint', function() {
+                let personId = $(this).data('person-id');
+                let cardNumber = $(this).data('card-number');
+                let personName = $(this).data('person-name');
+                let deptId = $(this).data('dept-id');
+                let deptName = $(this).data('dept-name');
+                
+                // แสดง confirmation dialog
+                Swal.fire({
+                    title: 'เพิ่มข้อมูลลายนิ้วมือ',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>รหัสพนักงาน:</strong> ${personId}</p>
+                            <p><strong>ชื่อ-นามสกุล:</strong> ${personName}</p>
+                            <p><strong>เลขบัตร:</strong> ${cardNumber}</p>
+                            <p><strong>แผนก:</strong> ${deptName} (${deptId})</p>
+                            <hr>
+                            <p class="text-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ระบบจะดึงข้อมูลลายนิ้วมือจากเครื่องแสกนนิ้วและบันทึกลงฐานข้อมูล SQL944
+                            </p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#28a745',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        Swal.fire({
+                            title: 'กำลังดึงข้อมูลลายนิ้วมือ...',
+                            html: 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลจากเครื่องแสกนนิ้ว',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // เรียก API สำหรับ insert ข้อมูลลายนิ้วมือ
+                        $.ajax({
+                            url: appBasePath + 'Employee/CreateFingerprintData',
+                            type: 'POST',
+                            data: {
+                                personId: personId,
+                                cardNumber: cardNumber,
+                                personName: personName,
+                                deptID: deptId,
+                                deptName: deptName
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]').val());
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    showSuccessToast('เพิ่มข้อมูลลายนิ้วมือสำเร็จ');
+                                    // รีโหลดตารางเพื่ออัพเดทสถานะ
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message || 'ไม่สามารถเพิ่มข้อมูลลายนิ้วมือได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                let errorMessage = 'เกิดข้อผิดพลาดในการเพิ่มข้อมูลลายนิ้วมือ';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                }
+                                showErrorToast(errorMessage);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // จัดการปุ่มแก้ไขข้อมูลลายนิ้วมือ (สำหรับผู้ที่มีสิทธิ์ add)
+            $('#fingerprintEditButton').on('click', function() {
+                Swal.fire({
+                    title: 'แก้ไขข้อมูลลายนิ้วมือ',
+                    html: `
+                        <div class="text-start">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>คำเตือน:</strong> การแก้ไขข้อมูลลายนิ้วมือจะรีเซ็ตข้อมูลเดิมและเตรียมพร้อมสำหรับการดึงข้อมูลใหม่
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-warning btn-sm" id="editFingerprintByPersonIdBtn">
+                                            <i class="fas fa-user-edit me-2"></i>แก้ไขข้อมูลลายนิ้วมือตามรหัสพนักงาน
+                                        </button>
+                                        <button type="button" class="btn btn-info btn-sm" id="viewFingerprintStatusBtn">
+                                            <i class="fas fa-search me-2"></i>ตรวจสอบสถานะข้อมูลลายนิ้วมือ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'ปิด',
+                    cancelButtonText: 'ยกเลิก',
+                    showConfirmButton: false,
+                    width: '500px'
+                }).then((result) => {
+                    // จัดการปุ่มแก้ไขข้อมูลลายนิ้วมือตามรหัสพนักงาน
+                    $('#editFingerprintByPersonIdBtn').on('click', function() {
+                        Swal.close();
+                        showEditFingerprintByPersonId();
+                    });
+                    
+                    // จัดการปุ่มตรวจสอบสถานะ
+                    $('#viewFingerprintStatusBtn').on('click', function() {
+                        Swal.close();
+                        showFingerprintStatusCheck();
+                    });
+                });
+            });
+            
+            // ฟังก์ชันแสดงการแก้ไขข้อมูลลายนิ้วมือตามรหัสพนักงาน
+            function showEditFingerprintByPersonId() {
+                Swal.fire({
+                    title: 'แก้ไขข้อมูลลายนิ้วมือ',
+                    html: `
+                        <div class="form-group">
+                            <label for="editPersonId" class="form-label">รหัสพนักงาน:</label>
+                            <input type="text" class="form-control" id="editPersonId" placeholder="กรอกรหัสพนักงาน">
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'แก้ไข',
+                    cancelButtonText: 'ยกเลิก',
+                    preConfirm: () => {
+                        const personId = document.getElementById('editPersonId').value;
+                        if (!personId) {
+                            Swal.showValidationMessage('กรุณากรอกรหัสพนักงาน');
+                            return false;
+                        }
+                        return personId;
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const personId = result.value;
+                        
+                        // ตรวจสอบสถานะข้อมูลลายนิ้วมือก่อน
+                        $.ajax({
+                            url: appBasePath + 'Employee/CheckFingerprintStatus',
+                            type: 'GET',
+                            data: { personId: personId },
+                            success: function(response) {
+                                if (response.success) {
+                                    if (response.hasData) {
+                                        // แสดงข้อมูลปัจจุบันและยืนยันการแก้ไข
+                                        Swal.fire({
+                                            title: 'ข้อมูลลายนิ้วมือปัจจุบัน',
+                                            html: `
+                                                <div class="text-start">
+                                                    <p><strong>รหัสพนักงาน:</strong> ${personId}</p>
+                                                    <p><strong>ชื่อ-นามสกุล:</strong> ${response.data.Name || '-'}</p>
+                                                    <p><strong>เลขบัตร:</strong> ${response.data.CardNumber || '-'}</p>
+                                                    <p><strong>แผนก:</strong> ${response.data.DeptName || '-'}</p>
+                                                    <p><strong>วันที่อัพเดท:</strong> ${response.data.modifyTime ? new Date(response.data.modifyTime).toLocaleString('th-TH') : '-'}</p>
+                                                    <hr>
+                                                    <p><strong>GetBioDate:</strong> ${response.data.GetBioDate ? new Date(response.data.GetBioDate).toLocaleString('th-TH') : 'ไม่มีข้อมูล'}</p>
+                                                    <p><strong>Result:</strong> ${response.data.result || 'ไม่มีข้อมูล'}</p>
+                                                    <hr>
+                                                    <div class="alert alert-warning">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                                        การแก้ไขจะรีเซ็ต GetBioDate และ Result เป็น NULL
+                                                    </div>
+                                                </div>
+                                            `,
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'ยืนยันการแก้ไข',
+                                            cancelButtonText: 'ยกเลิก',
+                                            confirmButtonColor: '#ffc107'
+                                        }).then((editResult) => {
+                                            if (editResult.isConfirmed) {
+                                                // ดำเนินการแก้ไขข้อมูลลายนิ้วมือ
+                                                Swal.fire({
+                                                    title: 'กำลังแก้ไขข้อมูลลายนิ้วมือ...',
+                                                    html: 'กรุณารอสักครู่',
+                                                    allowOutsideClick: false,
+                                                    didOpen: () => {
+                                                        Swal.showLoading();
+                                                    }
+                                                });
+                                                
+                                                $.ajax({
+                                                    url: appBasePath + 'Employee/UpdateFingerprintData',
+                                                    type: 'POST',
+                                                    data: {
+                                                        personId: personId,
+                                                        getBioDate: null,
+                                                        result: null
+                                                    },
+                                                    beforeSend: function(xhr) {
+                                                        xhr.setRequestHeader("RequestVerificationToken",
+                                                            $('input:hidden[name="__RequestVerificationToken"]').val());
+                                                    },
+                                                    success: function(updateResponse) {
+                                                        Swal.close();
+                                                        if (updateResponse.success) {
+                                                            showSuccessToast('แก้ไขข้อมูลลายนิ้วมือสำเร็จ - พร้อมสำหรับการดึงข้อมูลใหม่');
+                                                            $('#employeeTable').DataTable().ajax.reload();
+                                                        } else {
+                                                            showErrorToast(updateResponse.message || 'ไม่สามารถแก้ไขข้อมูลลายนิ้วมือได้');
+                                                        }
+                                                    },
+                                                    error: function(xhr, status, error) {
+                                                        Swal.close();
+                                                        showErrorToast('เกิดข้อผิดพลาดในการแก้ไขข้อมูลลายนิ้วมือ: ' + error);
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            title: 'ไม่พบข้อมูลลายนิ้วมือ',
+                                            text: 'ไม่พบข้อมูลลายนิ้วมือของพนักงานนี้ กรุณาเพิ่มข้อมูลลายนิ้วมือก่อน',
+                                            icon: 'info',
+                                            showCloseButton: true,
+                                            showConfirmButton: false
+                                        });
+                                    }
+                                } else {
+                                    showErrorToast(response.message || 'ไม่สามารถตรวจสอบสถานะข้อมูลลายนิ้วมือได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                showErrorToast('เกิดข้อผิดพลาดในการตรวจสอบสถานะข้อมูลลายนิ้วมือ: ' + error);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // จัดการปุ่มจัดการข้อมูลลายนิ้วมือ
+            $('#fingerprintManagementButton').on('click', function() {
+                Swal.fire({
+                    title: 'จัดการข้อมูลลายนิ้วมือ',
+                    html: `
+                        <div class="text-start">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-primary btn-sm" id="viewAllFingerprintBtn">
+                                            <i class="fas fa-list me-2"></i>ดูข้อมูลลายนิ้วมือทั้งหมด
+                                        </button>
+                                        <button type="button" class="btn btn-info btn-sm" id="viewIncompleteFingerprintBtn">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>ดูข้อมูลที่ยังไม่ครบถ้วน
+                                        </button>
+                                        <button type="button" class="btn btn-success btn-sm" id="viewCompleteFingerprintBtn">
+                                            <i class="fas fa-check-circle me-2"></i>ดูข้อมูลที่ครบถ้วนแล้ว
+                                        </button>
+                                        <button type="button" class="btn btn-warning btn-sm" id="checkFingerprintStatusBtn">
+                                            <i class="fas fa-search me-2"></i>ตรวจสอบสถานะข้อมูลลายนิ้วมือ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'ปิด',
+                    cancelButtonText: 'ยกเลิก',
+                    showConfirmButton: false,
+                    width: '500px'
+                }).then((result) => {
+                    // จัดการปุ่มต่างๆ
+                    $('#viewAllFingerprintBtn').on('click', function() {
+                        Swal.close();
+                        showAllFingerprintData();
+                    });
+                    
+                    $('#viewIncompleteFingerprintBtn').on('click', function() {
+                        Swal.close();
+                        showIncompleteFingerprintData();
+                    });
+                    
+                    $('#viewCompleteFingerprintBtn').on('click', function() {
+                        Swal.close();
+                        showCompleteFingerprintData();
+                    });
+                    
+                    $('#checkFingerprintStatusBtn').on('click', function() {
+                        Swal.close();
+                        showFingerprintStatusCheck();
+                    });
+                });
+            });
+            
+            // ฟังก์ชันแสดงข้อมูลลายนิ้วมือทั้งหมด
+            function showAllFingerprintData() {
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                    url: appBasePath + 'Employee/GetAllFingerprintData',
+                    type: 'GET',
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
+                            html += '<thead><tr><th>รหัสพนักงาน</th><th>ชื่อ-นามสกุล</th><th>เลขบัตร</th><th>แผนก</th><th>วันที่อัพเดท</th><th>สถานะ</th></tr></thead><tbody>';
+                            
+                            response.data.forEach(function(item) {
+                                const personId = item.PersonID ? item.PersonID.replace('-2', '') : '-';
+                                const hasBioData = item.GetBioDate != null;
+                                const hasResult = item.result && item.result.toString().trim() !== '';
+                                const statusClass = hasBioData && hasResult ? 'text-success' : 'text-warning';
+                                const statusText = hasBioData && hasResult ? 'ครบถ้วน' : 'ยังไม่ครบถ้วน';
+                                
+                                html += `<tr>
+                                    <td>${personId}</td>
+                                    <td>${item.Name || '-'}</td>
+                                    <td>${item.CardNumber || '-'}</td>
+                                    <td>${item.DeptName || '-'}</td>
+                                    <td>${item.modifyTime ? new Date(item.modifyTime).toLocaleString('th-TH') : '-'}</td>
+                                    <td><span class="${statusClass}">${statusText}</span></td>
+                                </tr>`;
+                            });
+                            
+                            html += '</tbody></table></div>';
+                            
+                            Swal.fire({
+                                title: 'ข้อมูลลายนิ้วมือทั้งหมด',
+                                html: html,
+                                width: '900px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถดึงข้อมูลลายนิ้วมือได้');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือ: ' + error);
+                    }
+                });
+            }
+            
+            // ฟังก์ชันแสดงข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วน
+            function showIncompleteFingerprintData() {
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                    url: appBasePath + 'Employee/GetIncompleteFingerprintData',
+                    type: 'GET',
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
+                            html += '<thead><tr><th>รหัสพนักงาน</th><th>ชื่อ-นามสกุล</th><th>เลขบัตร</th><th>แผนก</th><th>วันที่อัพเดท</th><th>สถานะ</th></tr></thead><tbody>';
+                            
+                            response.data.forEach(function(item) {
+                                const personId = item.PersonID ? item.PersonID.replace('-2', '') : '-';
+                                const hasBioData = item.GetBioDate != null;
+                                const hasResult = item.result && item.result.toString().trim() !== '';
+                                let statusText = '';
+                                if (!hasBioData && !hasResult) {
+                                    statusText = 'ไม่มีข้อมูลลายนิ้วมือ';
+                                } else if (!hasBioData) {
+                                    statusText = 'ไม่มีข้อมูล GetBioDate';
+                                } else if (!hasResult) {
+                                    statusText = 'ไม่มีข้อมูล result';
+                                }
+                                
+                                html += `<tr>
+                                    <td>${personId}</td>
+                                    <td>${item.Name || '-'}</td>
+                                    <td>${item.CardNumber || '-'}</td>
+                                    <td>${item.DeptName || '-'}</td>
+                                    <td>${item.modifyTime ? new Date(item.modifyTime).toLocaleString('th-TH') : '-'}</td>
+                                    <td><span class="text-warning">${statusText}</span></td>
+                                </tr>`;
+                            });
+                            
+                            html += '</tbody></table></div>';
+                            
+                            Swal.fire({
+                                title: 'ข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วน',
+                                html: html,
+                                width: '900px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถดึงข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วนได้');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วน: ' + error);
+                    }
+                });
+            }
+            
+            // ฟังก์ชันแสดงข้อมูลลายนิ้วมือที่ครบถ้วนแล้ว
+            function showCompleteFingerprintData() {
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                    url: appBasePath + 'Employee/GetCompleteFingerprintData',
+                    type: 'GET',
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
+                            html += '<thead><tr><th>รหัสพนักงาน</th><th>ชื่อ-นามสกุล</th><th>เลขบัตร</th><th>แผนก</th><th>วันที่อัพเดท</th><th>สถานะ</th></tr></thead><tbody>';
+                            
+                            response.data.forEach(function(item) {
+                                const personId = item.PersonID ? item.PersonID.replace('-2', '') : '-';
+                                
+                                html += `<tr>
+                                    <td>${personId}</td>
+                                    <td>${item.Name || '-'}</td>
+                                    <td>${item.CardNumber || '-'}</td>
+                                    <td>${item.DeptName || '-'}</td>
+                                    <td>${item.modifyTime ? new Date(item.modifyTime).toLocaleString('th-TH') : '-'}</td>
+                                    <td><span class="text-success">ครบถ้วน</span></td>
+                                </tr>`;
+                            });
+                            
+                            html += '</tbody></table></div>';
+                            
+                            Swal.fire({
+                                title: 'ข้อมูลลายนิ้วมือที่ครบถ้วนแล้ว',
+                                html: html,
+                                width: '900px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถดึงข้อมูลลายนิ้วมือที่ครบถ้วนแล้วได้');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือที่ครบถ้วนแล้ว: ' + error);
+                    }
+                });
+            }
+            
+            // ฟังก์ชันแสดงการตรวจสอบสถานะข้อมูลลายนิ้วมือ
+            function showFingerprintStatusCheck() {
+                Swal.fire({
+                    title: 'ตรวจสอบสถานะข้อมูลลายนิ้วมือ',
+                    html: `
+                        <div class="form-group">
+                            <label for="statusCheckPersonId" class="form-label">รหัสพนักงาน:</label>
+                            <input type="text" class="form-control" id="statusCheckPersonId" placeholder="กรอกรหัสพนักงาน">
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'ตรวจสอบ',
+                    cancelButtonText: 'ยกเลิก',
+                    preConfirm: () => {
+                        const personId = document.getElementById('statusCheckPersonId').value;
+                        if (!personId) {
+                            Swal.showValidationMessage('กรุณากรอกรหัสพนักงาน');
+                            return false;
+                        }
+                        return personId;
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const personId = result.value;
+                        
+                        Swal.fire({
+                            title: 'กำลังตรวจสอบ...',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        $.ajax({
+                            url: appBasePath + 'Employee/CheckFingerprintStatus',
+                            type: 'GET',
+                            data: { personId: personId },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    if (response.hasData) {
+                                        const hasBioData = response.hasBioData;
+                                        const hasResult = response.hasResult;
+                                        const statusClass = hasBioData && hasResult ? 'text-success' : 'text-warning';
+                                        const statusText = hasBioData && hasResult ? 'ครบถ้วน' : 'ยังไม่ครบถ้วน';
+                                        
+                                        let html = `
+                                            <div class="text-start">
+                                                <p><strong>รหัสพนักงาน:</strong> ${personId}</p>
+                                                <p><strong>ชื่อ-นามสกุล:</strong> ${response.data.Name || '-'}</p>
+                                                <p><strong>เลขบัตร:</strong> ${response.data.CardNumber || '-'}</p>
+                                                <p><strong>แผนก:</strong> ${response.data.DeptName || '-'}</p>
+                                                <p><strong>วันที่อัพเดท:</strong> ${response.data.modifyTime ? new Date(response.data.modifyTime).toLocaleString('th-TH') : '-'}</p>
+                                                <p><strong>สถานะ:</strong> <span class="${statusClass}">${statusText}</span></p>
+                                                <hr>
+                                                <p><strong>GetBioDate:</strong> ${response.data.GetBioDate ? new Date(response.data.GetBioDate).toLocaleString('th-TH') : 'ไม่มีข้อมูล'}</p>
+                                                <p><strong>Result:</strong> ${response.data.result || 'ไม่มีข้อมูล'}</p>
+                                            </div>
+                                        `;
+                                        
+                                        Swal.fire({
+                                            title: 'ผลการตรวจสอบ',
+                                            html: html,
+                                            icon: hasBioData && hasResult ? 'success' : 'warning',
+                                            showCloseButton: true,
+                                            showConfirmButton: false
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            title: 'ผลการตรวจสอบ',
+                                            text: 'ไม่มีข้อมูลลายนิ้วมือของพนักงานนี้',
+                                            icon: 'info',
+                                            showCloseButton: true,
+                                            showConfirmButton: false
+                                        });
+                                    }
+                                } else {
+                                    showErrorToast(response.message || 'ไม่สามารถตรวจสอบสถานะข้อมูลลายนิ้วมือได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                showErrorToast('เกิดข้อผิดพลาดในการตรวจสอบสถานะข้อมูลลายนิ้วมือ: ' + error);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // จัดการการลบข้อมูลลายนิ้วมือ
+            $('body').on('click', '.delete-fingerprint', function() {
+                let personId = $(this).data('person-id');
+                
+                Swal.fire({
+                    title: 'ยืนยันการลบข้อมูลลายนิ้วมือ',
+                    text: `คุณต้องการลบข้อมูลลายนิ้วมือของพนักงานรหัส ${personId} ใช่หรือไม่?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        Swal.fire({
+                            title: 'กำลังลบข้อมูลลายนิ้วมือ...',
+                            html: 'กรุณารอสักครู่',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // เรียก API สำหรับลบข้อมูลลายนิ้วมือ
+                        $.ajax({
+                            url: appBasePath + 'Employee/DeleteFingerprintData',
+                            type: 'POST',
+                            data: { personId: personId },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]').val());
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    showSuccessToast('ลบข้อมูลลายนิ้วมือสำเร็จ');
+                                    // รีโหลดตารางเพื่ออัพเดทสถานะ
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message || 'ไม่สามารถลบข้อมูลลายนิ้วมือได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                let errorMessage = 'เกิดข้อผิดพลาดในการลบข้อมูลลายนิ้วมือ';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                }
+                                showErrorToast(errorMessage);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // จัดการปุ่มข้อมูลลายนิ้วมือในคอลัมน์เลขบัตร (รวม insert และ update)
+            $('body').on('click', '.insert-fingerprint-inline, .update-fingerprint-inline', function() {
+                let personId = $(this).data('person-id');
+                let cardNumber = $(this).data('card-number');
+                let personName = $(this).data('person-name');
+                let deptId = $(this).data('dept-id');
+                let deptName = $(this).data('dept-name');
+                let hasFingerprint = $(this).data('has-fingerprint');
+                let isUpdate = hasFingerprint === true;
+                
+                let title = isUpdate ? 'แก้ไขข้อมูลลายนิ้วมือ' : 'เพิ่มข้อมูลลายนิ้วมือ';
+                let icon = isUpdate ? 'question' : 'question';
+                let confirmColor = isUpdate ? '#ffc107' : '#28a745';
+                
+                let actionText = isUpdate ? 
+                    'ระบบจะรีเซ็ตข้อมูลลายนิ้วมือเดิมและเตรียมพร้อมสำหรับการดึงข้อมูลใหม่จากเครื่องแสกนนิ้ว' :
+                    'ระบบจะดึงข้อมูลลายนิ้วมือจากเครื่องแสกนนิ้วและบันทึกลงฐานข้อมูล SQL944';
+                
+                let infoText = isUpdate ?
+                    'GetBioDate และ Result จะถูกตั้งค่าเป็น NULL เพื่อให้สามารถดึงข้อมูลใหม่ได้' :
+                    'ข้อมูลจะถูกบันทึกลงฐานข้อมูล SQL944';
+                
+                // แสดง confirmation dialog
+                Swal.fire({
+                    title: title,
+                    html: `
+                        <div class="text-start">
+                            <p><strong>รหัสพนักงาน:</strong> ${personId}</p>
+                            <p><strong>ชื่อ-นามสกุล:</strong> ${personName}</p>
+                            <p><strong>เลขบัตร:</strong> ${cardNumber}</p>
+                            <p><strong>แผนก:</strong> ${deptName} (${deptId})</p>
+                            <hr>
+                            <p class="text-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ${actionText}
+                            </p>
+                            <p class="text-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                ${infoText}
+                            </p>
+                        </div>
+                    `,
+                    icon: icon,
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: confirmColor,
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        let loadingText = isUpdate ? 'กำลังแก้ไขข้อมูลลายนิ้วมือ...' : 'กำลังดึงข้อมูลลายนิ้วมือ...';
+                        let loadingDetail = isUpdate ? 'กรุณารอสักครู่ ระบบกำลังรีเซ็ตข้อมูลลายนิ้วมือเดิม' : 'กรุณารอสักครู่ ระบบกำลังดึงข้อมูลจากเครื่องแสกนนิ้ว';
+                        
+                        Swal.fire({
+                            title: loadingText,
+                            html: loadingDetail,
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        if (isUpdate) {
+                            // เรียก API สำหรับแก้ไขข้อมูลลายนิ้วมือ
+                            $.ajax({
+                                url: appBasePath + 'Employee/UpdateFingerprintData',
+                                type: 'POST',
+                                data: {
+                                    personId: personId,
+                                    cardNumber: cardNumber,
+                                    name: personName,
+                                    deptID: deptId,
+                                    deptName: deptName,
+                                    getBioDate: null,
+                                    result: null
+                                },
+                                beforeSend: function(xhr) {
+                                    xhr.setRequestHeader("RequestVerificationToken",
+                                        $('input:hidden[name="__RequestVerificationToken"]').val());
+                                },
+                                success: function(response) {
+                                    Swal.close();
+                                    if (response.success) {
+                                        showSuccessToast('แก้ไขข้อมูลลายนิ้วมือสำเร็จ - พร้อมสำหรับการดึงข้อมูลใหม่');
+                                        // รีโหลดตารางเพื่ออัพเดทสถานะ
+                                        $('#employeeTable').DataTable().ajax.reload();
+                                    } else {
+                                        showErrorToast(response.message || 'ไม่สามารถแก้ไขข้อมูลลายนิ้วมือได้');
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    Swal.close();
+                                    let errorMessage = 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลลายนิ้วมือ';
+                                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                                        errorMessage = xhr.responseJSON.message;
+                                    }
+                                    showErrorToast(errorMessage);
+                                }
+                            });
+                        } else {
+                            // เรียก API สำหรับเพิ่มข้อมูลลายนิ้วมือ
+                            $.ajax({
+                                url: appBasePath + 'Employee/CreateFingerprintData',
+                                type: 'POST',
+                                data: {
+                                    personId: personId,
+                                    cardNumber: cardNumber,
+                                    personName: personName,
+                                    deptID: deptId,
+                                    deptName: deptName
+                                },
+                                beforeSend: function(xhr) {
+                                    xhr.setRequestHeader("RequestVerificationToken",
+                                        $('input:hidden[name="__RequestVerificationToken"]').val());
+                                },
+                                success: function(response) {
+                                    Swal.close();
+                                    if (response.success) {
+                                        showSuccessToast('เพิ่มข้อมูลลายนิ้วมือสำเร็จ');
+                                        // รีโหลดตารางเพื่ออัพเดทสถานะ
+                                        $('#employeeTable').DataTable().ajax.reload();
+                                    } else {
+                                        showErrorToast(response.message || 'ไม่สามารถเพิ่มข้อมูลลายนิ้วมือได้');
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    Swal.close();
+                                    let errorMessage = 'เกิดข้อผิดพลาดในการเพิ่มข้อมูลลายนิ้วมือ';
+                                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                                        errorMessage = xhr.responseJSON.message;
+                                    }
+                                    showErrorToast(errorMessage);
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // จัดการการแก้ไขข้อมูลลายนิ้วมือ
+            $('body').on('click', '.update-fingerprint', function() {
+                let personId = $(this).data('person-id');
+                let cardNumber = $(this).data('card-number');
+                let personName = $(this).data('person-name');
+                let deptId = $(this).data('dept-id');
+                let deptName = $(this).data('dept-name');
+                
+                // แสดง confirmation dialog
+                Swal.fire({
+                    title: 'แก้ไขข้อมูลลายนิ้วมือ',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>รหัสพนักงาน:</strong> ${personId}</p>
+                            <p><strong>ชื่อ-นามสกุล:</strong> ${personName}</p>
+                            <p><strong>เลขบัตร:</strong> ${cardNumber}</p>
+                            <p><strong>แผนก:</strong> ${deptName} (${deptId})</p>
+                            <hr>
+                            <p class="text-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ระบบจะรีเซ็ตข้อมูลลายนิ้วมือเดิมและเตรียมพร้อมสำหรับการดึงข้อมูลใหม่จากเครื่องแสกนนิ้ว
+                            </p>
+                            <p class="text-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                GetBioDate และ Result จะถูกตั้งค่าเป็น NULL เพื่อให้สามารถดึงข้อมูลใหม่ได้
+                            </p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#ffc107',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // แสดง loading
+                        Swal.fire({
+                            title: 'กำลังแก้ไขข้อมูลลายนิ้วมือ...',
+                            html: 'กรุณารอสักครู่ ระบบกำลังรีเซ็ตข้อมูลลายนิ้วมือเดิม',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // เรียก API สำหรับแก้ไขข้อมูลลายนิ้วมือ
+                        $.ajax({
+                            url: appBasePath + 'Employee/UpdateFingerprintData',
+                            type: 'POST',
+                            data: {
+                                personId: personId,
+                                cardNumber: cardNumber,
+                                name: personName,
+                                deptID: deptId,
+                                deptName: deptName,
+                                getBioDate: null,
+                                result: null
+                            },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]').val());
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                if (response.success) {
+                                    showSuccessToast('แก้ไขข้อมูลลายนิ้วมือสำเร็จ - พร้อมสำหรับการดึงข้อมูลใหม่');
+                                    // รีโหลดตารางเพื่ออัพเดทสถานะ
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message || 'ไม่สามารถแก้ไขข้อมูลลายนิ้วมือได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                let errorMessage = 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลลายนิ้วมือ';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                }
+                                showErrorToast(errorMessage);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // ฟังก์ชันสำหรับดึงข้อมูลลายนิ้วมือทั้งหมด
+            function getAllFingerprintData() {
+                $.ajax({
+                    url: appBasePath + 'Employee/GetAllFingerprintData',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            console.log('ข้อมูลลายนิ้วมือทั้งหมด:', response.data);
+                            return response.data;
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถดึงข้อมูลลายนิ้วมือได้');
+                            return [];
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือ: ' + error);
+                        return [];
+                    }
+                });
+            }
+            
+            // ฟังก์ชันสำหรับดึงข้อมูลลายนิ้วมือของพนักงานเฉพาะคน
+            function getFingerprintDataByPersonId(personId) {
+                $.ajax({
+                    url: appBasePath + 'Employee/GetFingerprintDataByPersonId',
+                    type: 'GET',
+                    data: { personId: personId },
+                    success: function(response) {
+                        if (response.success) {
+                            console.log('ข้อมูลลายนิ้วมือของพนักงาน:', response.data);
+                            return response.data;
+                        } else {
+                            showErrorToast(response.message || 'ไม่พบข้อมูลลายนิ้วมือของพนักงานนี้');
+                            return null;
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือ: ' + error);
+                        return null;
+                    }
+                });
+            }
+            
+            // ฟังก์ชันสำหรับตรวจสอบสถานะข้อมูลลายนิ้วมือ
+            function checkFingerprintStatus(personId) {
+                $.ajax({
+                    url: appBasePath + 'Employee/CheckFingerprintStatus',
+                    type: 'GET',
+                    data: { personId: personId },
+                    success: function(response) {
+                        if (response.success) {
+                            console.log('สถานะข้อมูลลายนิ้วมือ:', response);
+                            return response;
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถตรวจสอบสถานะข้อมูลลายนิ้วมือได้');
+                            return null;
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorToast('เกิดข้อผิดพลาดในการตรวจสอบสถานะข้อมูลลายนิ้วมือ: ' + error);
+                        return null;
+                    }
+                });
+            }
+            
+            // ฟังก์ชันสำหรับดึงข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วน
+            function getIncompleteFingerprintData() {
+                $.ajax({
+                    url: appBasePath + 'Employee/GetIncompleteFingerprintData',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            console.log('ข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วน:', response.data);
+                            return response.data;
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถดึงข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วนได้');
+                            return [];
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือที่ยังไม่ครบถ้วน: ' + error);
+                        return [];
+                    }
+                });
+            }
+            
+            // ฟังก์ชันสำหรับดึงข้อมูลลายนิ้วมือที่ครบถ้วนแล้ว
+            function getCompleteFingerprintData() {
+                $.ajax({
+                    url: appBasePath + 'Employee/GetCompleteFingerprintData',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            console.log('ข้อมูลลายนิ้วมือที่ครบถ้วนแล้ว:', response.data);
+                            return response.data;
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถดึงข้อมูลลายนิ้วมือที่ครบถ้วนแล้วได้');
+                            return [];
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลลายนิ้วมือที่ครบถ้วนแล้ว: ' + error);
+                        return [];
+                    }
+                });
+            }
+            
+            // ฟังก์ชันสำหรับอัพเดทข้อมูลลายนิ้วมือ
+            function updateFingerprintData(personId, data) {
+                $.ajax({
+                    url: appBasePath + 'Employee/UpdateFingerprintData',
+                    type: 'POST',
+                    data: {
+                        personId: personId,
+                        cardNumber: data.cardNumber,
+                        name: data.name,
+                        deptID: data.deptID,
+                        deptName: data.deptName,
+                        getBioDate: data.getBioDate,
+                        result: data.result,
+                        status: data.status
+                    },
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("RequestVerificationToken",
+                            $('input:hidden[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccessToast('อัพเดทข้อมูลลายนิ้วมือสำเร็จ');
+                            // รีโหลดตารางเพื่ออัพเดทสถานะ
+                            $('#employeeTable').DataTable().ajax.reload();
+                        } else {
+                            showErrorToast(response.message || 'ไม่สามารถอัพเดทข้อมูลลายนิ้วมือได้');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showErrorToast('เกิดข้อผิดพลาดในการอัพเดทข้อมูลลายนิ้วมือ: ' + error);
+                    }
+                });
+            }
+            
+            // ฟังก์ชันสำหรับลบข้อมูลลายนิ้วมือ
+            function deleteFingerprintData(personId) {
+                Swal.fire({
+                    title: 'ยืนยันการลบข้อมูลลายนิ้วมือ',
+                    text: 'คุณต้องการลบข้อมูลลายนิ้วมือของพนักงานนี้ใช่หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#dc3545',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: appBasePath + 'Employee/DeleteFingerprintData',
+                            type: 'POST',
+                            data: { personId: personId },
+                            beforeSend: function(xhr) {
+                                xhr.setRequestHeader("RequestVerificationToken",
+                                    $('input:hidden[name="__RequestVerificationToken"]').val());
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    showSuccessToast('ลบข้อมูลลายนิ้วมือสำเร็จ');
+                                    // รีโหลดตารางเพื่ออัพเดทสถานะ
+                                    $('#employeeTable').DataTable().ajax.reload();
+                                } else {
+                                    showErrorToast(response.message || 'ไม่สามารถลบข้อมูลลายนิ้วมือได้');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                showErrorToast('เกิดข้อผิดพลาดในการลบข้อมูลลายนิ้วมือ: ' + error);
+                            }
+                        });
+                    }
+                });
+            }
+            
             // เมื่อเลือกแผนก อัพเดทรหัสแผนก
             $('#deptName').on('change', function() {
                 $('#deptID').val($(this).val());
@@ -2208,10 +3379,10 @@
                     PersonId: $('#shiftPersonId').val(),
                     name: $('#shiftPersonNameDisplay').text(),
                     deptID: $('#shiftDeptID').val(),
-                    deptName: $('#shiftDeptName').val(),
+                    deptName: $('#shiftDeptName option:selected').text(),
                     deptCode: $('#shiftDeptCode').val(),
                     ShiftMent: $('#shiftName').val(),
-                    Date: $('#shiftDate').val()
+                    Date: $('#shiftDate').val() 
                 };
                 
                 // Debug: แสดงข้อมูลที่จะส่งไป
@@ -2243,7 +3414,7 @@
                     // กรณีสร้างใหม่ - เช็คว่าต้องเพิ่มข้อมูล SQL944 หรือไม่
                     let hasCardData = $('#shiftModal').data('hasCardData');
                     let cardNumber = $('#shiftCardNo').val();
-                    
+
                     if (!hasCardData && cardNumber) {
                         // เพิ่มข้อมูล SQL944 ก่อน
                         $.ajax({
@@ -2277,6 +3448,12 @@
                             }
                         });
                     } else {
+                        formData.cardNumber = cardNumber;
+                        formData.personName = formatName(formData.name);
+                        formData.deptID = formData.deptID;
+                        formData.deptName = formData.deptName;
+                        formData.shift = formData.ShiftMent;
+                        formData.date = formData.Date;
                         // มีข้อมูลใน SQL944 แล้ว หรือไม่มีเลขบัตร ให้บันทึกข้อมูลกะเลย
                         saveShiftData(formData);
                     }
@@ -2609,7 +3786,7 @@
                                                 <h6 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลทั่วไป</h6>
                                             </div>
                                             <div class="card-body">
-                                                <ul class="list-group list-group-flush">
+                                                    <ul class="list-group list-group-flush">
                                                     <li class="list-group-item bg-transparent d-flex justify-content-between">
                                                         <span class="text-muted">รหัสพนักงาน:</span>
                                                         <span class="fw-medium">${employee.personID || '-'}</span>
@@ -2618,6 +3795,10 @@
                                                         <span class="text-muted">เลขบัตร:</span>
                                                         <span class="fw-medium">${employee.cardNumber || '-'}</span>
                                                     </li>
+                                                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                                                            <span class="text-muted">ระดับ JG:</span>
+                                                            <span class="badge bg-secondary">${employee.jobGrade || '-'}</span>
+                                                        </li>
                                                     <li class="list-group-item bg-transparent d-flex justify-content-between">
                                                         <span class="text-muted">กะการทำงาน:</span>
                                                         <span class="fw-medium">${employee.shift || employee.shiftMent || '-'}</span>
@@ -2695,15 +3876,6 @@
                 };
                 $('#current-filters').empty();
                 let hasFilter = false;
-                if (filters.department) {
-                    hasFilter = true;
-                    let deptName = $('.filter-department option[value="' + filters.department + '"]').text() || filters
-                        .department;
-                    $('#current-filters').append(`<span class="badge bg-info rounded-pill">
-                        <i class="fas fa-building me-1"></i>แผนก: ${deptName}
-                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="department"></button>
-                    </span>`);
-                }
                 if (filters.shift) {
                     hasFilter = true;
                     let shiftName = $('.filter-shift option[value="' + filters.shift + '"]').text() || filters.shift;
@@ -2824,7 +3996,7 @@
                                             <option value="">เลือกแผนก</option>
                                             @foreach (var dept in ViewBag.Dept)
                                             {
-                                            <option value="@dept.name" data-deptid="@dept.deptID">@dept.name</option>
+                                            <option value="@dept.deptID" data-deptid="@dept.deptID">@dept.name</option>
                                             }
                                         </select>
                                         <label for="shiftDeptName">แผนก</label>
@@ -2963,7 +4135,7 @@
                                         <option value="">เลือกแผนก</option>
                                         @foreach (var dept in ViewBag.Dept)
                                         {
-                                        <option value="@dept.name" data-deptid="@dept.deptID">@dept.name</option>
+                                        <option value="@dept.deptID" data-deptid="@dept.deptID">@dept.name</option>
                                         }
                                     </select>
                                     <div class="invalid-feedback">กรุณาเลือกแผนก</div>
@@ -3305,4 +4477,17 @@
             }
 
             /* Tooltip styles */
+            
+            /* Reload button styles */
+            #reloadTableButton {
+                transition: all 0.3s ease;
+            }
+            
+            #reloadTableButton:hover {
+                transform: scale(1.05);
+            }
+            
+            #reloadTableButton.spinning i {
+                animation: spin 1s linear infinite;
+            }
         </style>

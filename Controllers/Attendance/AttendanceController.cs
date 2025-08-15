@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq; // เพิ่ม Linq namespace
+using System.Net;
+using System.Net.Mail;
 using System.Text;
 using Dapper;
 using IPS_TH.Data;
@@ -166,26 +168,24 @@ namespace IPS_TH.Controllers.Employee
                         s.shift_name,
                         s.shift_group,
                         s.start_time,
-                        start_duration = s.start_time, // Assuming start_duration is the same as start_time
-                        break_start_time = (string)null, // เปลี่ยนเป็น string
-                        break_end_time = (string)null, // เปลี่ยนเป็น string
-                        break_duration = (TimeSpan?)null,
+                        s.break_start_time,
+                        s.break_end_time,
+                        s.is_break2,
+                        s.break2_start_time,
+                        s.break2_end_time,
                         s.end_time,
-                        end_duration = s.end_time, // Assuming end_duration is the same as end_time
-                        work_3rd_start_time = (string)null, // เปลี่ยนเป็น string
-                        work_3rd_end_time = (string)null, // เปลี่ยนเป็น string
-                        work_3rd_duration = (TimeSpan?)null,
+                        s.ot_start_time,
+                        s.ot_end_time,
                         s.sort,
-                        ot_start_time = (string)null, // เปลี่ยนเป็น string
-                        ot_end_time = (string)null, // เปลี่ยนเป็น string
-                        ot_duration = (TimeSpan?)null,
+                        s.record_status,
                     })
                     .ToListAsync();
 
-                return Json(new { data = shifts });
+                return Json(new { success = true, data = shifts });
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Error in GetShifts: {ex.Message}");
                 return Json(new { error = ex.Message });
             }
         }
@@ -304,7 +304,7 @@ namespace IPS_TH.Controllers.Employee
             bool showIncomplete = false
         )
         {
-            try
+            try 
             {
                 // 1. ตรวจสอบสิทธิ์และรับค่าพารามิเตอร์
                 if (!CheckPermission("Edit"))
@@ -683,7 +683,8 @@ namespace IPS_TH.Controllers.Employee
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                var query = @"
+                var query =
+                    @"
                     SELECT Id, ProductSerial, AssetNo, CustomerNo, CustomerName, Department, DepartmentName, Line, 
                         LineName, Owner, OwnerName, Name, Type, Status, Location, LocationDetail, Model, Manufacturer, CountryOfOrigin, 
                         InstallationDate, StartDate, EndDate, Remarks, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, IsDeleted, DeletedDate, DeletedBy, WindowsVersion
@@ -701,7 +702,7 @@ namespace IPS_TH.Controllers.Employee
                 return data.ToLookup(x => (string)(x.Owner ?? "").ToString().Trim(), x => x);
             }
         }
-    
+
         // แยกฟังก์ชันย่อยสำหรับประมวลผลข้อมูลรายคน
         private async Task ProcessDateData(
             string currentDate,
@@ -3870,6 +3871,1078 @@ namespace IPS_TH.Controllers.Employee
             catch (Exception ex)
             {
                 _logger.LogError($"เกิดข้อผิดพลาดในการดึงประวัติการลบ: {ex.Message}");
+                return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddOT(
+            string personId,
+            string addType,
+            string[] workDates,
+            string actionType,
+            string actionReason,
+            string empGroup,
+            string shift_group,
+            string startDate,
+            string startTime,
+            string endDate,
+            string endTime,
+            decimal calculatedHours,
+            string remark
+        )
+        {
+            try
+            {
+                // ตรวจสอบข้อมูลที่จำเป็น
+                if (workDates == null || workDates.Length == 0)
+                {
+                    return Json(new { success = false, message = "กรุณาเลือกวันที่ทำงาน" });
+                }
+
+                // ใช้วันที่แรกสำหรับการตรวจสอบ validation
+                var firstWorkDate = workDates[0];
+
+                // 1. ตรวจสอบข้อมูลที่จำเป็น
+                var validationResult = ValidateOTRequest(
+                    personId,
+                    firstWorkDate,
+                    actionType,
+                    actionReason,
+                    startDate,
+                    startTime,
+                    endDate,
+                    endTime
+                );
+                if (!validationResult.IsValid)
+                {
+                    return Json(new { success = false, message = validationResult.ErrorMessage });
+                }
+
+                // 2. ตรวจสอบ connection strings
+                var connectionValidation = ValidateConnections();
+                if (!connectionValidation.IsValid)
+                {
+                    return Json(
+                        new { success = false, message = connectionValidation.ErrorMessage }
+                    );
+                }
+
+                // 3. แปลงวันที่และเวลา (ใช้วันที่แรก)
+                var dateResult = ParseDates(firstWorkDate, startDate, startTime, endDate, endTime);
+                if (!dateResult.IsValid)
+                {
+                    return Json(new { success = false, message = dateResult.ErrorMessage });
+                }
+
+                // 4. เชื่อมต่อฐานข้อมูล
+                using (var mainConnection = new SqlConnection(_connectionString))
+                using (var ces941Connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await mainConnection.OpenAsync();
+                    await ces941Connection.OpenAsync();
+
+                    // 5. ดึงข้อมูลพนักงาน
+                    var empResult = await GetEmployeeData(ces941Connection, personId);
+                    if (!empResult.IsValid)
+                    {
+                        return Json(new { success = false, message = empResult.ErrorMessage });
+                    }
+
+                    // ตรวจสอบข้อมูลพนักงานที่จำเป็น
+                    if (empResult.EmpData == null)
+                    {
+                        return Json(new { success = false, message = "ไม่พบข้อมูลพนักงาน" });
+                    }
+
+                    // 6. ดึงข้อมูล WrkPlanID
+                    var wrkPlanId = await GetWrkPlanId(
+                        ces941Connection,
+                        personId,
+                        dateResult.WrkDate
+                    );
+
+                    // 7. ดึงข้อมูล WorkPlan
+                    var workPlanResult = await GetWorkPlanData(
+                        ces941Connection,
+                        wrkPlanId,
+                        dateResult.WrkDate
+                    );
+
+                    // 8. ดึงข้อมูลผู้อนุมัติ
+                    var bossId = empResult.EmpData.BossId?.ToString();
+                    var nextAppr = await GetNextApprover(ces941Connection, bossId);
+
+                    // 9. แปลง Action codes
+                    var actionCodes = ConvertActionCodes(actionType, actionReason);
+
+                    // 10. ตรวจสอบและบันทึกข้อมูลโอที
+                    var commonOtReqNo = $"IOT{DateTime.Now:yyyyMMddHHmmss}";
+                    var savedOtReqNos = new List<string>();
+                    var skippedDates = new List<object>();
+                    var totalDays = workDates.Length;
+                    var processedDays = 0;
+
+                    for (int i = 0; i < workDates.Length; i++)
+                    {
+                        Console.WriteLine("Processing day " + i + 1);
+                        var currentWorkDate = workDates[i];
+                        var currentWrkDate = DateTime.Parse(currentWorkDate);
+
+                        // ตรวจสอบว่ามีการขอโอทีในวันที่นี้แล้วหรือยัง
+                        var existingOTCheck = await CheckExistingOT(
+                            mainConnection,
+                            personId,
+                            currentWrkDate
+                        );
+
+                        if (existingOTCheck.Exists)
+                        {
+                            // มีการขอโอทีแล้ว ให้เก็บข้อมูลเพื่อแสดงผล
+                            skippedDates.Add(
+                                new
+                                {
+                                    date = currentWrkDate.ToString("yyyy-MM-dd"),
+                                    otReqNo = existingOTCheck.OtReqNo,
+                                    message = $"วันที่ {currentWrkDate:dd/MM/yyyy} มีการขอโอทีแล้ว (OTReqNo: {existingOTCheck.OtReqNo})",
+                                }
+                            );
+                            continue; // ข้ามไปวันถัดไป
+                        }
+
+                        // ดึงข้อมูล WorkPlan สำหรับแต่ละวัน
+                        var currentWrkPlanId = await GetWrkPlanId(
+                            ces941Connection,
+                            personId,
+                            currentWrkDate
+                        );
+
+                        var currentWorkPlanResult = await GetWorkPlanData(
+                            ces941Connection,
+                            currentWrkPlanId,
+                            currentWrkDate
+                        );
+
+                        // สร้าง DateTime ใหม่สำหรับแต่ละวันที่
+                        var currentStartDateTime = new DateTime(
+                            currentWrkDate.Year,
+                            currentWrkDate.Month,
+                            currentWrkDate.Day,
+                            dateResult.StartDateTime.Hour,
+                            dateResult.StartDateTime.Minute,
+                            dateResult.StartDateTime.Second
+                        );
+
+                        var currentEndDateTime = new DateTime(
+                            currentWrkDate.Year,
+                            currentWrkDate.Month,
+                            currentWrkDate.Day,
+                            dateResult.EndDateTime.Hour,
+                            dateResult.EndDateTime.Minute,
+                            dateResult.EndDateTime.Second
+                        );
+
+                        // จัดการกรณีที่เวลาสิ้นสุดข้ามวัน (เช่น กะกลางคืน)
+                        if (currentEndDateTime < currentStartDateTime)
+                        {
+                            currentEndDateTime = currentEndDateTime.AddDays(1);
+                        }
+
+                        _logger.LogInformation(
+                            $"Processing day {i + 1}: {currentWrkDate:yyyy-MM-dd}, Start: {currentStartDateTime:yyyy-MM-dd HH:mm}, End: {currentEndDateTime:yyyy-MM-dd HH:mm}"
+                        );
+
+                        // บันทึกข้อมูลโอทีสำหรับวันนี้ โดยใช้ OTReqNo เดียวกัน
+                        var saveResult = await SaveOTData(
+                            mainConnection,
+                            empResult.EmpData,
+                            personId,
+                            currentWrkDate,
+                            currentStartDateTime,
+                            currentEndDateTime,
+                            actionCodes.ActionTypeCode,
+                            actionCodes.ActionReasonCode,
+                            remark,
+                            calculatedHours,
+                            currentWorkPlanResult.ShiftCode,
+                            currentWorkPlanResult.Month,
+                            currentWorkPlanResult.Period,
+                            nextAppr,
+                            processedDays + 1, // OTSeqNo sequence
+                            commonOtReqNo // ใช้ OTReqNo เดียวกัน
+                        );
+
+                        if (!saveResult.Item1) // IsValid
+                        {
+                            return Json(new { success = false, message = saveResult.Item2 }); // ErrorMessage
+                        }
+
+                        savedOtReqNos.Add(saveResult.Item3);
+                        processedDays++;
+                    }
+
+                    // สร้างข้อความและ response ตามผลลัพธ์
+                    string message;
+                    bool hasSkipped = skippedDates.Count > 0;
+                    bool hasProcessed = processedDays > 0;
+
+                    if (hasProcessed && hasSkipped)
+                    {
+                        // บันทึกได้บางส่วน
+                        message =
+                            $"บันทึกข้อมูลโอทีเรียบร้อยแล้ว {processedDays} วัน (ข้าม {skippedDates.Count} วันที่มีการขอโอทีแล้ว)";
+                    }
+                    else if (hasProcessed && !hasSkipped)
+                    {
+                        // บันทึกได้ทั้งหมด
+                        message =
+                            totalDays == 1
+                                ? "บันทึกข้อมูลโอทีเรียบร้อยแล้ว"
+                                : $"บันทึกข้อมูลโอทีเรียบร้อยแล้ว {totalDays} วัน";
+                    }
+                    else if (!hasProcessed && hasSkipped)
+                    {
+                        // ไม่สามารถบันทึกได้เลย
+                        message =
+                            "ไม่สามารถบันทึกข้อมูลโอทีได้ เนื่องจากมีการขอโอทีในวันที่เลือกแล้วทั้งหมด";
+                    }
+                    else
+                    {
+                        // ไม่มีข้อมูล
+                        message = "ไม่พบข้อมูลวันที่สำหรับบันทึก";
+                    }
+
+                    return Json(
+                        new
+                        {
+                            success = hasProcessed, // success = true เฉพาะเมื่อบันทึกได้อย่างน้อย 1 วัน
+                            message = message,
+                            data = new
+                            {
+                                otReqNo = hasProcessed ? commonOtReqNo : null,
+                                otReqNos = savedOtReqNos,
+                                totalDays = totalDays,
+                                processedDays = processedDays,
+                                skippedDates = skippedDates,
+                                hasSkipped = hasSkipped,
+                                hasProcessed = hasProcessed,
+                            },
+                        }
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in AddOT: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner exception: {ex.InnerException.Message}");
+                }
+                return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        // ==================== เมธอดย่อยสำหรับ AddOT ====================
+
+        /// <summary>
+        /// ตรวจสอบข้อมูลที่จำเป็นสำหรับการขอโอที
+        /// </summary>
+        private (bool IsValid, string ErrorMessage) ValidateOTRequest(
+            string personId,
+            string workDate,
+            string actionType,
+            string actionReason,
+            string startDate,
+            string startTime,
+            string endDate,
+            string endTime
+        )
+        {
+            _logger.LogInformation($"Validating OT request for PersonId: {personId}");
+
+            if (
+                string.IsNullOrEmpty(personId)
+                || string.IsNullOrEmpty(workDate)
+                || string.IsNullOrEmpty(actionType)
+                || string.IsNullOrEmpty(actionReason)
+                || string.IsNullOrEmpty(startDate)
+                || string.IsNullOrEmpty(startTime)
+                || string.IsNullOrEmpty(endDate)
+                || string.IsNullOrEmpty(endTime)
+            )
+            {
+                var errorMsg = "ข้อมูลที่จำเป็นไม่ครบถ้วน";
+                _logger.LogError($"Validation failed: {errorMsg}");
+                return (false, errorMsg);
+            }
+
+            return (true, "");
+        }
+
+        /// <summary>
+        /// ตรวจสอบ connection strings
+        /// </summary>
+        private (bool IsValid, string ErrorMessage) ValidateConnections()
+        {
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                _logger.LogError("Main connection string is null or empty");
+                return (false, "การตั้งค่าฐานข้อมูลไม่ถูกต้อง");
+            }
+
+            if (string.IsNullOrEmpty(_ces941ConnectionString))
+            {
+                _logger.LogError("CES941 connection string is null or empty");
+                return (false, "การตั้งค่าฐานข้อมูลไม่ถูกต้อง");
+            }
+
+            return (true, "");
+        }
+
+        /// <summary>
+        /// แปลงวันที่และเวลาจาก string เป็น DateTime
+        /// </summary>
+        private (
+            bool IsValid,
+            string ErrorMessage,
+            DateTime WrkDate,
+            DateTime StartDateTime,
+            DateTime EndDateTime
+        ) ParseDates(
+            string workDate,
+            string startDate,
+            string startTime,
+            string endDate,
+            string endTime
+        )
+        {
+            try
+            {
+                var wrkDate = DateTime.Parse(workDate);
+                var startDateTime = DateTime.Parse($"{startDate} {startTime}");
+                var endDateTime = DateTime.Parse($"{endDate} {endTime}");
+
+                // ถ้าเวลาสิ้นสุดเป็นวันถัดไป
+                if (endDateTime < startDateTime)
+                {
+                    endDateTime = endDateTime.AddDays(1);
+                }
+
+                _logger.LogInformation(
+                    $"Parsed dates - WrkDate: {wrkDate:yyyy-MM-dd}, Start: {startDateTime:yyyy-MM-dd HH:mm}, End: {endDateTime:yyyy-MM-dd HH:mm}"
+                );
+                return (true, "", wrkDate, startDateTime, endDateTime);
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogError($"Date parsing error: {ex.Message}");
+                return (
+                    false,
+                    "รูปแบบวันที่หรือเวลาไม่ถูกต้อง",
+                    DateTime.MinValue,
+                    DateTime.MinValue,
+                    DateTime.MinValue
+                );
+            }
+        }
+
+        /// <summary>
+        /// ดึงข้อมูลพนักงานจากฐานข้อมูล
+        /// </summary>
+        private async Task<(bool IsValid, string ErrorMessage, dynamic EmpData)> GetEmployeeData(
+            SqlConnection ces941Connection,
+            string personId
+        )
+        {
+            var empQuery =
+                @"
+                SELECT EmpNo, BossId, SecCode, CostCenter, WrkPlanID 
+                FROM vEmployee 
+                WHERE EmpNo = @EmpNo";
+
+            try
+            {
+                var empData = await ces941Connection.QueryFirstOrDefaultAsync(
+                    empQuery,
+                    new { EmpNo = personId }
+                );
+
+                if (empData == null)
+                {
+                    _logger.LogError($"Employee not found: {personId}");
+                    return (false, "ไม่พบข้อมูลพนักงาน", null);
+                }
+
+                _logger.LogInformation(
+                    $"Employee data found: EmpNo={empData.EmpNo}, BossId={empData.BossId}, SecCode={empData.SecCode}, CostCenter={empData.CostCenter}"
+                );
+                return (true, "", empData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to query employee data: {ex.Message}");
+                return (false, "ไม่สามารถดึงข้อมูลพนักงานได้", null);
+            }
+        }
+
+        /// <summary>
+        /// ดึงข้อมูล WrkPlanID จาก vEmpMovement ตามวันที่
+        /// </summary>
+        private async Task<string> GetWrkPlanId(
+            SqlConnection ces941Connection,
+            string personId,
+            DateTime workDate
+        )
+        {
+            var empMovementQuery =
+                @"
+                SELECT TOP 1 WrkPlanID, ActionType, ActionReason, EffDateFrom, EffDateTo
+                FROM vEmpMovement 
+                WHERE EmpNo = @EmpNo 
+                AND Language = 'en' 
+                AND EffAttProcess = 'y'
+                AND @WorkDate BETWEEN EffDateFrom AND ISNULL(EffDateTo, '9999-12-31')
+                ORDER BY EffDateFrom DESC";
+
+            try
+            {
+                var empMovementData = await ces941Connection.QueryFirstOrDefaultAsync(
+                    empMovementQuery,
+                    new { EmpNo = personId, WorkDate = workDate.Date }
+                );
+
+                if (empMovementData?.WrkPlanID != null)
+                {
+                    _logger.LogInformation(
+                        $"Found WrkPlanID from EmpMovement: {empMovementData.WrkPlanID} for date {workDate:yyyy-MM-dd}"
+                    );
+                    return empMovementData.WrkPlanID;
+                }
+                else
+                {
+                    // ถ้าไม่พบข้อมูลใน vEmpMovement ให้ใช้จาก vEmployee
+                    var empDataResult = await GetEmployeeData(ces941Connection, personId);
+                    var wrkPlanId = empDataResult.EmpData?.WrkPlanID?.ToString() ?? "OFFICE";
+                    _logger.LogInformation(
+                        $"No EmpMovement found, using WrkPlanID from vEmployee: {wrkPlanId}"
+                    );
+                    return wrkPlanId;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to query EmpMovement data: {ex.Message}");
+                return "OFFICE"; // Default fallback
+            }
+        }
+
+        /// <summary>
+        /// ดึงข้อมูล Month และ Period จาก MWorkPlan
+        /// </summary>
+        private async Task<(
+            int Month,
+            int Period,
+            string ShiftCode,
+            string DayType
+        )> GetWorkPlanData(SqlConnection ces941Connection, string wrkPlanId, DateTime workDate)
+        {
+            var workPlanQuery =
+                @"
+                SELECT TOP 1 Month, Period, ShiftCode, DayType 
+                FROM MWorkPlan 
+                WHERE WrkPlanID = @WrkPlanID 
+                AND year(WrkDate) = @Year 
+                AND month(WrkDate) = @Month 
+                AND day(WrkDate) = @Day
+                ORDER BY WrkDate DESC";
+
+            try
+            {
+                var workPlanData = await ces941Connection.QueryFirstOrDefaultAsync(
+                    workPlanQuery,
+                    new
+                    {
+                        WrkPlanID = wrkPlanId,
+                        Year = workDate.Year,
+                        Month = workDate.Month,
+                        Day = workDate.Day,
+                    }
+                );
+
+                if (workPlanData != null)
+                {
+                    _logger.LogInformation(
+                        $"WorkPlan data found - Month: {workPlanData.Month}, Period: {workPlanData.Period}"
+                    );
+                    return (
+                        Convert.ToInt32(workPlanData.Month),
+                        Convert.ToInt32(workPlanData.Period),
+                        workPlanData.ShiftCode?.ToString(),
+                        workPlanData.DayType?.ToString()
+                    );
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        $"No WorkPlan found for WrkPlanID: {wrkPlanId}, using defaults"
+                    );
+                    return (workDate.Month, 2, wrkPlanId, "N");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to query WorkPlan data: {ex.Message}");
+                return (workDate.Month, 2, wrkPlanId, "N");
+            }
+        }
+
+        /// <summary>
+        /// ดึงข้อมูล NextAppr (ผู้อนุมัติถัดไป)
+        /// </summary>
+        private async Task<string> GetNextApprover(SqlConnection ces941Connection, string bossId)
+        {
+            // ลองหาจาก vEmployee ก่อน
+            var nextApprQuery =
+                @"
+                SELECT ADUser 
+                FROM vEmployee 
+                WHERE EmpNo = @BossId";
+
+            try
+            {
+                var nextApprData = await ces941Connection.QueryFirstOrDefaultAsync(
+                    nextApprQuery,
+                    new { BossId = bossId }
+                );
+
+                if (nextApprData?.ADUser != null)
+                {
+                    _logger.LogInformation($"Found NextAppr from vEmployee: {nextApprData.ADUser}");
+                    return nextApprData.ADUser;
+                }
+
+                // ถ้าไม่พบ ให้หาจาก MEmpBasic
+                var mempBasicQuery =
+                    @"
+                    SELECT ADUser 
+                    FROM MEmpBasic 
+                    WHERE EmpNo = @BossId";
+
+                var mempBasicData = await ces941Connection.QueryFirstOrDefaultAsync(
+                    mempBasicQuery,
+                    new { BossId = bossId }
+                );
+
+                var nextAppr = mempBasicData?.ADUser ?? "adisaks";
+                _logger.LogInformation($"Using NextAppr: {nextAppr} (from MEmpBasic or default)");
+                return nextAppr;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to query NextAppr data: {ex.Message}");
+                return "adisaks";
+            }
+        }
+
+        /// <summary>
+        /// แปลง ActionType และ ActionReason เป็น code
+        /// </summary>
+        private (string ActionTypeCode, string ActionReasonCode) ConvertActionCodes(
+            string actionType,
+            string actionReason
+        )
+        {
+            var actionTypeCode = actionType switch
+            {
+                "Adjust OT" => "A2",
+                "Request OT" => "B1",
+                _ => "CPS",
+            };
+
+            string actionReasonCode;
+            if (actionReason.Contains(':'))
+            {
+                actionReasonCode = actionReason.Split(':')[0].Trim();
+                _logger.LogInformation(
+                    $"Extracted ActionReason code: '{actionReasonCode}' from '{actionReason}'"
+                );
+            }
+            else
+            {
+                actionReasonCode = actionReason.Trim();
+                _logger.LogInformation($"Using ActionReason as code: '{actionReasonCode}'");
+            }
+
+            if (string.IsNullOrEmpty(actionReasonCode))
+            {
+                actionReasonCode = "OR1";
+                _logger.LogWarning("ActionReason code is empty, using default 'OR1'");
+            }
+
+            return (actionTypeCode, actionReasonCode);
+        }
+
+        /// <summary>
+        /// ดึงอีเมลของ NextAppr จากฐานข้อมูล
+        /// </summary>
+        private async Task<string> GetNextApproverEmail(
+            SqlConnection ces941Connection,
+            string nextApprId
+        )
+        {
+            try
+            {
+                var query =
+                    @"
+                    SELECT TOP 1 
+                        Email
+                    FROM EmpMaster 
+                    WHERE EmpNo = @EmpNo 
+                    AND RecordStatus = 'N'";
+
+                var result = await ces941Connection.QueryFirstOrDefaultAsync<dynamic>(
+                    query,
+                    new { EmpNo = nextApprId }
+                );
+
+                if (result != null && !string.IsNullOrEmpty(result.Email?.ToString()))
+                {
+                    _logger.LogInformation(
+                        $"Found email for next approver {nextApprId}: {result.Email}"
+                    );
+                    return result.Email.ToString();
+                }
+                else
+                {
+                    _logger.LogWarning($"No email found for next approver: {nextApprId}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error getting next approver email: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// ส่งอีเมลแจ้งเตือนการอนุมัติ OT ไปยัง NextAppr
+        /// </summary>
+        private async Task SendOTApprovalEmail(
+            string nextApprEmail,
+            string otReqNo,
+            string personId,
+            string personName,
+            DateTime workDate,
+            DateTime startDateTime,
+            DateTime endDateTime,
+            decimal calculatedHours,
+            string remark
+        )
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(nextApprEmail))
+                {
+                    _logger.LogWarning(
+                        "No email address provided for next approver, skipping email send"
+                    );
+                    return;
+                }
+
+                using (var smtpClient = new SmtpClient())
+                {
+                    // ตั้งค่า SMTP
+                    smtpClient.Host = "10.1.15.143";
+                    smtpClient.Port = 25;
+                    smtpClient.EnableSsl = false; // ปิด SSL สำหรับ port 25
+                    smtpClient.UseDefaultCredentials = true;
+                    smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+                    // สร้างข้อความอีเมล
+                    var mailMessage = new MailMessage();
+                    mailMessage.From = new MailAddress("system@ipsth.com", "ระบบ OT Approval");
+                    mailMessage.To.Add(nextApprEmail);
+                    mailMessage.Subject = $"คำขออนุมัติ OT - {otReqNo}";
+                    mailMessage.IsBodyHtml = true;
+
+                    // สร้างเนื้อหาอีเมล
+                    var emailBody =
+                        $@"
+                        <html>
+                        <body style='font-family: Arial, sans-serif;'>
+                            <h2 style='color: #2c3e50;'>คำขออนุมัติการทำงานล่วงเวลา (OT)</h2>
+                            <hr style='border: 1px solid #ecf0f1;'>
+                            
+                            <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold; width: 150px;'>เลขที่คำขอ:</td>
+                                    <td style='padding: 8px;'>{otReqNo}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>รหัสพนักงาน:</td>
+                                    <td style='padding: 8px;'>{personId}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>ชื่อพนักงาน:</td>
+                                    <td style='padding: 8px;'>{personName}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>วันที่ทำงาน:</td>
+                                    <td style='padding: 8px;'>{workDate:dd/MM/yyyy}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>เวลาเริ่ม:</td>
+                                    <td style='padding: 8px;'>{startDateTime:dd/MM/yyyy HH:mm}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>เวลาสิ้นสุด:</td>
+                                    <td style='padding: 8px;'>{endDateTime:dd/MM/yyyy HH:mm}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>จำนวนชั่วโมง:</td>
+                                    <td style='padding: 8px;'>{calculatedHours:F2} ชั่วโมง</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; background-color: #f8f9fa; font-weight: bold;'>หมายเหตุ:</td>
+                                    <td style='padding: 8px;'>{remark ?? "-"}</td>
+                                </tr>
+                            </table>
+                            
+                            <p style='color: #7f8c8d; font-size: 14px;'>
+                                กรุณาตรวจสอบและอนุมัติคำขอนี้ผ่านระบบ<br>
+                                หากมีข้อสงสัยกรุณาติดต่อฝ่ายบุคคล
+                            </p>
+                            
+                            <hr style='border: 1px solid #ecf0f1;'>
+                            <p style='color: #95a5a6; font-size: 12px;'>
+                                อีเมลนี้ถูกส่งจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ
+                            </p>
+                        </body>
+                        </html>";
+
+                    mailMessage.Body = emailBody;
+
+                    // ส่งอีเมล
+                    await smtpClient.SendMailAsync(mailMessage);
+
+                    _logger.LogInformation(
+                        $"OT approval email sent successfully to {nextApprEmail} for OT request {otReqNo}"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error sending OT approval email: {ex.Message}");
+                // ไม่ throw exception เพื่อไม่ให้กระทบการบันทึกข้อมูล
+            }
+        }
+
+        /// <summary>
+        /// ตรวจสอบว่ามีการขอโอทีในวันที่นั้นแล้วหรือยัง
+        /// </summary>
+        private async Task<(bool Exists, string OtReqNo, string ErrorMessage)> CheckExistingOT(
+            SqlConnection mainConnection,
+            string personId,
+            DateTime wrkDate
+        )
+        {
+            try
+            {
+                var checkQuery =
+                    @"
+                    SELECT OTReqNo, WrkDate, DteTmeStr, DteTmeEnd, TotalOTHrs, ApprStatus
+                    FROM TOTPlan 
+                    WHERE EmpNo = @PersonId 
+                    AND WrkDate = @WrkDate 
+                    AND FlagDel IS NULL
+                    ORDER BY CreateDate DESC";
+
+                var existingOT = await mainConnection.QueryFirstOrDefaultAsync<dynamic>(
+                    checkQuery,
+                    new { PersonId = personId, WrkDate = wrkDate }
+                );
+
+                if (existingOT != null)
+                {
+                    return (true, existingOT.OTReqNo?.ToString() ?? "", "");
+                }
+
+                return (false, "", "");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error checking existing OT: {ex.Message}");
+                return (false, "", $"เกิดข้อผิดพลาดในการตรวจสอบข้อมูลโอที: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// บันทึกข้อมูลโอทีลงฐานข้อมูล
+        /// </summary>
+        private async Task<(bool IsValid, string ErrorMessage, string OtReqNo)> SaveOTData(
+            SqlConnection mainConnection,
+            dynamic empData,
+            string personId,
+            DateTime wrkDate,
+            DateTime startDateTime,
+            DateTime endDateTime,
+            string actionTypeCode,
+            string actionReasonCode,
+            string remark,
+            decimal calculatedHours,
+            string wrkPlanId,
+            int month,
+            int period,
+            string nextAppr,
+            int sequenceNo = 1,
+            string providedOtReqNo = null
+        )
+        {
+            // ใช้ OTReqNo ที่ส่งมา หรือสร้างใหม่ถ้าไม่ได้ส่งมา
+            var otReqNo =
+                providedOtReqNo ?? $"IOT{wrkDate:yyyyMMdd}{DateTime.Now:HHmmss}{sequenceNo:D3}";
+            var otSeqNo = 1;
+            var caseId = DateTime.Now.ToString("yyyyMMddHHmmss");
+
+            var insertQuery =
+                @"
+                INSERT INTO TOTPlan (
+                    OTReqNo, OTSeqNo, SuspReqNo, WrkDate, DteTmeStr, DteTmeEnd, 
+                    EmpNo, BossId, SecCode, CostCenter, ShiftCode, 
+                    ActionType, ActionReason, Remark, CaseId, 
+                    TotalOTHrs, OTBfrQty, OTBfrRate, OTNrmQty, OTNrmRate, 
+                    OTAftQty, OTAftRate, Year, Month, Period, ApprStatus,
+                    CreateDate, CreateBy, FlagDel, NextAppr
+                ) VALUES (
+                    @OTReqNo, @OTSeqNo, @SuspReqNo, @WrkDate, @DteTmeStr, @DteTmeEnd,
+                    @EmpNo, @BossId, @SecCode, @CostCenter, @ShiftCode,
+                    @ActionType, @ActionReason, @Remark, @CaseId,
+                    @TotalOTHrs, @OTBfrQty, @OTBfrRate, @OTNrmQty, @OTNrmRate,
+                    @OTAftQty, @OTAftRate, @Year, @Month, @Period, @ApprStatus,
+                    @CreateDate, @CreateBy, @FlagDel, @NextAppr
+                )";
+
+            // ตรวจสอบและแปลงข้อมูลจาก dynamic object
+            var bossId = empData.BossId?.ToString() ?? "10129578";
+            var secCode = empData.SecCode?.ToString() ?? "2203";
+            var costCenter = empData.CostCenter?.ToString() ?? "7403N";
+
+            _logger.LogInformation(
+                $"Converted employee data - BossId: {bossId}, SecCode: {secCode}, CostCenter: {costCenter}"
+            );
+
+            var parameters = new
+            {
+                OTReqNo = otReqNo,
+                OTSeqNo = sequenceNo,
+                SuspReqNo = (string)null, // ค่าว่าง
+                WrkDate = wrkDate,
+                DteTmeStr = startDateTime,
+                DteTmeEnd = endDateTime,
+                EmpNo = personId,
+                BossId = bossId,
+                SecCode = secCode,
+                CostCenter = costCenter,
+                ShiftCode = wrkPlanId,
+                ActionType = actionTypeCode,
+                ActionReason = actionReasonCode,
+                Remark = remark,
+                CaseId = caseId,
+                TotalOTHrs = calculatedHours,
+                OTBfrQty = 0m,
+                OTBfrRate = 1.5m,
+                OTNrmQty = 0m,
+                OTNrmRate = 0m,
+                OTAftQty = calculatedHours,
+                OTAftRate = 1.5m,
+                Year = wrkDate.Year,
+                Month = month,
+                Period = period,
+                ApprStatus = "Pending",
+                CreateDate = DateTime.Now,
+                CreateBy = HttpContext.Session.GetString("UserName") ?? "System",
+                FlagDel = (string)null,
+                NextAppr = nextAppr,
+            };
+
+            try
+            {
+                var rowsAffected = await mainConnection.ExecuteAsync(insertQuery, parameters);
+                _logger.LogInformation(
+                    $"OT data inserted successfully - OTReqNo: {otReqNo}, Rows affected: {rowsAffected}"
+                );
+
+                // ส่งอีเมลแจ้งเตือนไปยัง NextAppr หลังจากบันทึกข้อมูลสำเร็จ
+                try
+                {
+                    // ดึงอีเมลของ NextAppr
+                    var nextApprEmail = await GetNextApproverEmail(mainConnection, nextAppr);
+
+                    // ดึงชื่อพนักงานจาก empData
+                    var personName = empData.EmpName?.ToString() ?? personId;
+
+                    // ส่งอีเมลแจ้งเตือน
+                    await SendOTApprovalEmail(
+                        nextApprEmail,
+                        otReqNo,
+                        personId,
+                        personName,
+                        wrkDate,
+                        startDateTime,
+                        endDateTime,
+                        calculatedHours,
+                        remark
+                    );
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogWarning($"Failed to send OT approval email: {emailEx.Message}");
+                    // ไม่ throw exception เพื่อไม่ให้กระทบการบันทึกข้อมูล
+                }
+
+                return (true, "", otReqNo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Database insert error: {ex.Message}");
+                return (false, "ไม่สามารถบันทึกข้อมูลโอทีได้", "");
+            }
+        }
+
+        /// <summary>
+        /// แสดงหน้าทดสอบการส่งอีเมล
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> TestEmail()
+        {
+            try
+            {
+                await LoadPermissions("Attendance", "TestEmail");
+                return View("~/Views/Attendance/TestEmail.cshtml");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in TestEmail action: {ex.Message}");
+                return View("~/Views/Attendance/TestEmail.cshtml");
+            }
+        }
+
+        /// <summary>
+        /// ทดสอบการส่งอีเมล SMTP
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> TestEmail(string toEmail = "Adisak.S@liteon.com")
+        {
+            try
+            {
+                using (var smtpClient = new SmtpClient())
+                {
+                    // ตั้งค่า SMTP
+                    smtpClient.Host = "10.1.15.143";
+                    smtpClient.Port = 25;
+                    smtpClient.EnableSsl = false;
+                    smtpClient.UseDefaultCredentials = true;
+                    smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+                    // สร้างข้อความอีเมลทดสอบ
+                    var mailMessage = new MailMessage();
+                    mailMessage.From = new MailAddress("Adisak.S@liteon.com", "ระบบทดสอบ");
+                    mailMessage.To.Add(toEmail);
+                    mailMessage.Subject = "ทดสอบการส่งอีเมล SMTP";
+                    mailMessage.IsBodyHtml = true;
+                    mailMessage.Body =
+                        @"
+                        <html>
+                        <body style='font-family: Arial, sans-serif;'>
+                            <h2 style='color: #2c3e50;'>ทดสอบการส่งอีเมล</h2>
+                            <p>นี่คือการทดสอบการส่งอีเมลผ่าน SMTP Server</p>
+                            <p>เวลา: "
+                        + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+                        + @"</p>
+                            <hr>
+                            <p style='color: #95a5a6; font-size: 12px;'>
+                                อีเมลนี้ถูกส่งจากระบบทดสอบ
+                            </p>
+                        </body>
+                        </html>";
+
+                    // ส่งอีเมล
+                    await smtpClient.SendMailAsync(mailMessage);
+
+                    _logger.LogInformation($"Test email sent successfully to {toEmail}");
+                    return Json(new { success = true, message = "ส่งอีเมลทดสอบสำเร็จ" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error sending test email: {ex.Message}");
+                return Json(
+                    new { success = false, message = $"ไม่สามารถส่งอีเมลได้: {ex.Message}" }
+                );
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetOTData(
+            string personId = null,
+            string startDate = null,
+            string endDate = null,
+            string status = null
+        )
+        {
+            try
+            {
+                using (var mainConnection = new SqlConnection(_connectionString))
+                using (var ces941Connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await mainConnection.OpenAsync();
+                    await ces941Connection.OpenAsync();
+
+                    var query =
+                        @"
+                        SELECT t.*, 
+                               CONCAT(COALESCE(m.PrefixName, ''), ' ', COALESCE(m.EmpName, ''), ' ', COALESCE(m.EmpLName, '')) as FullName
+                        FROM TOTPlan t
+                        LEFT JOIN CES941.dbo.vEmployee m ON t.EmpNo = m.EmpNo
+                        WHERE 1=1";
+
+                    var parameters = new DynamicParameters();
+
+                    if (!string.IsNullOrEmpty(personId))
+                    {
+                        query += " AND t.EmpNo = @PersonId";
+                        parameters.Add("@PersonId", personId);
+                    }
+
+                    if (!string.IsNullOrEmpty(startDate))
+                    {
+                        query += " AND CAST(t.WrkDate AS DATE) >= @StartDate";
+                        parameters.Add("@StartDate", DateTime.Parse(startDate));
+                    }
+
+                    if (!string.IsNullOrEmpty(endDate))
+                    {
+                        query += " AND CAST(t.WrkDate AS DATE) <= @EndDate";
+                        parameters.Add("@EndDate", DateTime.Parse(endDate));
+                    }
+
+                    if (!string.IsNullOrEmpty(status))
+                    {
+                        query += " AND t.ApprStatus = @Status";
+                        parameters.Add("@Status", status);
+                    }
+
+                    query += " ORDER BY t.CreateDate DESC";
+
+                    var result = await mainConnection.QueryAsync(query, parameters);
+                    return Json(new { success = true, data = result });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in GetOTData: {ex.Message}");
                 return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
             }
         }

@@ -35,10 +35,10 @@
                                     <div class="mb-3">
                                         <label for="palletSearch" class="form-label">
                                             <i class="fas fa-barcode me-1"></i>
-                                            Pallet ID หรือ Serial Number
+                                            Pallet ID / Carton No / Serial Number
                                         </label>
                                         <input type="text" class="form-control" id="palletSearch"
-                                            placeholder="กรอก Pallet ID หรือ Serial Number">
+                                            placeholder="กรอก Pallet ID, Carton No หรือ Serial Number">
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <button type="button" class="btn btn-info" id="searchPallet">
@@ -52,6 +52,14 @@
                                         <button type="button" class="btn btn-warning" id="debugData">
                                             <i class="fas fa-bug me-1"></i>
                                             Debug
+                                        </button>
+                                        <button type="button" class="btn btn-info" id="testSearchCarton">
+                                            <i class="fas fa-search me-1"></i>
+                                            Test Search
+                                        </button>
+                                        <button type="button" class="btn btn-warning" id="testMoveSerialNumbers">
+                                            <i class="fas fa-exchange-alt me-1"></i>
+                                            Test Move Serial
                                         </button>
                                     </div>
                                 </div>
@@ -257,6 +265,122 @@
                 <button type="button" class="btn btn-primary" id="editPallet">
                     <i class="fas fa-edit me-1"></i>
                     แก้ไข
+                </button> 
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal สำหรับย้ายกล่อง -->
+<div class="modal fade" id="moveCartonModal" tabindex="-1" aria-labelledby="moveCartonModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="moveCartonModalLabel">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    ย้าย Serial Numbers
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-box me-2"></i>
+                                    กล่องต้นทาง
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">หมายเลขกล่อง:</label>
+                                    <input type="text" class="form-control" id="sourceCartonId" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Work Order:</label>
+                                    <input type="text" class="form-control" id="sourceWorkOrder" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">จำนวน Serial:</label>
+                                    <input type="text" class="form-control" id="sourceSerialCount" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-arrow-right me-2"></i>
+                                    กล่องปลายทาง
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="targetCartonSearch" class="form-label">ค้นหากล่องปลายทาง:</label>
+                                    <input type="text" class="form-control" id="targetCartonSearch" 
+                                           placeholder="กรอก Carton ID หรือ Work Order">
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-success btn-sm" id="searchTargetCarton">
+                                        <i class="fas fa-search me-1"></i>
+                                        ค้นหา
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearTargetSearch">
+                                        <i class="fas fa-times me-1"></i>
+                                        ล้าง
+                                    </button>
+                                </div>
+                                <div id="targetCartonInfo" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <h6><i class="fas fa-info-circle me-2"></i>ข้อมูลกล่องปลายทาง</h6>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small><strong>Carton ID:</strong></small><br>
+                                                <span id="targetCartonId"></span>
+                                            </div>
+                                            <div class="col-6">
+                                                <small><strong>Work Order:</strong></small><br>
+                                                <span id="targetWorkOrder"></span>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-6">
+                                                <small><strong>Part ID:</strong></small><br>
+                                                <span id="targetPartId"></span>
+                                            </div>
+                                            <div class="col-6">
+                                                <small><strong>สถานะ:</strong></small><br>
+                                                <span id="targetStatus"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>คำเตือน:</strong> การย้าย Serial Numbers จะทำให้ Serial Numbers ทั้งหมดในกล่องต้นทางย้ายไปยังกล่องปลายทาง
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>หมายเหตุ:</strong> หลังจากย้าย Serial Numbers สำเร็จ ระบบจะถามว่าต้องการลบกล่องต้นทางหรือไม่
+                            <br><small class="text-muted">ระบบจะรอการตอบสนองจากคุณก่อนดำเนินการต่อ</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-info" id="confirmMoveCarton" disabled>
+                    <i class="fas fa-exchange-alt me-1"></i>
+                    ย้าย Serial Numbers
                 </button>
             </div>
         </div>
@@ -353,6 +477,10 @@
                 maxSerialNumbers: 1000,
                 defaultEmpId: 'ADMIN' // กำหนดค่าเริ่มต้นสำหรับ Employee ID
             },
+            // สถานะ UI ช่วยให้ไฮไลต์รายการหลังค้นหา
+            uiState: {
+                highlightCartonId: null
+            },
 
             // เริ่มต้นแอพ
             init: function() {
@@ -374,6 +502,13 @@
                 // ปุ่มค้นหา
                 $('#searchPallet').click(function() {
                     self.searchPallet(); 
+                });
+
+                // กด Enter เพื่อค้นหา (สะดวกขึ้น)
+                $('#palletSearch').on('keyup', function(e){
+                    if (e.key === 'Enter') {
+                        self.searchPallet();
+                    }
                 });
 
                 // ปุ่มล้างการค้นหา
@@ -444,6 +579,52 @@
                     self.deleteCarton(cartonId);
                 });
 
+                // Event handlers สำหรับ action ปุ่มของพาเลทใน modal (แถบด้านบน)
+                $('#palletDetailContent').on('click', '.btn-open-pallet', function(){
+                    var palletId = $('#palletDetailModal').data('pallet-id');
+                    self.openPallet(palletId);
+                });
+                $('#palletDetailContent').on('click', '.btn-close-pallet', function(){
+                    var palletId = $('#palletDetailModal').data('pallet-id');
+                    self.closePallet(palletId);
+                });
+                $('#palletDetailContent').on('click', '.btn-delete-pallet', function(){
+                    var palletId = $('#palletDetailModal').data('pallet-id');
+                    self.deletePallet(palletId);
+                });
+
+                // Event handler สำหรับย้ายกล่อง
+                $('#palletDetailContent').on('click', '.btn-move-carton', function(e) {
+                    var cartonId = $(this).data('carton');
+                    self.showMoveCartonModal(cartonId);
+                });
+
+                // Event handler สำหรับดูประวัติการย้าย
+                $('#palletDetailContent').on('click', '.btn-view-move-history', function(e) {
+                    var cartonId = $(this).data('carton');
+                    self.viewMoveHistory(cartonId);
+                });
+
+                // Event handlers สำหรับ modal ย้ายกล่อง
+                $('#searchTargetCarton').click(function() {
+                    self.searchTargetCarton();
+                });
+
+                // กด Enter เพื่อค้นหาใน modal ย้ายกล่อง
+                $('#targetCartonSearch').on('keyup', function(e){
+                    if (e.key === 'Enter') {
+                        self.searchTargetCarton();
+                    }
+                });
+
+                $('#clearTargetSearch').click(function() {
+                    self.clearTargetSearch();
+                });
+
+                $('#confirmMoveCarton').click(function() {
+                    self.moveCarton();
+                });
+
                 // Cascading dropdown events สำหรับฟอร์มสร้างพาเลท
                 $('#factorySelect').change(function() {
                     self.onFactoryChange();
@@ -465,6 +646,16 @@
                 $('#palletDetailModal').on('hidden.bs.modal', function() {
                     self.cleanupPalletDetailModal();
                 });
+
+                // ปุ่มทดสอบ Search Carton
+                $('#testSearchCarton').click(function() {
+                    self.testSearchCarton();
+                });
+
+                // ปุ่มทดสอบ Move Serial Numbers
+                $('#testMoveSerialNumbers').click(function() {
+                    self.testMoveSerialNumbers();
+                });
             },
 
             // โหลดข้อมูลสำหรับ dropdown
@@ -477,7 +668,6 @@
                         self.populateDropdown('#factorySelect', data);
                     })
                     .fail(function(error) {
-                        console.error('Error loading factories:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลโรงงานได้');
                     });
 
@@ -487,7 +677,6 @@
                         self.populateDropdown('#stageSelect', data);
                     })
                     .fail(function(error) {
-                        console.error('Error loading stages:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลขั้นตอนได้');
                     });
 
@@ -497,7 +686,6 @@
                         self.populateDropdown('#processSelect', data);
                     })
                     .fail(function(error) {
-                        console.error('Error loading processes:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลกระบวนการได้');
                     });
 
@@ -507,7 +695,6 @@
                         self.populateDropdown('#pdlineSelect', data);
                     })
                     .fail(function(error) {
-                        console.error('Error loading pdlines:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลสายการผลิตได้');
                     });
 
@@ -517,7 +704,6 @@
                         self.populateDropdown('#terminalSelect', data);
                     })
                     .fail(function(error) {
-                        console.error('Error loading terminals:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลสถานีได้');
                     });
 
@@ -527,7 +713,6 @@
                         self.populateDropdown('#routeSelect', data);
                     })
                     .fail(function(error) {
-                        console.error('Error loading routes:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลเส้นทางได้');
                     });
             },
@@ -654,7 +839,6 @@
                     })
                     .fail(function(error) {
                         Swal.close();
-                        console.error('Error loading pallets:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลพาเลทได้');
                     });
             },
@@ -827,11 +1011,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error opening pallet:', error);
-                                console.error('Status:', status);
-                                console.error('Response Text:', xhr.responseText);
-                                console.error('Status Code:', xhr.status);
-                                console.error('Response Headers:', xhr.getAllResponseHeaders());
                                 
                                 // ตรวจสอบประเภทของ error
                                 var errorMessage = 'เกิดข้อผิดพลาดในการเปิดพาเลท';
@@ -904,7 +1083,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error closing pallet:', error);
                                 self.showError('เกิดข้อผิดพลาดในการปิดพาเลท');
                             }
                         });
@@ -977,11 +1155,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error opening carton:', error);
-                                console.error('Status:', status);
-                                console.error('Response Text:', xhr.responseText);
-                                console.error('Status Code:', xhr.status);
-                                console.error('Response Headers:', xhr.getAllResponseHeaders());
                                 
                                 // ตรวจสอบประเภทของ error
                                 var errorMessage = 'เกิดข้อผิดพลาดในการเปิดกล่อง';
@@ -1071,10 +1244,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error closing carton:', error);
-                                console.error('Status:', status);
-                                console.error('Response Text:', xhr.responseText);
-                                console.error('Status Code:', xhr.status);
                                 self.showError('เกิดข้อผิดพลาดในการปิดกล่อง: ' + error);
                             }
                         });
@@ -1107,7 +1276,6 @@
                     })
                     .fail(function(xhr, status, error) {
                         Swal.close();
-                        console.error('Error loading pallet details:', error);
                         self.showError('ไม่สามารถโหลดข้อมูลรายละเอียดได้');
                     });
             },
@@ -1117,66 +1285,97 @@
                 var pallet = response.pallet;
                 var serials = response.serials;
                 var cartons = response.cartons;
+                var highlightCartonId = this.uiState.highlightCartonId;
 
-                var detailHtml = 
-                '<div class="row">' +
-                    '<div class="col-md-6">' +
-                        '<h6><i class="fas fa-info-circle me-2"></i>ข้อมูลพาเลท</h6>' +
-                        '<table class="table table-sm">' +
-                            '<tr><td>Pallet ID:</td><td><strong>' + pallet.PalletId + '</strong></td></tr>' +
-                            '<tr><td>Work Order:</td><td>' + pallet.WorkOrder + '</td></tr>' +
-                            '<tr><td>Part ID:</td><td>' + pallet.PartId + '</td></tr>' +
-                            '<tr><td>สถานะ:</td><td>' + (pallet.CloseFlag === 'Y' ? '<span class="badge bg-success"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>' : '<span class="badge bg-warning"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>') + '</td></tr>' +
-                            '<tr><td>Terminal:</td><td>' + (pallet.TerminalName || 'ไม่ระบุ') + '</td></tr>' +
-                            '<tr><td>QC Flag:</td><td>' + (pallet.QcFlag === 'Y' ? '<span class="badge bg-warning">ต้องตรวจสอบ</span>' : '<span class="badge bg-success">ไม่ต้องตรวจสอบ</span>') + '</td></tr>' +
-                            '<tr><td>Mix Flag:</td><td>' + (pallet.MixFlag === 'Y' ? '<span class="badge bg-info">ผสม Work Order</span>' : '<span class="badge bg-secondary">ไม่ผสม</span>') + '</td></tr>' +
-                            '<tr><td>วันที่สร้าง:</td><td>' + new Date(pallet.CreateTime).toLocaleString('th-TH') + '</td></tr>' +
-                            (pallet.CloseTime ? '<tr><td>วันที่ปิด:</td><td>' + new Date(pallet.CloseTime).toLocaleString('th-TH') + '</td></tr>' : '') +
-                        '</table>' +
+                var detailHtml = '' +
+                '<div class="d-flex justify-content-between align-items-start mb-3">' +
+                    '<div>' +
+                        '<h5 class="mb-1">พาเลท <code>' + pallet.PalletId + '</code></h5>' +
+                        '<div>' +
+                            (pallet.CloseFlag === 'Y' ? '<span class="badge bg-success me-2"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>' : '<span class="badge bg-warning me-2"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>') +
+                            '<span class="badge bg-secondary me-2">WO: ' + pallet.WorkOrder + '</span>' +
+                            '<span class="badge bg-info me-2">Part: ' + pallet.PartId + '</span>' +
+                            '<span class="badge bg-dark">Terminal: ' + (pallet.TerminalName || 'ไม่ระบุ') + '</span>' +
+                        '</div>' +
                     '</div>' +
-                    '<div class="col-md-6">' +
-                        '<h6><i class="fas fa-chart-pie me-2"></i>สรุปข้อมูล</h6>' +
+                    '<div class="d-flex flex-wrap gap-2">' +
+                        (pallet.CloseFlag === 'N' ? 
+                            '<button class="btn btn-warning btn-sm btn-close-pallet" title="ปิดพาเลท"><i class="fas fa-lock me-1"></i>ปิดพาเลท</button>' :
+                            '<button class="btn btn-success btn-sm btn-open-pallet" title="เปิดพาเลท"><i class="fas fa-unlock me-1"></i>เปิดพาเลท</button>'
+                        ) +
+                        '<button class="btn btn-danger btn-sm btn-delete-pallet" title="ลบพาเลท"><i class="fas fa-trash me-1"></i>ลบพาเลท</button>' +
+                    '</div>' +
+                '</div>' +
+
+                '<ul class="nav nav-tabs" id="palletDetailTabs" role="tablist">' +
+                    '<li class="nav-item" role="presentation">' +
+                        '<button class="nav-link active" id="tab-info-tab" data-bs-toggle="tab" data-bs-target="#tab-info" type="button" role="tab" aria-controls="tab-info" aria-selected="true">ข้อมูล</button>' +
+                    '</li>' +
+                    '<li class="nav-item" role="presentation">' +
+                        '<button class="nav-link" id="tab-serials-tab" data-bs-toggle="tab" data-bs-target="#tab-serials" type="button" role="tab" aria-controls="tab-serials" aria-selected="false">Serials</button>' +
+                    '</li>' +
+                    '<li class="nav-item" role="presentation">' +
+                        '<button class="nav-link" id="tab-cartons-tab" data-bs-toggle="tab" data-bs-target="#tab-cartons" type="button" role="tab" aria-controls="tab-cartons" aria-selected="false">กล่อง</button>' +
+                    '</li>' +
+                '</ul>' +
+                '<div class="tab-content pt-3" id="palletDetailTabsContent">' +
+                    '<div class="tab-pane fade show active" id="tab-info" role="tabpanel" aria-labelledby="tab-info-tab">' +
                         '<div class="row">' +
-                            '<div class="col-6">' +
-                                '<div class="card bg-primary text-white">' +
-                                    '<div class="card-body text-center">' +
-                                        '<h4><i class="fas fa-barcode me-2"></i>' + serials.length + '</h4>' +
-                                        '<small>Serial Numbers</small>' +
-                                    '</div>' +
-                                '</div>' +
+                            '<div class="col-md-6">' +
+                                '<h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>ข้อมูลพาเลท</h6>' +
+                                '<table class="table table-sm">' +
+                                    '<tr><td>QC Flag:</td><td>' + (pallet.QcFlag === 'Y' ? '<span class="badge bg-warning">ต้องตรวจสอบ</span>' : '<span class="badge bg-success">ไม่ต้องตรวจสอบ</span>') + '</td></tr>' +
+                                    '<tr><td>Mix Flag:</td><td>' + (pallet.MixFlag === 'Y' ? '<span class="badge bg-info">ผสม Work Order</span>' : '<span class="badge bg-secondary">ไม่ผสม</span>') + '</td></tr>' +
+                                    '<tr><td>วันที่สร้าง:</td><td>' + new Date(pallet.CreateTime).toLocaleString('th-TH') + '</td></tr>' +
+                                    (pallet.CloseTime ? '<tr><td>วันที่ปิด:</td><td>' + new Date(pallet.CloseTime).toLocaleString('th-TH') + '</td></tr>' : '') +
+                                '</table>' +
                             '</div>' +
-                            '<div class="col-6">' +
-                                '<div class="card bg-success text-white">' +
-                                    '<div class="card-body text-center">' +
-                                        '<h4><i class="fas fa-boxes me-2"></i>' + cartons.length + '</h4>' +
-                                        '<small>กล่อง</small>' +
+                            '<div class="col-md-6">' +
+                                '<h6 class="mb-2"><i class="fas fa-chart-pie me-2"></i>สรุปข้อมูล</h6>' +
+                                '<div class="row g-3">' +
+                                    '<div class="col-6">' +
+                                        '<div class="card bg-primary text-white">' +
+                                            '<div class="card-body text-center py-3">' +
+                                                '<div class="h4 mb-0"><i class="fas fa-barcode me-2"></i>' + serials.length + '</div>' +
+                                                '<small>Serial Numbers</small>' +
+                                            '</div>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="col-6">' +
+                                        '<div class="card bg-success text-white">' +
+                                            '<div class="card-body text-center py-3">' +
+                                                '<div class="h4 mb-0"><i class="fas fa-boxes me-2"></i>' + cartons.length + '</div>' +
+                                                '<small>กล่อง</small>' +
+                                            '</div>' +
+                                        '</div>' +
                                     '</div>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                '</div>';
+                    '<div class="tab-pane fade" id="tab-serials" role="tabpanel" aria-labelledby="tab-serials-tab">' +
+                        '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                            '<h6 class="mb-0"><i class="fas fa-list me-2"></i>Serial Numbers (' + serials.length + ')</h6>' +
+                            '<div class="input-group input-group-sm" style="max-width: 260px;">' +
+                                '<span class="input-group-text"><i class="fas fa-search"></i></span>' +
+                                '<input type="text" class="form-control" id="serialsFilter" placeholder="ค้นหา Serial...">' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="table-responsive" style="max-height: 260px;">' +
+                            '<table class="table table-sm table-striped table-hover" id="serialsTable">' +
+                                '<thead class="table-dark">' +
+                                    '<tr>' +
+                                        '<th>Serial Number</th>' +
+                                        '<th>Work Order</th>' +
+                                        '<th>Carton No</th>' +
+                                        '<th>สถานะ</th>' +
+                                        '<th>เข้าระบบ</th>' +
+                                    '</tr>' +
+                                '</thead>' +
+                                '<tbody>';
 
-                if (serials.length > 0) {
+                serials.forEach(function(serial) {
                     detailHtml += 
-                    '<div class="row mt-3">' +
-                        '<div class="col-12">' +
-                            '<h6><i class="fas fa-list me-2"></i>Serial Numbers (' + serials.length + ' รายการ)</h6>' +
-                            '<div class="table-responsive" style="max-height: 200px;">' +
-                                '<table class="table table-sm table-striped">' +
-                                    '<thead class="table-dark">' +
-                                        '<tr>' +
-                                            '<th>Serial Number</th>' +
-                                            '<th>Work Order</th>' +
-                                            '<th>Carton No</th>' +
-                                            '<th>สถานะ</th>' +
-                                            '<th>เข้าระบบ</th>' +
-                                        '</tr>' +
-                                    '</thead>' +
-                                    '<tbody>';
-
-                    serials.forEach(function(serial) {
-                        detailHtml += 
                         '<tr>' +
                             '<td><code>' + serial.SerialNumber + '</code></td>' +
                             '<td>' + serial.WorkOrder + '</td>' +
@@ -1184,81 +1383,187 @@
                             '<td><span class="badge bg-info">' + serial.CurrentStatus + '</span></td>' +
                             '<td>' + (serial.InProcessTime ? new Date(serial.InProcessTime).toLocaleString('th-TH') : 'ไม่ระบุ') + '</td>' +
                         '</tr>';
-                    });
+                });
 
-                    detailHtml += 
-                                    '</tbody>' +
-                                '</table>' +
+                detailHtml +=
+                                '</tbody>' +
+                            '</table>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="tab-pane fade" id="tab-cartons" role="tabpanel" aria-labelledby="tab-cartons-tab">' +
+                        '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                            '<h6 class="mb-0"><i class="fas fa-boxes me-2"></i>กล่อง (' + cartons.length + ')</h6>' +
+                            '<div class="d-flex align-items-center gap-2">' +
+                                '<div class="input-group input-group-sm" style="max-width: 260px;">' +
+                                    '<span class="input-group-text"><i class="fas fa-search"></i></span>' +
+                                    '<input type="text" class="form-control" id="cartonsFilter" placeholder="ค้นหากล่อง...">' +
+                                '</div>' +
+                                '<select class="form-select form-select-sm" id="cartonsStatusFilter" style="width:auto;">' +
+                                    '<option value="all">สถานะทั้งหมด</option>' +
+                                    '<option value="open">เปิดอยู่</option>' +
+                                    '<option value="closed">ปิดแล้ว</option>' +
+                                '</select>' +
                             '</div>' +
                         '</div>' +
-                    '</div>';
-                }
+                        '<div class="table-responsive">' +
+                            '<table class="table table-sm table-striped table-hover" id="cartonsTable">' +
+                                '<thead class="table-dark">' +
+                                    '<tr>' +
+                                        '<th>Carton No</th>' +
+                                        '<th>Work Order</th>' +
+                                        '<th>สถานะ</th>' +
+                                        '<th>จำนวน Serial</th>' +
+                                        '<th>วันที่สร้าง</th>' +
+                                        '<th>การดำเนินการ</th>' +
+                                    '</tr>' +
+                                '</thead>' +
+                                '<tbody>';
 
-                if (cartons.length > 0) {
-                    detailHtml += 
-                    '<div class="row mt-3">' +
-                        '<div class="col-12">' +
-                            '<h6><i class="fas fa-boxes me-2"></i>กล่องในพาเลท (' + cartons.length + ' รายการ)</h6>' +
-                            '<div class="table-responsive">' +
-                                '<table class="table table-sm table-striped">' +
-                                    '<thead class="table-dark">' +
-                                        '<tr>' +
-                                            '<th>Carton No</th>' +
-                                            '<th>Work Order</th>' +
-                                            '<th>สถานะ</th>' +
-                                            '<th>จำนวน Serial</th>' +
-                                            '<th>วันที่สร้าง</th>' +
-                                            '<th>การดำเนินการ</th>' +
-                                        '</tr>' +
-                                    '</thead>' +
-                                    '<tbody>';
-
-                    cartons.forEach(function(carton) {
+                cartons.forEach(function(carton) {
                         detailHtml += 
-                        '<tr>' +
+                        '<tr data-close-flag="' + carton.CloseFlag + '">' +
                             '<td><code>' + carton.CartonId + '</code></td>' +
                             '<td>' + carton.WorkOrder + '</td>' +
                             '<td>' + (carton.CloseFlag === 'Y' ? '<span class="badge bg-success"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>' : '<span class="badge bg-warning"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>') + '</td>' +
                             '<td><span class="badge bg-info"><i class="fas fa-barcode me-1"></i>' + carton.SerialCount + '</span></td>' +
                             '<td>' + new Date(carton.CreateTime).toLocaleDateString('th-TH') + '</td>' +
                             '<td>' +
-                                (carton.CloseFlag === 'N' ?
-                                '<button class="btn btn-warning btn-sm btn-close-carton" data-carton="' + carton.CartonId + '" title="ปิดกล่อง">' +
-                                        '<i class="fas fa-lock"></i> ปิด' +
-                                    '</button>' :
-                                '<button class="btn btn-success btn-sm btn-open-carton" data-carton="' + carton.CartonId + '" title="เปิดกล่อง">' +
-                                        '<i class="fas fa-unlock"></i> เปิด' +
-                                    '</button>'
-                            ) +
-                                '<button class="btn btn-danger btn-sm btn-delete-carton" data-carton="' + carton.CartonId + '" title="ลบกล่อง">' +
-                                    '<i class="fas fa-trash"></i> ลบ' +
-                                '</button>' +
+                                '<div class="d-flex flex-wrap gap-2">' +
+                                    (carton.CloseFlag === 'N' ?
+                                    '<button class="btn btn-warning btn-sm btn-close-carton" data-carton="' + carton.CartonId + '" title="ปิดกล่อง">' +
+                                            '<i class="fas fa-lock"></i> ปิด' +
+                                        '</button>' :
+                                    '<button class="btn btn-success btn-sm btn-open-carton" data-carton="' + carton.CartonId + '" title="เปิดกล่อง">' +
+                                            '<i class="fas fa-unlock"></i> เปิด' +
+                                        '</button>') +
+                                    '<button class="btn btn-info btn-sm btn-move-carton" data-carton="' + carton.CartonId + '" title="ย้าย Serial Numbers">' +
+                                        '<i class="fas fa-exchange-alt"></i> ย้าย Serial' +
+                                    '</button>' +
+                                    '<button class="btn btn-secondary btn-sm btn-view-move-history" data-carton="' + carton.CartonId + '" title="ดูประวัติการย้าย">' +
+                                        '<i class="fas fa-history"></i> ประวัติ' +
+                                    '</button>' +
+                                    '<button class="btn btn-danger btn-sm btn-delete-carton" data-carton="' + carton.CartonId + '" title="ลบกล่อง">' +
+                                        '<i class="fas fa-trash"></i> ลบ' +
+                                    '</button>' +
+                                '</div>' +
                             '</td>' +
                         '</tr>';
-                    });
+                });
 
-                    detailHtml += 
-                                    '</tbody>' +
-                                '</table>' +
-                            '</div>' +
+                detailHtml +=
+                                '</tbody>' +
+                            '</table>' +
                         '</div>' +
-                    '</div>';
-                }
+                    '</div>' +
+                '</div>';
 
                 $('#palletDetailContent').html(detailHtml);
                 $('#palletDetailModal').modal('show');
+
+                // หลังแสดงผล ถ้ามี highlightCartonId ให้ไฮไลต์แถวของ Carton นั้นและเลื่อนเข้าเห็น
+                if (highlightCartonId) {
+                    var $rows = $('#palletDetailContent table tbody tr');
+                    var $target = null;
+                    $rows.each(function(){
+                        var idText = $(this).find('td:first code').text().trim();
+                        if (idText === highlightCartonId) {
+                            $target = $(this);
+                            return false;
+                        }
+                    });
+                    if ($target && $target.length) {
+                        $target.addClass('table-warning');
+                        // เลื่อนเข้าเห็น
+                        var container = $('#palletDetailModal .modal-body');
+                        container.animate({ scrollTop: $target.offset().top - container.offset().top + container.scrollTop() - 40 }, 400);
+                        // เอาไฮไลต์ออกภายหลัง
+                        setTimeout(function(){
+                            $target.removeClass('table-warning');
+                        }, 2500);
+                    }
+                    // เคลียร์สถานะไฮไลต์
+                    this.uiState.highlightCartonId = null;
+                }
+
+                // ผูกฟิลเตอร์ Serials
+                $('#serialsFilter').on('keyup', function(){
+                    var q = $(this).val().toLowerCase();
+                    $('#serialsTable tbody tr').each(function(){
+                        var text = $(this).text().toLowerCase();
+                        $(this).toggle(text.indexOf(q) !== -1);
+                    });
+                });
+
+                // ผูกฟิลเตอร์ Cartons
+                function filterCartonRows() {
+                    var q = ($('#cartonsFilter').val() || '').toLowerCase();
+                    var status = $('#cartonsStatusFilter').val();
+                    $('#cartonsTable tbody tr').each(function(){
+                        var text = $(this).text().toLowerCase();
+                        var closeFlag = $(this).data('close-flag');
+                        var passText = text.indexOf(q) !== -1;
+                        var passStatus = (status === 'all') || (status === 'open' && closeFlag === 'N') || (status === 'closed' && closeFlag === 'Y');
+                        $(this).toggle(passText && passStatus);
+                    });
+                }
+                $('#cartonsFilter').on('keyup', filterCartonRows);
+                $('#cartonsStatusFilter').on('change', filterCartonRows);
             },
 
             // ค้นหาพาเลท
             searchPallet: function() {
+                var self = this;
                 var searchTerm = $('#palletSearch').val();
-                if (searchTerm) {
-                    var table = $('#palletTable').DataTable();
-                    table.search(searchTerm).draw();
-                    this.showSuccess('ค้นหา: "' + searchTerm + '"');
-                } else {
+                if (!searchTerm || searchTerm.trim() === '') {
                     this.showWarning('กรุณากรอกคำค้นหา');
+                    return;
                 }
+
+                var keyword = searchTerm.trim();
+
+                // 1) ลองค้นหาแบบ client-side ในตารางก่อน (เร็ว)
+                var table = $('#palletTable').DataTable();
+                if ($.fn.dataTable.isDataTable('#palletTable')) {
+                    table.search(keyword).draw();
+                }
+
+                // 2) เรียกใช้ SearchPallet เพื่อดูว่าพบ pallet โดยตรงหรือไม่
+                $.get(this.config.baseUrl + '/SearchPallet', { searchTerm: keyword })
+                    .done(function(resp) {
+                        if (resp && resp.success && resp.pallet) {
+                            // ถ้าพบ Pallet โดยตรง เปิดรายละเอียดเลย
+                            self.viewPalletDetails(resp.pallet.PalletId || resp.pallet.PALLETID || keyword);
+                            self.showSuccess('พบ Pallet: ' + (resp.pallet.PalletId || resp.pallet.PALLETID));
+                        } else {
+                            // 3) ถ้าไม่พบ pallet ให้ลองค้นหา Carton
+                            $.get(self.config.baseUrl + '/SearchCarton', { searchTerm: keyword })
+                                .done(function(cResp){
+                                    if (cResp && cResp.success && cResp.carton) {
+                                        var carton = cResp.carton;
+                                        var palletId = carton.PALLETID || carton.PalletId;
+                                        var cartonId = carton.CARTONID || carton.CartonId || keyword;
+
+                                        if (palletId) {
+                                            // บันทึกสถานะเพื่อไฮไลต์กล่องใน modal รายละเอียด
+                                            self.uiState.highlightCartonId = cartonId;
+                                            // เปิดรายละเอียดพาเลทที่กล่องนี้สังกัด
+                                            self.viewPalletDetails(palletId);
+                                            self.showSuccess('พบ Carton: ' + cartonId + ' ใน Pallet: ' + palletId);
+                                        } else {
+                                            self.showWarning('พบ Carton: ' + cartonId + ' แต่ไม่พบ Pallet ที่สังกัด');
+                                        }
+                                    } else {
+                                        self.showError(cResp && cResp.message ? cResp.message : 'ไม่พบ Pallet/Carton ที่ค้นหา');
+                                    }
+                                })
+                                .fail(function(){
+                                    self.showError('เกิดข้อผิดพลาดในการค้นหา Carton');
+                                });
+                        }
+                    })
+                    .fail(function(){
+                        self.showError('เกิดข้อผิดพลาดในการค้นหา Pallet');
+                    });
             },
 
             // ล้างการค้นหา
@@ -1341,7 +1646,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error creating pallet:', error);
                                 self.showError('เกิดข้อผิดพลาดในการสร้างพาเลท');
                             }
                         });
@@ -1407,7 +1711,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error deleting pallet:', error);
                                 self.showError('เกิดข้อผิดพลาดในการลบพาเลท');
                             }
                         });
@@ -1464,7 +1767,6 @@
                             },
                             error: function(xhr, status, error) {
                                 Swal.close();
-                                console.error('Error deleting carton:', error);
                                 self.showError('เกิดข้อผิดพลาดในการลบกล่อง');
                             }
                         });
@@ -1491,7 +1793,7 @@
                             self.clearAndPopulateDropdown('#stageSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading stages:', error);
+                            // Error handling
                         });
 
                     // โหลด pdlines ของ factory นี้
@@ -1500,7 +1802,7 @@
                             self.clearAndPopulateDropdown('#pdlineSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading pdlines:', error);
+                            // Error handling
                         });
 
                     // โหลด routes ของ factory นี้
@@ -1509,7 +1811,7 @@
                             self.clearAndPopulateDropdown('#routeSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading routes:', error);
+                            // Error handling
                         });
                 }
             },
@@ -1530,7 +1832,7 @@
                             self.clearAndPopulateDropdown('#processSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading processes:', error);
+                            // Error handling
                         });
 
                     // โหลด terminals ของ stage นี้
@@ -1539,7 +1841,7 @@
                             self.clearAndPopulateDropdown('#terminalSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading terminals:', error);
+                            // Error handling
                         });
 
                     // โหลด pdlines ของ factory (ไม่ filter ด้วย stage)
@@ -1549,7 +1851,7 @@
                                 self.clearAndPopulateDropdown('#pdlineSelect', data);
                             })
                             .fail(function(error) {
-                                console.error('Error loading pdlines:', error);
+                                // Error handling
                         });
                     }
                 }
@@ -1576,7 +1878,7 @@
                             self.clearAndPopulateDropdown('#terminalSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading terminals:', error);
+                            // Error handling
                         });
                 }
             },
@@ -1602,7 +1904,7 @@
                             self.clearAndPopulateDropdown('#terminalSelect', data);
                         })
                         .fail(function(error) {
-                            console.error('Error loading terminals:', error);
+                            // Error handling
                         });
                 }
             },
@@ -1688,7 +1990,6 @@
                     }
                 })
                 .fail(function(error) {
-                    console.error('Error checking data:', error);
                     self.showError('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล');
                 });
             },
@@ -1715,9 +2016,6 @@
                         self.showSuccess('ทดสอบ API สำเร็จ - ดูรายละเอียดใน Console');
                     },
                     error: function(xhr, status, error) {
-                        console.error('Test API error:', error);
-                        console.error('Status:', status);
-                        console.error('Response Text:', xhr.responseText);
                         self.showError('ทดสอบ API ล้มเหลว: ' + error);
                     }
                 });
@@ -1745,10 +2043,544 @@
                         self.showSuccess('ทดสอบ Model Binding สำเร็จ - ดูรายละเอียดใน Console');
                     },
                     error: function(xhr, status, error) {
-                        console.error('Test Model Binding error:', error);
-                        console.error('Status:', status);
-                        console.error('Response Text:', xhr.responseText);
                         self.showError('ทดสอบ Model Binding ล้มเหลว: ' + error);
+                    }
+                });
+            },
+
+            // แสดง modal ย้ายกล่อง
+            showMoveCartonModal: function(cartonId) {
+                var self = this;
+                var palletId = $('#palletDetailModal').data('pallet-id');
+                
+                // เก็บข้อมูลกล่องที่ต้องการย้าย
+                $('#moveCartonModal').data('source-carton', cartonId);
+                $('#moveCartonModal').data('source-pallet', palletId);
+                
+                // หาข้อมูลกล่องจากตาราง
+                var cartonData = this.findCartonData(cartonId);
+                if (cartonData) {
+                    $('#sourceCartonId').val(cartonData.CartonId);
+                    $('#sourceWorkOrder').val(cartonData.WorkOrder);
+                    $('#sourceSerialCount').val(cartonData.SerialCount);
+                }
+                
+                // ล้างข้อมูลปลายทาง
+                this.clearTargetCartonInfo();
+                
+                // แสดง modal
+                $('#moveCartonModal').modal('show');
+            },
+
+            // หาข้อมูลกล่องจากตาราง
+            findCartonData: function(cartonId) {
+                // หาข้อมูลจากตารางใน modal
+                var $row = $('#palletDetailContent').find('tr').filter(function() {
+                    return $(this).find('td:first').text().trim() === cartonId;
+                });
+                
+                if ($row.length > 0) {
+                    return {
+                        CartonId: $row.find('td:first').text().trim(),
+                        WorkOrder: $row.find('td:eq(1)').text().trim(),
+                        SerialCount: $row.find('td:eq(3) .badge').text().trim()
+                    };
+                }
+                return null;
+            },
+
+            // ค้นหากล่องปลายทาง
+            searchTargetCarton: function() {
+                var self = this;
+                var searchTerm = $('#targetCartonSearch').val();
+                
+                console.log('searchTargetCarton - searchTerm:', searchTerm);
+                
+                if (!searchTerm || searchTerm.trim() === '') {
+                    self.showWarning('กรุณากรอกข้อมูลที่ต้องการค้นหา');
+                    return;
+                }
+
+                // แสดง loading
+                self.showLoading('กำลังค้นหากล่อง...');
+
+                $.get(this.config.baseUrl + '/SearchCarton', { searchTerm: searchTerm.trim() })
+                    .done(function(response) {
+                        Swal.close();
+                        console.log('searchTargetCarton - response:', response);
+                        
+                        if (response.success && response.carton) {
+                            console.log('searchTargetCarton - carton found:', response.carton);
+                            self.showTargetCartonInfo(response.carton);
+                        } else {
+                            console.log('searchTargetCarton - no carton found or error:', response);
+                            self.showError(response.message || 'ไม่พบกล่องที่ต้องการ');
+                        }
+                    })
+                    .fail(function(error) {
+                        Swal.close();
+                        self.showError('เกิดข้อผิดพลาดในการค้นหากล่อง');
+                    });
+            },
+
+            // แสดงข้อมูลกล่องปลายทาง
+            showTargetCartonInfo: function(carton) {
+                console.log('showTargetCartonInfo - carton data:', carton);
+                console.log('showTargetCartonInfo - carton type:', typeof carton);
+                console.log('showTargetCartonInfo - carton keys:', Object.keys(carton));
+                
+                // ตรวจสอบว่าข้อมูลครบถ้วนหรือไม่
+                if (!carton) {
+                    return;
+                }
+
+                // แสดงข้อมูลในฟิลด์ต่างๆ (ใช้ชื่อฟิลด์ที่ถูกต้องจาก API)
+                var cartonId = carton.CARTONID || carton.CartonId || 'ไม่ระบุ';
+                var workOrder = carton.WORKORDER || carton.WorkOrder || 'ไม่ระบุ';
+                var partId = carton.PARTID || carton.PartId || 'ไม่ระบุ';
+                
+                console.log('showTargetCartonInfo - cartonId:', cartonId);
+                console.log('showTargetCartonInfo - workOrder:', workOrder);
+                console.log('showTargetCartonInfo - partId:', partId);
+                
+                $('#targetCartonId').text(cartonId);
+                $('#targetWorkOrder').text(workOrder);
+                $('#targetPartId').text(partId);
+                
+                // แสดงสถานะ
+                var statusHtml = '';
+                var closeFlag = carton.CLOSEFLAG || carton.CloseFlag;
+                console.log('showTargetCartonInfo - closeFlag:', closeFlag);
+                
+                if (closeFlag === 'Y') {
+                    statusHtml = '<span class="badge bg-success"><i class="fas fa-lock me-1"></i>ปิดแล้ว</span>';
+                } else if (closeFlag === 'N') {
+                    statusHtml = '<span class="badge bg-warning"><i class="fas fa-unlock me-1"></i>เปิดอยู่</span>';
+                } else {
+                    statusHtml = '<span class="badge bg-secondary">ไม่ระบุ</span>';
+                }
+                $('#targetStatus').html(statusHtml);
+                
+                // แสดงข้อมูลเพิ่มเติม
+                var additionalInfo = '';
+                var serialCount = carton.SERIALCOUNT || carton.SerialCount;
+                var palletId = carton.PALLETID || carton.PalletId;
+                
+                console.log('showTargetCartonInfo - serialCount:', serialCount);
+                console.log('showTargetCartonInfo - palletId:', palletId);
+                
+                if (serialCount !== undefined && serialCount !== null) {
+                    additionalInfo += '<div class="row mt-2"><div class="col-12"><small><strong>จำนวน Serial:</strong> <span class="badge bg-info">' + serialCount + '</span></small></div></div>';
+                }
+                if (palletId) {
+                    additionalInfo += '<div class="row mt-1"><div class="col-12"><small><strong>Pallet ID:</strong> <code>' + palletId + '</code></small></div></div>';
+                }
+                
+                // เพิ่มข้อมูลเพิ่มเติมในส่วนข้อมูล
+                if (additionalInfo) {
+                    $('#targetCartonInfo .alert').append(additionalInfo);
+                }
+                
+                // แสดงส่วนข้อมูล
+                $('#targetCartonInfo').show();
+                $('#confirmMoveCarton').prop('disabled', false);
+                
+                // เก็บข้อมูลกล่องปลายทาง
+                $('#moveCartonModal').data('target-carton', carton);
+                
+                console.log('showTargetCartonInfo - completed successfully');
+            },
+
+            // ล้างข้อมูลกล่องปลายทาง
+            clearTargetCartonInfo: function() {
+                $('#targetCartonSearch').val('');
+                $('#targetCartonInfo').hide();
+                $('#confirmMoveCarton').prop('disabled', true);
+                $('#moveCartonModal').removeData('target-carton');
+                
+                // ล้างข้อมูลในฟิลด์ต่างๆ
+                $('#targetCartonId').text('');
+                $('#targetWorkOrder').text('');
+                $('#targetPartId').text('');
+                $('#targetStatus').html('');
+                
+                // ล้างข้อมูลเพิ่มเติมที่อาจถูกเพิ่มเข้าไป
+                $('#targetCartonInfo .alert').find('.row:not(:first-child):not(:nth-child(2))').remove();
+            },
+
+            // ล้างการค้นหากล่องปลายทาง
+            clearTargetSearch: function() {
+                this.clearTargetCartonInfo();
+                this.showSuccess('ล้างการค้นหาเรียบร้อย');
+            },
+
+            // ย้าย Serial Numbers
+            moveCarton: function() {
+                var self = this;
+                var sourceCartonId = $('#moveCartonModal').data('source-carton');
+                var sourcePalletId = $('#palletDetailModal').data('pallet-id');
+                var targetCarton = $('#moveCartonModal').data('target-carton');
+                
+                console.log('moveCarton - sourceCartonId:', sourceCartonId);
+                console.log('moveCarton - sourcePalletId:', sourcePalletId);
+                console.log('moveCarton - targetCarton:', targetCarton);
+                
+                if (!sourceCartonId || !targetCarton) {
+                    self.showError('ข้อมูลไม่ครบถ้วน');
+                    return;
+                }
+
+                // ใช้ชื่อฟิลด์ที่ถูกต้องจาก API response
+                var targetCartonId = targetCarton.CARTONID || targetCarton.CartonId;
+                
+                // ตรวจสอบว่าไม่ย้ายไปยังกล่องเดียวกัน
+                if (sourceCartonId === targetCartonId) {
+                    self.showError('ไม่สามารถย้าย Serial Numbers ไปยังกล่องเดียวกันได้');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันการย้าย Serial Numbers',
+                    text: 'คุณต้องการย้าย Serial Numbers จากกล่อง ' + sourceCartonId + ' ไปยังกล่อง ' + targetCartonId + ' หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ย้าย Serial Numbers',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#0dcaf0'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // แปลง MoveEmpId เป็น decimal ตามที่ DTO ต้องการ
+                        var moveEmpId = 1; // ใช้ค่า default เป็น 1 แทน string
+                        
+                        var data = {
+                            sourceCartonNo: sourceCartonId,
+                            targetCartonNo: targetCartonId,
+                            moveEmpId: moveEmpId
+                        };
+
+                        console.log('moveCarton - sending data:', data);
+                        console.log('moveCarton - data JSON:', JSON.stringify(data));
+
+                        // แสดง loading
+                        self.showLoading('กำลังย้าย Serial Numbers...');
+
+                        $.ajax({
+                            url: self.config.baseUrl + '/MoveSerialNumbers',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            beforeSend: function(xhr) {
+                                console.log('AJAX beforeSend - Content-Type: application/json');
+                                console.log('AJAX beforeSend - Data:', data);
+                                console.log('AJAX beforeSend - URL:', self.config.baseUrl + '/MoveSerialNumbers');
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                console.log('moveCarton - response:', response);
+                                
+                                if (response.success) {
+                                    // เก็บข้อมูลกล่องต้นทางเพื่อใช้ในการลบ
+                                    var sourceCartonId = $('#moveCartonModal').data('source-carton');
+                                    
+                                    // ถามว่าจะลบกล่องเก่าหรือไม่
+                                    Swal.fire({
+                                        title: 'ย้าย Serial Numbers สำเร็จ',
+                                        html: response.message + 
+                                               '<br><br><strong>คุณต้องการลบกล่องต้นทางหรือไม่?</strong>' +
+                                               '<br><small>กล่องต้นทาง: <code>' + sourceCartonId + '</code></small>' +
+                                               '<br><small>หมายเหตุ: กล่องต้นทางจะถูกลบออกจากตาราง g_pack_carton</small>' +
+                                               '<br><br><small class="text-muted">⚠️ กรุณาตอบคำถามนี้ก่อนดำเนินการต่อ</small>',
+                                        icon: 'success',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'ลบกล่องต้นทาง',
+                                        cancelButtonText: 'ไม่ลบ',
+                                        confirmButtonColor: '#dc3545',
+                                        cancelButtonColor: '#6c757d',
+                                        allowOutsideClick: false,
+                                        allowEscapeKey: false
+                                    }).then(function(result) {
+                                        if (result.isConfirmed) {
+                                            // ลบกล่องเก่า
+                                            self.deleteSourceCarton(sourceCartonId, sourcePalletId);
+                                        } else {
+                                            // แสดงข้อความสำเร็จและรีเฟรชข้อมูล
+                                            self.showSuccess(response.message);
+                                            // ปิด modal ย้าย Serial Numbers
+                                            $('#moveCartonModal').modal('hide');
+                                            // รีเฟรช modal รายละเอียด
+                                            $('#palletDetailModal').modal('hide');
+                                            // เปิด modal ใหม่เพื่อแสดงข้อมูลที่อัปเดต
+                                            setTimeout(function() {
+                                                $('[data-pallet="' + sourcePalletId + '"]').click();
+                                            }, 1000); // เพิ่มเวลารอเป็น 1 วินาที
+                                        }
+                                    });
+                                } else {
+                                    self.showError(response.message);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                Swal.close();
+                                
+                                // ตรวจสอบประเภทของ error
+                                var errorMessage = 'เกิดข้อผิดพลาดในการย้าย Serial Numbers';
+                                if (xhr.status === 400) {
+                                    errorMessage = 'ข้อมูลที่ส่งไม่ถูกต้อง (Bad Request)';
+                                } else if (xhr.status === 500) {
+                                    errorMessage = 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (Server Error)';
+                                } else if (xhr.status === 0) {
+                                    errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
+                                } else if (xhr.responseText) {
+                                    try {
+                                        var errorResponse = JSON.parse(xhr.responseText);
+                                        if (errorResponse.message) {
+                                            errorMessage = errorResponse.message;
+                                        }
+                                    } catch (e) {
+                                        errorMessage = 'เกิดข้อผิดพลาด: ' + error;
+                                    }
+                                }
+                                
+                                self.showError(errorMessage);
+                            }
+                        });
+                    }
+                });
+            },
+
+            // ดูประวัติการย้ายกล่อง
+            viewMoveHistory: function(cartonId) {
+                var self = this;
+                
+                // แสดง loading
+                this.showLoading('กำลังโหลดประวัติการย้าย...');
+
+                $.get(this.config.baseUrl + '/GetMoveHistory', { cartonNo: cartonId })
+                    .done(function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            self.showMoveHistoryModal(response.history);
+                        } else {
+                            self.showError(response.message || 'ไม่พบประวัติการย้าย');
+                        }
+                    })
+                    .fail(function(error) {
+                        Swal.close();
+                        self.showError('เกิดข้อผิดพลาดในการโหลดประวัติการย้าย');
+                    });
+            },
+
+            // แสดง modal ประวัติการย้าย
+            showMoveHistoryModal: function(history) {
+                var historyHtml = '';
+                
+                if (history && history.length > 0) {
+                    historyHtml = '<div class="table-responsive">' +
+                        '<table class="table table-sm table-striped">' +
+                        '<thead class="table-dark">' +
+                        '<tr>' +
+                        '<th>วันที่ย้าย</th>' +
+        '<th>จากพาเลท</th>' +
+        '<th>ไปยังพาเลท</th>' +
+        '<th>พนักงาน</th>' +
+        '<th>จำนวน Serial</th>' +
+        '</tr>' +
+        '</thead>' +
+        '<tbody>';
+
+                    history.forEach(function(item) {
+                        historyHtml += 
+                        '<tr>' +
+                            '<td>' + new Date(item.MoveTime).toLocaleString('th-TH') + '</td>' +
+                            '<td><code>' + item.SourcePalletNo + '</code></td>' +
+                            '<td><code>' + item.TargetPalletNo + '</code></td>' +
+                            '<td>' + item.MoveEmpId + '</td>' +
+                            '<td><span class="badge bg-info">' + item.SerialCount + '</span></td>' +
+                        '</tr>';
+                    });
+
+                    historyHtml += '</tbody></table></div>';
+                } else {
+                    historyHtml = '<div class="alert alert-info">ไม่พบประวัติการย้ายสำหรับกล่องนี้</div>';
+                }
+
+                Swal.fire({
+                    title: 'ประวัติการย้ายกล่อง',
+                    html: historyHtml,
+                    width: '800px',
+                    confirmButtonText: 'ปิด'
+                });
+            },
+
+            // ทดสอบ Search Carton
+            testSearchCarton: function() {
+                var self = this;
+                
+                // แสดง loading
+                self.showLoading('กำลังทดสอบ Search Carton...');
+
+                $.get(this.config.baseUrl + '/TestSearchCarton')
+                    .done(function(response) {
+                        Swal.close();
+                        console.log('testSearchCarton - response:', response);
+                        
+                        if (response.success && response.carton) {
+                            self.showSuccess('ทดสอบ Search Carton สำเร็จ - ดูรายละเอียดใน Console');
+                            console.log('testSearchCarton - carton data:', response.carton);
+                        } else {
+                            self.showError(response.message || 'ทดสอบ Search Carton ล้มเหลว');
+                        }
+                    })
+                    .fail(function(xhr, status, error) {
+                        Swal.close();
+                        self.showError('เกิดข้อผิดพลาดในการทดสอบ Search Carton');
+                    });
+            },
+
+            // ลบกล่องต้นทางหลังจากย้าย Serial Numbers
+            deleteSourceCarton: function(cartonId, palletId) {
+                var self = this;
+                
+                // ตรวจสอบข้อมูล
+                if (!cartonId || cartonId.trim() === '') {
+                    self.showError('กรุณาระบุหมายเลขกล่อง');
+                    return;
+                }
+
+                // แสดง loading
+                self.showLoading('กำลังลบกล่องต้นทาง...');
+                
+                var data = {
+                    cartonNo: cartonId.trim()
+                };
+
+                console.log('deleteSourceCarton - sending data:', data);
+                console.log('deleteSourceCarton - cartonId:', cartonId);
+                console.log('deleteSourceCarton - palletId:', palletId);
+
+                $.ajax({
+                    url: self.config.baseUrl + '/DeleteCarton',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(response) {
+                        Swal.close();
+                        console.log('deleteSourceCarton - response:', response);
+                        
+                        if (response.success) {
+                            self.showSuccess('ลบกล่องต้นทางสำเร็จ: ' + response.message);
+                            // ปิด modal ย้าย Serial Numbers
+                            $('#moveCartonModal').modal('hide');
+                            // รีเฟรช modal รายละเอียด
+                            $('#palletDetailModal').modal('hide');
+                            // เปิด modal ใหม่เพื่อแสดงข้อมูลที่อัปเดต
+                            setTimeout(function() {
+                                $('[data-pallet="' + palletId + '"]').click();
+                            }, 1500); // เพิ่มเวลารอเป็น 1.5 วินาที
+                        } else {
+                            self.showError('เกิดข้อผิดพลาดในการลบกล่องต้นทาง: ' + response.message);
+                            // แม้จะลบไม่สำเร็จ ก็ให้รีเฟรชข้อมูล
+                            $('#moveCartonModal').modal('hide');
+                            $('#palletDetailModal').modal('hide');
+                            setTimeout(function() {
+                                $('[data-pallet="' + palletId + '"]').click();
+                            }, 1500); // เพิ่มเวลารอเป็น 1.5 วินาที
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        
+                        // ตรวจสอบประเภทของ error
+                        var errorMessage = 'เกิดข้อผิดพลาดในการลบกล่องต้นทาง';
+                        if (xhr.status === 400) {
+                            errorMessage = 'ข้อมูลที่ส่งไม่ถูกต้อง (Bad Request)';
+                        } else if (xhr.status === 500) {
+                            errorMessage = 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (Server Error)';
+                        } else if (xhr.status === 0) {
+                            errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
+                        } else if (xhr.responseText) {
+                            try {
+                                var errorResponse = JSON.parse(xhr.responseText);
+                                if (errorResponse.message) {
+                                    errorMessage = errorResponse.message;
+                                }
+                            } catch (e) {
+                                errorMessage = 'เกิดข้อผิดพลาด: ' + error;
+                            }
+                        }
+                        
+                        self.showError(errorMessage);
+                        // แม้จะลบไม่สำเร็จ ก็ให้รีเฟรชข้อมูล
+                        $('#moveCartonModal').modal('hide');
+                        $('#palletDetailModal').modal('hide'); 
+                        setTimeout(function() {
+                            $('[data-pallet="' + palletId + '"]').click();
+                        }, 1500); // เพิ่มเวลารอเป็น 1.5 วินาที
+                    }
+                });
+            },
+
+            // ทดสอบ Move Serial Numbers
+            testMoveSerialNumbers: function() {
+                var self = this;
+                
+                // ข้อมูลทดสอบ
+                var testData = {
+                    sourceCartonNo: 'C0307834271037',
+                    targetCartonNo: 'C0307834271038',
+                    moveEmpId: 1
+                };
+                
+                console.log('testMoveSerialNumbers - test data:', testData);
+                console.log('testMoveSerialNumbers - test data JSON:', JSON.stringify(testData));
+                
+                // แสดง loading
+                self.showLoading('กำลังทดสอบ Move Serial Numbers...');
+
+                $.ajax({
+                    url: this.config.baseUrl + '/MoveSerialNumbers',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(testData),
+                    beforeSend: function(xhr) {
+                        console.log('testMoveSerialNumbers - beforeSend - Content-Type: application/json');
+                        console.log('testMoveSerialNumbers - beforeSend - Data:', testData);
+                        console.log('testMoveSerialNumbers - beforeSend - URL:', self.config.baseUrl + '/MoveSerialNumbers');
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        console.log('testMoveSerialNumbers - response:', response);
+                        
+                        if (response.success) {
+                            self.showSuccess('ทดสอบ Move Serial Numbers สำเร็จ - ดูรายละเอียดใน Console');
+                            console.log('testMoveSerialNumbers - success response:', response);
+                        } else {
+                            self.showError(response.message || 'ทดสอบ Move Serial Numbers ล้มเหลว');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        
+                        // ตรวจสอบประเภทของ error
+                        var errorMessage = 'เกิดข้อผิดพลาดในการทดสอบ Move Serial Numbers';
+                        if (xhr.status === 400) {
+                            errorMessage = 'ข้อมูลที่ส่งไม่ถูกต้อง (Bad Request)';
+                        } else if (xhr.status === 500) {
+                            errorMessage = 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (Server Error)';
+                        } else if (xhr.status === 0) {
+                            errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
+                        } else if (xhr.responseText) {
+                            try {
+                                var errorResponse = JSON.parse(xhr.responseText);
+                                if (errorResponse.message) {
+                                    errorMessage = errorResponse.message;
+                                }
+                            } catch (e) {
+                                errorMessage = 'เกิดข้อผิดพลาด: ' + error;
+                            }
+                        }
+                        
+                        self.showError(errorMessage);
                     }
                 });
             }
@@ -1759,4 +2591,4 @@
             PalletManagementApp.init();
         });
     </script>
-}
+}                   

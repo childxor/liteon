@@ -1026,33 +1026,88 @@ namespace IPS_TH.Controllers
         {
             try
             {
+                Console.WriteLine($"DeleteCarton - Request received:");
+                Console.WriteLine($"  CartonNo: '{request?.CartonNo}'");
+
                 // ตรวจสอบ request และ CartonNo
                 if (request == null)
                 {
+                    Console.WriteLine("DeleteCarton - Request is null");
                     return Json(new { success = false, message = "ข้อมูลคำขอไม่ถูกต้อง" });
                 }
 
                 if (string.IsNullOrWhiteSpace(request.CartonNo))
                 {
+                    Console.WriteLine("DeleteCarton - CartonNo is null or empty");
                     return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่อง" });
                 }
 
                 var connectionString = _configuration.GetConnectionString("OracleConnection");
                 using var connection = new OracleConnection(connectionString);
 
+                // ตรวจสอบว่ากล่องมีอยู่จริงหรือไม่
+                var checkSql = "SELECT COUNT(*) FROM g_pack_carton WHERE CARTON_NO = :cartonNo";
+                var cartonExists = await connection.ExecuteScalarAsync<int>(
+                    checkSql,
+                    new { cartonNo = request.CartonNo }
+                );
+
+                if (cartonExists == 0)
+                {
+                    Console.WriteLine($"DeleteCarton - Carton {request.CartonNo} not found");
+                    return Json(new { success = false, message = "ไม่พบกล่องที่ต้องการลบ" });
+                }
+
+                // ตรวจสอบว่ากล่องมี Serial Numbers อยู่หรือไม่
+                var serialCountSql = "SELECT COUNT(*) FROM g_sn_status WHERE CARTON_NO = :cartonNo";
+                var serialCount = await connection.ExecuteScalarAsync<int>(
+                    serialCountSql,
+                    new { cartonNo = request.CartonNo }
+                );
+
+                Console.WriteLine(
+                    $"DeleteCarton - Carton {request.CartonNo} has {serialCount} serial numbers"
+                );
+
+                // ถ้ามี Serial Numbers อยู่ ให้แจ้งเตือน
+                if (serialCount > 0)
+                {
+                    Console.WriteLine(
+                        $"DeleteCarton - Warning: Carton {request.CartonNo} still has {serialCount} serial numbers"
+                    );
+                    return Json(
+                        new
+                        {
+                            success = false,
+                            message = $"ไม่สามารถลบกล่องได้ เนื่องจากยังมี Serial Numbers อยู่ {serialCount} รายการ",
+                        }
+                    );
+                }
+
+                // ลบกล่อง
                 var deleteSql = "DELETE FROM g_pack_carton WHERE CARTON_NO = :cartonNo";
                 var rowsAffected = await connection.ExecuteAsync(
                     deleteSql,
                     new { cartonNo = request.CartonNo }
                 );
 
+                Console.WriteLine(
+                    $"DeleteCarton - Deleted {rowsAffected} rows for carton {request.CartonNo}"
+                );
+
                 if (rowsAffected > 0)
+                {
                     return Json(new { success = true, message = "ลบกล่องสำเร็จ" });
+                }
                 else
-                    return Json(new { success = false, message = "ไม่พบกล่องที่ต้องการลบ" });
+                {
+                    return Json(new { success = false, message = "ไม่สามารถลบกล่องได้" });
+                }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"DeleteCarton - Error: {ex.Message}");
+                Console.WriteLine($"DeleteCarton - Stack trace: {ex.StackTrace}");
                 return Json(new { success = false, message = ex.Message });
             }
         }
@@ -1147,7 +1202,7 @@ namespace IPS_TH.Controllers
                 Console.WriteLine($"OpenPallet - palletNo received: '{palletNo}'");
                 Console.WriteLine($"OpenPallet - openEmpId received: '{openEmpId}'");
                 Console.WriteLine($"OpenPallet - Content-Type: {Request.ContentType}");
-                
+
                 // ตรวจสอบข้อมูล
                 if (string.IsNullOrWhiteSpace(palletNo))
                 {
@@ -1163,7 +1218,7 @@ namespace IPS_TH.Controllers
                     UPDATE g_pack_pallet 
                     SET CLOSE_FLAG = 'N',
                         CLOSE_TIME = NULL,
-                        CLOSE_EMP_ID = NULL,
+                        CLOSE_EMP_ID = NULL, 
                         FULL_FLAG = 'N'
                     WHERE PALLET_NO = :palletNo";
 
@@ -1196,22 +1251,161 @@ namespace IPS_TH.Controllers
                 using var connection = new OracleConnection(connectionString);
 
                 var sql = $"SELECT COUNT(*) FROM {tableName} WHERE {columnName} = :value";
-                var count = await connection.QueryFirstOrDefaultAsync<int>(sql, new { value });
+                var count = await connection.ExecuteScalarAsync<int>(sql, new { value });
 
                 return Json(
                     new
                     {
                         success = true,
-                        tableName = tableName,
-                        columnName = columnName,
-                        value = value,
-                        count = count,
                         message = $"พบข้อมูล {count} รายการในตาราง {tableName} ที่ {columnName} = '{value}'",
                     }
                 );
             }
             catch (Exception ex)
             {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับค้นหาพาเลท
+        [HttpGet]
+        public async Task<IActionResult> SearchPallet(string searchTerm)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุคำค้นหา" });
+                }
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                var sql =
+                    @"
+                    SELECT 
+                        p.PALLET_NO as PalletId,
+                        p.WORK_ORDER as WorkOrder,
+                        p.PART_ID as PartId,
+                        p.CLOSE_FLAG as CloseFlag,
+                        p.CREATE_TIME as CreateTime,
+                        p.CLOSE_TIME as CloseTime,
+                        t.TERMINAL_NAME as TerminalName,
+                        (SELECT COUNT(*) FROM g_sn_status s WHERE s.PALLET_NO = p.PALLET_NO) as SerialCount
+                    FROM g_pack_pallet p
+                    LEFT JOIN sys_terminal t ON p.TERMINAL_ID = t.TERMINAL_ID
+                    WHERE p.PALLET_NO = :searchTerm 
+                       OR p.WORK_ORDER = :searchTerm
+                    ORDER BY p.CREATE_TIME DESC";
+
+                var pallet = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    sql,
+                    new { searchTerm }
+                );
+
+                if (pallet != null)
+                {
+                    return Json(new { success = true, pallet });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "ไม่พบพาเลทที่ต้องการ" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับค้นหากล่อง
+        [HttpGet]
+        public async Task<IActionResult> SearchCarton(string searchTerm)
+        {
+            try
+            {
+                Console.WriteLine($"SearchCarton - Request received: '{searchTerm}'");
+
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    Console.WriteLine("SearchCarton - searchTerm is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุคำค้นหา" });
+                }
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                var sql =
+                    @"
+                    SELECT DISTINCT
+                        c.CARTON_NO as CartonId,
+                        c.WORK_ORDER as WorkOrder,
+                        c.PART_ID as PartId,
+                        c.CLOSE_FLAG as CloseFlag,
+                        c.CREATE_TIME as CreateTime,
+                        c.CLOSE_TIME as CloseTime,
+                        COALESCE(s.PALLET_NO, 'ไม่ระบุ') as PalletId,
+                        (SELECT COUNT(*) FROM g_sn_status s2 WHERE s2.CARTON_NO = c.CARTON_NO) as SerialCount
+                    FROM g_pack_carton c
+                    LEFT JOIN g_sn_status s ON c.CARTON_NO = s.CARTON_NO
+                    WHERE c.CARTON_NO = :searchTerm 
+                       OR c.WORK_ORDER = :searchTerm
+                    ORDER BY c.CREATE_TIME DESC";
+
+                Console.WriteLine($"SearchCarton - SQL: {sql}");
+                Console.WriteLine($"SearchCarton - Parameters: searchTerm = '{searchTerm}'");
+
+                var carton = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    sql,
+                    new { searchTerm }
+                );
+
+                Console.WriteLine(
+                    $"SearchCarton - Query result: {(carton != null ? "Found" : "Not found")}"
+                );
+                if (carton != null)
+                {
+                    Console.WriteLine($"SearchCarton - CartonId: {carton.CartonId}");
+                    Console.WriteLine($"SearchCarton - WorkOrder: {carton.WorkOrder}");
+                    Console.WriteLine($"SearchCarton - PartId: {carton.PartId}");
+                    Console.WriteLine($"SearchCarton - CloseFlag: {carton.CloseFlag}");
+                    Console.WriteLine($"SearchCarton - PalletId: {carton.PalletId}");
+                    Console.WriteLine($"SearchCarton - SerialCount: {carton.SerialCount}");
+                }
+
+                if (carton != null)
+                {
+                    // ส่งข้อมูลกลับในรูปแบบที่ถูกต้อง
+                    var result = new
+                    {
+                        success = true,
+                        carton = new
+                        {
+                            CartonId = carton.CARTONID,
+                            WorkOrder = carton.WORKORDER,
+                            PartId = carton.PARTID,
+                            CloseFlag = carton.CLOSEFLAG,
+                            CreateTime = carton.CREATETIME,
+                            CloseTime = carton.CLOSETIME,
+                            PalletId = carton.PALLETID,
+                            SerialCount = carton.SERIALCOUNT,
+                        },
+                    };
+
+                    Console.WriteLine(
+                        $"SearchCarton - Returning result: {JsonConvert.SerializeObject(result)}"
+                    );
+                    return Json(result);
+                }
+                else
+                {
+                    Console.WriteLine("SearchCarton - No carton found");
+                    return Json(new { success = false, message = "ไม่พบกล่องที่ต้องการ" });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SearchCarton - Exception: {ex.Message}");
                 return Json(new { success = false, message = ex.Message });
             }
         }
@@ -1260,49 +1454,626 @@ namespace IPS_TH.Controllers
         {
             try
             {
-                Console.WriteLine(
-                    $"TestModelBinding - Request received: {JsonConvert.SerializeObject(request)}"
-                );
-                Console.WriteLine($"TestModelBinding - Request is null: {request == null}");
-                Console.WriteLine($"TestModelBinding - CartonNo: '{request?.CartonNo}'");
-                Console.WriteLine($"TestModelBinding - OpenEmpId: {request?.OpenEmpId}");
-                Console.WriteLine($"TestModelBinding - Content-Type: {Request.ContentType}");
-                Console.WriteLine($"TestModelBinding - Content-Length: {Request.ContentLength}");
+                Console.WriteLine($"TestModelBinding - Request received:");
+                Console.WriteLine($"  CartonNo: '{request?.CartonNo}'");
+                Console.WriteLine($"  OpenEmpId: '{request?.OpenEmpId}'");
+                Console.WriteLine($"  Content-Type: {Request.ContentType}");
+                Console.WriteLine($"  Content-Length: {Request.ContentLength}");
 
-                // ตรวจสอบ Model State
-                if (!ModelState.IsValid)
+                if (Request.Body.CanSeek)
                 {
-                    var errors = ModelState
-                        .Values.SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage);
-                    Console.WriteLine(
-                        $"TestModelBinding - Model State Errors: {string.Join(", ", errors)}"
-                    );
+                    Request.Body.Seek(0, SeekOrigin.Begin);
+                    using var reader = new StreamReader(Request.Body);
+                    var bodyContent = await reader.ReadToEndAsync();
+                    Console.WriteLine($"  Raw Body Content: '{bodyContent}'");
                 }
-
-                // อ่าน Request Body โดยตรง
-                Request.Body.Position = 0;
-                using var reader = new StreamReader(Request.Body);
-                var bodyContent = await reader.ReadToEndAsync();
-                Console.WriteLine($"TestModelBinding - Raw body: {bodyContent}");
 
                 return Json(
                     new
                     {
                         success = true,
-                        message = "ทดสอบ Model Binding สำเร็จ",
-                        request = request,
-                        modelStateValid = ModelState.IsValid,
-                        modelStateErrors = ModelState
-                            .Values.SelectMany(v => v.Errors)
-                            .Select(e => e.ErrorMessage)
-                            .ToList(),
-                        rawBody = bodyContent,
+                        message = "Model Binding Test Successful",
+                        receivedData = request,
                     }
                 );
             }
             catch (Exception ex)
             {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับย้ายกล่อง
+        [HttpPost]
+        [Consumes("application/json")]
+        public async Task<IActionResult> MoveCarton([FromBody] MoveCartonDto request)
+        {
+            try
+            {
+                Console.WriteLine($"MoveCarton - Request received:");
+                Console.WriteLine($"  CartonNo: '{request?.CartonNo}'");
+                Console.WriteLine($"  TargetPalletNo: '{request?.TargetPalletNo}'");
+                Console.WriteLine($"  MoveEmpId: '{request?.MoveEmpId}'");
+
+                // ตรวจสอบข้อมูล
+                if (string.IsNullOrWhiteSpace(request?.CartonNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request?.TargetPalletNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุพาเลทปลายทาง" });
+                }
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                // เริ่ม transaction
+                using var transaction = connection.BeginTransaction();
+
+                try
+                {
+                    // ตรวจสอบว่ากล่องมีอยู่จริง
+                    var cartonSql =
+                        @"
+                        SELECT 
+                            c.CARTON_NO,
+                            c.PALLET_NO as SourcePalletNo,
+                            c.WORK_ORDER,
+                            c.CLOSE_FLAG,
+                            (SELECT COUNT(*) FROM g_sn_status s WHERE s.CARTON_NO = c.CARTON_NO) as SerialCount
+                        FROM g_pack_carton c
+                        WHERE c.CARTON_NO = :cartonNo";
+
+                    var carton = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        cartonSql,
+                        new { cartonNo = request.CartonNo }
+                    );
+
+                    if (carton == null)
+                    {
+                        transaction.Rollback();
+                        return Json(new { success = false, message = "ไม่พบกล่องที่ต้องการย้าย" });
+                    }
+
+                    // ตรวจสอบว่าพาเลทปลายทางมีอยู่จริง
+                    var targetPalletSql =
+                        @"
+                        SELECT PALLET_NO, WORK_ORDER, CLOSE_FLAG
+                        FROM g_pack_pallet
+                        WHERE PALLET_NO = :palletNo";
+
+                    var targetPallet = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        targetPalletSql,
+                        new { palletNo = request.TargetPalletNo }
+                    );
+
+                    if (targetPallet == null)
+                    {
+                        transaction.Rollback();
+                        return Json(new { success = false, message = "ไม่พบพาเลทปลายทาง" });
+                    }
+
+                    // ตรวจสอบว่าไม่ย้ายไปยังพาเลทเดียวกัน
+                    if (carton.SourcePalletNo == request.TargetPalletNo)
+                    {
+                        transaction.Rollback();
+                        return Json(
+                            new
+                            {
+                                success = false,
+                                message = "ไม่สามารถย้ายกล่องไปยังพาเลทเดียวกันได้",
+                            }
+                        );
+                    }
+
+                    // ตรวจสอบว่าพาเลทปลายทางยังไม่ปิด
+                    if (targetPallet.CloseFlag == "Y")
+                    {
+                        transaction.Rollback();
+                        return Json(
+                            new
+                            {
+                                success = false,
+                                message = "ไม่สามารถย้ายกล่องไปยังพาเลทที่ปิดแล้วได้",
+                            }
+                        );
+                    }
+
+                    // อัปเดตกล่องให้ย้ายไปยังพาเลทปลายทาง
+                    var updateCartonSql =
+                        @"
+                        UPDATE g_pack_carton 
+                        SET PALLET_NO = :targetPalletNo,
+                            UPDATE_TIME = SYSDATE,
+                            UPDATE_EMP_ID = :moveEmpId
+                        WHERE CARTON_NO = :cartonNo";
+
+                    var cartonUpdateParams = new
+                    {
+                        targetPalletNo = request.TargetPalletNo,
+                        moveEmpId = request.MoveEmpId,
+                        cartonNo = request.CartonNo,
+                    };
+
+                    var cartonRowsAffected = await connection.ExecuteAsync(
+                        updateCartonSql,
+                        cartonUpdateParams,
+                        transaction
+                    );
+
+                    if (cartonRowsAffected == 0)
+                    {
+                        transaction.Rollback();
+                        return Json(new { success = false, message = "ไม่สามารถอัปเดตกล่องได้" });
+                    }
+
+                    // อัปเดต Serial Numbers ทั้งหมดในกล่องให้ย้ายไปยังพาเลทปลายทาง
+                    var updateSerialSql =
+                        @"
+                        UPDATE g_sn_status 
+                        SET PALLET_NO = :targetPalletNo,
+                            UPDATE_TIME = SYSDATE,
+                            UPDATE_EMP_ID = :moveEmpId
+                        WHERE CARTON_NO = :cartonNo";
+
+                    var serialUpdateParams = new
+                    {
+                        targetPalletNo = request.TargetPalletNo,
+                        moveEmpId = request.MoveEmpId,
+                        cartonNo = request.CartonNo,
+                    };
+
+                    var serialRowsAffected = await connection.ExecuteAsync(
+                        updateSerialSql,
+                        serialUpdateParams,
+                        transaction
+                    );
+
+                    // Commit transaction
+                    transaction.Commit();
+
+                    return Json(
+                        new
+                        {
+                            success = true,
+                            message = $"ย้ายกล่อง {request.CartonNo} ไปยังพาเลท {request.TargetPalletNo} สำเร็จ (Serial Numbers: {serialRowsAffected} รายการ)",
+                        }
+                    );
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับย้าย Serial Numbers
+        [HttpPost]
+        [Consumes("application/json")]
+        public async Task<IActionResult> MoveSerialNumbers([FromBody] MoveSerialNumbersDto request)
+        {
+            try
+            {
+                Console.WriteLine($"MoveSerialNumbers - Request received:");
+                Console.WriteLine($"  Request object: {request}");
+                Console.WriteLine($"  SourceCartonNo: '{request?.SourceCartonNo}'");
+                Console.WriteLine($"  TargetCartonNo: '{request?.TargetCartonNo}'");
+                Console.WriteLine($"  MoveEmpId: '{request?.MoveEmpId}'");
+                Console.WriteLine($"  Request type: {request?.GetType()}");
+
+                // ตรวจสอบว่า request เป็น null หรือไม่
+                if (request == null)
+                {
+                    Console.WriteLine("MoveSerialNumbers - Request is null");
+                    return Json(
+                        new
+                        {
+                            success = false,
+                            message = "ไม่ได้รับข้อมูลที่ส่งมา (Request is null)",
+                        }
+                    );
+                }
+
+                // ตรวจสอบข้อมูล
+                if (string.IsNullOrWhiteSpace(request.SourceCartonNo))
+                {
+                    Console.WriteLine("MoveSerialNumbers - SourceCartonNo is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุกล่องต้นทาง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.TargetCartonNo))
+                {
+                    Console.WriteLine("MoveSerialNumbers - TargetCartonNo is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุกล่องปลายทาง" });
+                }
+
+                // ตรวจสอบ MoveEmpId
+                if (request.MoveEmpId <= 0)
+                {
+                    Console.WriteLine("MoveSerialNumbers - MoveEmpId is invalid");
+                    return Json(
+                        new { success = false, message = "กรุณาระบุรหัสพนักงานที่ถูกต้อง" }
+                    );
+                }
+
+                Console.WriteLine($"MoveSerialNumbers - All validations passed:");
+                Console.WriteLine($"  SourceCartonNo: '{request.SourceCartonNo}'");
+                Console.WriteLine($"  TargetCartonNo: '{request.TargetCartonNo}'");
+                Console.WriteLine($"  MoveEmpId: {request.MoveEmpId}");
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+
+                using (var connection = new OracleConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+                    Console.WriteLine("MoveSerialNumbers - Connection opened successfully");
+                    Console.WriteLine($"MoveSerialNumbers - Connection state: {connection.State}");
+
+                    // ตรวจสอบ connection state ก่อนเริ่ม transaction
+                    if (connection.State != System.Data.ConnectionState.Open)
+                    { 
+                        Console.WriteLine(
+                            "MoveSerialNumbers - Connection is not open, attempting to open again"
+                        );
+                        await connection.OpenAsync();
+                    }
+
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        Console.WriteLine("MoveSerialNumbers - Transaction started successfully");
+
+                        try
+                        {
+                            // ตรวจสอบว่ากล่องต้นทางมีอยู่จริง
+                            var sourceCartonSql =
+                                @"
+                        SELECT 
+                            c.CARTON_NO,
+                            c.WORK_ORDER,
+                            c.CLOSE_FLAG,
+                            (SELECT COUNT(*) FROM g_sn_status s WHERE s.CARTON_NO = c.CARTON_NO) as SerialCount
+                        FROM g_pack_carton c
+                        WHERE c.CARTON_NO = :cartonNo";
+
+                            var sourceCarton = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                                sourceCartonSql,
+                                new { cartonNo = request.SourceCartonNo }
+                            );
+
+                            if (sourceCarton == null)
+                            {
+                                transaction.Rollback();
+                                return Json(new { success = false, message = "ไม่พบกล่องต้นทาง" });
+                            }
+
+                            // ตรวจสอบว่ากล่องปลายทางมีอยู่จริง
+                            var targetCartonSql =
+                                @"
+                        SELECT 
+                            c.CARTON_NO,
+                            c.WORK_ORDER,
+                            c.CLOSE_FLAG
+                        FROM g_pack_carton c
+                        WHERE c.CARTON_NO = :cartonNo";
+
+                            var targetCarton = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                                targetCartonSql,
+                                new { cartonNo = request.TargetCartonNo }
+                            );
+
+                            if (targetCarton == null)
+                            {
+                                transaction.Rollback();
+                                return Json(new { success = false, message = "ไม่พบกล่องปลายทาง" });
+                            }
+
+                            // ตรวจสอบว่าไม่ย้ายไปยังกล่องเดียวกัน
+                            if (request.SourceCartonNo == request.TargetCartonNo)
+                            {
+                                transaction.Rollback();
+                                return Json(
+                                    new
+                                    {
+                                        success = false,
+                                        message = "ไม่สามารถย้าย Serial Numbers ไปยังกล่องเดียวกันได้",
+                                    }
+                                );
+                            }
+
+                            // ตรวจสอบว่ากล่องปลายทางยังไม่ปิด
+                            if (targetCarton.CloseFlag == "Y")
+                            {
+                                transaction.Rollback();
+                                return Json(
+                                    new
+                                    {
+                                        success = false,
+                                        message = "ไม่สามารถย้าย Serial Numbers ไปยังกล่องที่ปิดแล้วได้",
+                                    }
+                                );
+                            }
+
+                            // ตรวจสอบว่ากล่องต้นทางมี Serial Numbers หรือไม่
+                            Console.WriteLine(
+                                $"MoveSerialNumbers - Source carton serial count: {sourceCarton.SerialCount}"
+                            );
+                            if (sourceCarton.SerialCount == 0)
+                            {
+                                transaction.Rollback();
+                                Console.WriteLine(
+                                    "MoveSerialNumbers - Source carton has no serial numbers"
+                                );
+                                return Json(
+                                    new
+                                    {
+                                        success = false,
+                                        message = "กล่องต้นทางไม่มี Serial Numbers ที่จะย้าย",
+                                    }
+                                );
+                            }
+
+                            // หา PALLET_NO ของกล่องปลายทางจาก g_sn_status
+                            var targetPalletSql =
+                                @"
+                        SELECT DISTINCT PALLET_NO 
+                        FROM g_sn_status 
+                        WHERE CARTON_NO = :cartonNo 
+                        AND ROWNUM = 1";
+
+                            var targetPallet = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                                targetPalletSql,
+                                new { cartonNo = request.TargetCartonNo }
+                            );
+
+                            string targetPalletNo = null;
+                            if (targetPallet != null)
+                            {
+                                targetPalletNo = targetPallet.PALLET_NO;
+                            }
+                            else
+                            {
+                                // ถ้าไม่มี Serial Numbers ในกล่องปลายทาง ให้ใช้ PALLET_NO จากกล่องต้นทาง
+                                var sourcePalletSql =
+                                    @"
+                            SELECT DISTINCT PALLET_NO 
+                            FROM g_sn_status 
+                            WHERE CARTON_NO = :cartonNo 
+                            AND ROWNUM = 1";
+
+                                var sourcePallet =
+                                    await connection.QueryFirstOrDefaultAsync<dynamic>(
+                                        sourcePalletSql,
+                                        new { cartonNo = request.SourceCartonNo }
+                                    );
+                                targetPalletNo = sourcePallet?.PalletNo;
+                            }
+
+                            if (string.IsNullOrEmpty(targetPalletNo))
+                            {
+                                transaction.Rollback();
+                                return Json(
+                                    new
+                                    {
+                                        success = false,
+                                        message = "ไม่สามารถหา PALLET_NO สำหรับกล่องปลายทางได้",
+                                    }
+                                );
+                            }
+
+                            // อัปเดต Serial Numbers ทั้งหมดจากกล่องต้นทางไปยังกล่องปลายทาง
+                            var updateSerialSql =
+                                @"
+                        UPDATE g_sn_status 
+                        SET CARTON_NO = :targetCartonNo,
+                            PALLET_NO = :targetPalletNo
+                        WHERE CARTON_NO = :sourceCartonNo";
+
+                            var serialUpdateParams = new
+                            {
+                                targetCartonNo = request.TargetCartonNo,
+                                targetPalletNo = targetPalletNo,
+                                sourceCartonNo = request.SourceCartonNo,
+                            };
+
+                            var serialRowsAffected = await connection.ExecuteAsync(
+                                updateSerialSql,
+                                serialUpdateParams,
+                                transaction
+                            );
+
+                            if (serialRowsAffected == 0)
+                            {
+                                transaction.Rollback();
+                                return Json(
+                                    new
+                                    {
+                                        success = false,
+                                        message = "ไม่พบ Serial Numbers ที่จะย้าย",
+                                    }
+                                );
+                            }
+
+                            // Commit transaction
+                            transaction.Commit();
+
+                            Console.WriteLine(
+                                $"MoveSerialNumbers - Successfully moved {serialRowsAffected} serial numbers"
+                            );
+                            Console.WriteLine(
+                                $"MoveSerialNumbers - From carton: {request.SourceCartonNo} to carton: {request.TargetCartonNo}"
+                            );
+
+                            return Json(
+                                new
+                                {
+                                    success = true,
+                                    message = $"ย้าย Serial Numbers จากกล่อง {request.SourceCartonNo} ไปยังกล่อง {request.TargetCartonNo} สำเร็จ (Serial Numbers: {serialRowsAffected} รายการ)",
+                                }
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            try
+                            {
+                                transaction.Rollback();
+                                Console.WriteLine("MoveSerialNumbers - Transaction rolled back");
+                            }
+                            catch (Exception rollbackEx)
+                            {
+                                Console.WriteLine(
+                                    $"MoveSerialNumbers - Error during rollback: {rollbackEx.Message}"
+                                );
+                            }
+
+                            Console.WriteLine(
+                                $"MoveSerialNumbers - Transaction error: {ex.Message}"
+                            );
+                            Console.WriteLine($"MoveSerialNumbers - Stack trace: {ex.StackTrace}");
+
+                            return Json(
+                                new
+                                {
+                                    success = false,
+                                    message = "เกิดข้อผิดพลาดในการประมวลผล: " + ex.Message,
+                                }
+                            );
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MoveSerialNumbers - General error: {ex.Message}");
+                Console.WriteLine($"MoveSerialNumbers - Stack trace: {ex.StackTrace}");
+
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับดูประวัติการย้ายกล่อง
+        [HttpGet]
+        public async Task<IActionResult> GetMoveHistory(string cartonNo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(cartonNo))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่อง" });
+                }
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                // ตรวจสอบว่ากล่องมีอยู่จริง
+                var cartonExistsSql =
+                    "SELECT COUNT(*) FROM g_pack_carton WHERE CARTON_NO = :cartonNo";
+                var cartonExists = await connection.ExecuteScalarAsync<int>(
+                    cartonExistsSql,
+                    new { cartonNo }
+                );
+
+                if (cartonExists == 0)
+                {
+                    return Json(new { success = false, message = "ไม่พบกล่องที่ต้องการ" });
+                }
+
+                // เนื่องจากไม่มีตารางประวัติ ให้ส่งข้อมูลว่างกลับไป
+                return Json(
+                    new
+                    {
+                        success = true,
+                        history = new List<object>(),
+                        message = "ไม่พบประวัติการย้ายสำหรับกล่องนี้",
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับทดสอบ SearchCarton
+        [HttpGet]
+        public async Task<IActionResult> TestSearchCarton(string searchTerm = "C0307834271037")
+        {
+            try
+            {
+                Console.WriteLine($"TestSearchCarton - Testing with searchTerm: '{searchTerm}'");
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                // ทดสอบ query ง่ายๆ ก่อน
+                var testSql =
+                    "SELECT COUNT(*) as Count FROM g_pack_carton WHERE CARTON_NO = :searchTerm";
+                var count = await connection.ExecuteScalarAsync<int>(testSql, new { searchTerm });
+                Console.WriteLine(
+                    $"TestSearchCarton - Found {count} cartons with CARTON_NO = '{searchTerm}'"
+                );
+
+                // ทดสอบ query หลัก
+                var sql =
+                    @"
+                    SELECT DISTINCT
+                        c.CARTON_NO as CartonId,
+                        c.WORK_ORDER as WorkOrder,
+                        c.PART_ID as PartId,
+                        c.CLOSE_FLAG as CloseFlag,
+                        c.CREATE_TIME as CreateTime,
+                        c.CLOSE_TIME as CloseTime,
+                        COALESCE(s.PALLET_NO, 'ไม่ระบุ') as PalletId,
+                        (SELECT COUNT(*) FROM g_sn_status s2 WHERE s2.CARTON_NO = c.CARTON_NO) as SerialCount
+                    FROM g_pack_carton c
+                    LEFT JOIN g_sn_status s ON c.CARTON_NO = s.CARTON_NO
+                    WHERE c.CARTON_NO = :searchTerm 
+                       OR c.WORK_ORDER = :searchTerm
+                    ORDER BY c.CREATE_TIME DESC";
+
+                var carton = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    sql,
+                    new { searchTerm }
+                );
+
+                if (carton != null)
+                {
+                    var result = new
+                    {
+                        success = true,
+                        carton = new
+                        {
+                            CartonId = carton.CartonId,
+                            WorkOrder = carton.WorkOrder,
+                            PartId = carton.PartId,
+                            CloseFlag = carton.CloseFlag,
+                            CreateTime = carton.CreateTime,
+                            CloseTime = carton.CloseTime,
+                            PalletId = carton.PalletId,
+                            SerialCount = carton.SerialCount,
+                        },
+                    };
+
+                    Console.WriteLine(
+                        $"TestSearchCarton - Success: {JsonConvert.SerializeObject(result)}"
+                    );
+                    return Json(result);
+                }
+                else
+                {
+                    Console.WriteLine("TestSearchCarton - No carton found");
+                    return Json(new { success = false, message = "ไม่พบกล่องที่ต้องการ" });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"TestSearchCarton - Exception: {ex.Message}");
                 return Json(new { success = false, message = ex.Message });
             }
         }

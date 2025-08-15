@@ -22,6 +22,9 @@ using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ตรวจสอบว่าไม่มีบรรทัดนี้
+// builder.WebHost.UseUrls("http://localhost:5000");
+
 // Initialize SessionExtensions
 IPS_TH.Extensions.SessionExtensions.Initialize(builder.Configuration);
 
@@ -158,7 +161,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage(); // ใช้ในโหมด Development เพื่อดูข้อผิดพลาด
+    app.UseDeveloperExceptionPage();
 }
 else
 {

@@ -214,3 +214,13 @@ CREATE TABLE emp_scan_delete_log (
 CREATE INDEX IX_emp_scan_delete_log_person_id ON emp_scan_delete_log(person_id);
 CREATE INDEX IX_emp_scan_delete_log_deleted_at ON emp_scan_delete_log(deleted_at);
 CREATE INDEX IX_emp_scan_delete_log_deleted_by ON emp_scan_delete_log(deleted_by); 
+
+-- เพิ่ม comment สำหรับตาราง
+COMMENT ON TABLE g_pack_move_history IS 'ประวัติการย้ายกล่องระหว่างพาเลท';
+COMMENT ON COLUMN g_pack_move_history.MOVE_ID IS 'รหัสการย้าย (Primary Key)';
+COMMENT ON COLUMN g_pack_move_history.CARTON_NO IS 'หมายเลขกล่องที่ย้าย';
+COMMENT ON COLUMN g_pack_move_history.SOURCE_PALLET_NO IS 'หมายเลขพาเลทต้นทาง';
+COMMENT ON COLUMN g_pack_move_history.TARGET_PALLET_NO IS 'หมายเลขพาเลทปลายทาง';
+COMMENT ON COLUMN g_pack_move_history.MOVE_EMP_ID IS 'รหัสพนักงานที่ทำการย้าย';
+COMMENT ON COLUMN g_pack_move_history.MOVE_TIME IS 'เวลาที่ทำการย้าย';
+COMMENT ON COLUMN g_pack_move_history.SERIAL_COUNT IS 'จำนวน Serial Numbers ที่ย้าย'; 

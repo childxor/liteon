@@ -28,6 +28,9 @@
                     <button type="button" class="btn btn-secondary btn-sm" id="btnShowReport">
                         <i class="fas fa-file-alt me-1"></i>แสดงรายงาน
                     </button>
+                    <button type="button" class="btn btn-warning btn-sm" id="btnReleaseResignedOwners" title="คืนตู้ทั้งหมดที่เจ้าของลาออกแล้ว">
+                        <i class="fas fa-user-minus me-1"></i>คืนตู้ (เจ้าของลาออก) ทั้งหมด
+                    </button>
                 </div>
             }
         </div>
@@ -371,7 +374,7 @@
     <!-- Select2 ถูกโหลดใน Layout แล้ว -->
     
     <style>
-        /* ปรับตำแหน่ง Modal ให้อยู่ด้านบนกึ่งกลาง */
+        /* ปรับตำแหน่ง Modal ให้อยู่ด้านบนกึ่งกลาง */ 
         .modal-dialog {
             margin-top: 70px !important;
             margin-bottom: auto !important;
@@ -862,7 +865,20 @@
             const deleteModal = setupModal('deleteModal');
             const cabinetRangeModal = setupModal('cabinetRangeModal');
             const cabinetRangeResultModal = setupModal('cabinetRangeResultModal');
-            
+
+            // ตัวกรอง: แสดงเฉพาะเจ้าของลาออกแล้ว
+            let showResignedOnly = false;
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                if (settings.nTable && settings.nTable.id === 'cabinetTable') {
+                    if (!showResignedOnly) return true;
+                    var api = new $.fn.dataTable.Api(settings);
+                    var rowData = api.row(dataIndex).data();
+                    if (!rowData) return true;
+                    return rowData.IsResigned === true;
+                }
+                return true;
+            });
+
             // DataTable
             const table = $('#cabinetTable').DataTable({
                 ajax: {
@@ -979,7 +995,7 @@
                 }, 
                 responsive: true,
                 order: [[0, 'asc']],
-                pageLength: -1,
+                pageLength: 25,
                 dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex"f>>t<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex"p>>',
                 initComplete: function() {
                     $('[data-bs-toggle="tooltip"]').tooltip();
@@ -988,7 +1004,68 @@
                     $('.dataTables_filter input').attr('placeholder', 'ค้นหา...');
                     $('.dataTables_filter label').addClass('d-flex align-items-center gap-2');
                     $('.dataTables_filter label').html(`<i class="fas fa-search"></i>${$('.dataTables_filter label').html()}`);
+
+                    // เพิ่มสวิตช์กรองเฉพาะเจ้าของลาออกแล้ว
+                    const $filterContainer = $('<div class="ms-3"></div>');
+                    $filterContainer.html(`
+                        <div class="form-check form-switch ms-2">
+                            <input class="form-check-input" type="checkbox" id="filterResignedOnly">
+                            <label class="form-check-label" for="filterResignedOnly">
+                                <i class="fas fa-user-minus me-1"></i>เฉพาะเจ้าของลาออกแล้ว
+                            </label>
+                        </div>
+                    `);
+                    $('.dataTables_filter').append($filterContainer);
+                    $('#filterResignedOnly').on('change', function() {
+                        showResignedOnly = this.checked;
+                        table.draw();
+                    });
                 }
+            });
+
+            // ปุ่มคืนตู้ทั้งหมดของเจ้าของที่ลาออกแล้ว
+            $(document).on('click', '#btnReleaseResignedOwners', function() {
+                Swal.fire({
+                    title: 'ยืนยันการคืนตู้',
+                    html: '<div class="text-start">ระบบจะคืนตู้ทั้งหมดที่มีผู้ครอบครองซึ่งลาออกแล้ว และเปลี่ยนสถานะเป็น "ว่าง"<br/>ต้องการดำเนินการต่อหรือไม่?</div>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    Swal.fire({
+                        title: 'กำลังดำเนินการ',
+                        text: 'โปรดรอ...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    $.ajax({
+                        url: appBasePath + 'api/Cabinet/ReleaseResignedOwners',
+                        type: 'POST',
+                        success: function(resp) {
+                            Swal.close();
+                            const affected = resp && resp.affected !== undefined ? resp.affected : (resp?.Affected || 0);
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'เสร็จสิ้น',
+                                text: `คืนตู้สำเร็จ ${affected} รายการ`,
+                                confirmButtonText: 'ตกลง'
+                            });
+                            table.ajax.reload(null, false);
+                        },
+                        error: function(xhr) {
+                            Swal.close();
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: xhr.responseText || 'ไม่สามารถดำเนินการได้'
+                            });
+                        }
+                    });
+                });
             });
 
             // เปิด Modal เพิ่มข้อมูล

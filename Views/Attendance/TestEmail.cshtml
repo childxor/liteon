@@ -1,0 +1,82 @@
+@{
+    ViewData["Title"] = "ทดสอบการส่งอีเมล";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">ทดสอบการส่งอีเมล SMTP</h4>
+                </div>
+                <div class="card-body">
+                    <form id="testEmailForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="toEmail">อีเมลผู้รับ:</label>
+                                    <input type="email" class="form-control" id="toEmail" name="toEmail" 
+                                           value="Adisak.S@liteon.com" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> ส่งอีเมลทดสอบ
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div id="result" class="mt-3" style="display: none;">
+                        <div class="alert" id="alertMessage">
+                            <span id="resultMessage"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#testEmailForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                var toEmail = $('#toEmail').val();
+                
+                // แสดง loading
+                $('#result').hide();
+                $('button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...');
+                
+                $.ajax({
+                    url: '/Attendance/TestEmail',
+                    type: 'POST',
+                    data: { toEmail: toEmail },
+                    success: function(response) {
+                        $('#result').show();
+                        $('#resultMessage').text(response.message);
+                        
+                        if (response.success) {
+                            $('#alertMessage').removeClass('alert-danger').addClass('alert-success');
+                        } else {
+                            $('#alertMessage').removeClass('alert-success').addClass('alert-danger');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $('#result').show();
+                        $('#resultMessage').text('เกิดข้อผิดพลาดในการส่งคำขอ: ' + error);
+                        $('#alertMessage').removeClass('alert-success').addClass('alert-danger');
+                    },
+                    complete: function() {
+                        $('button[type="submit"]').prop('disabled', false).html('<i class="fas fa-paper-plane"></i> ส่งอีเมลทดสอบ');
+                    }
+                });
+            });
+        });
+    </script>
+} 

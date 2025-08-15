@@ -139,6 +139,7 @@ namespace IPS_TH.Models
         public int feedbackid { get; set; } // รหัสความคิดเห็น (fk)
         public string? username { get; set; } // ชื่อผู้แสดงความคิดเห็น (null ได้ถ้า anonymous)
         public string? content { get; set; } // รายละเอียด
+        public DateTime createdat { get; set; } // วันที่/เวลาที่แสดงความคิดเห็น
     }
 
     public class sys_user_feedback_like

@@ -109,4 +109,18 @@ namespace IPS_TH.Models.History
         public string PalletNo { get; set; }
         public decimal OpenEmpId { get; set; }
     }
+
+    public class MoveCartonDto
+    {
+        public string CartonNo { get; set; }
+        public string TargetPalletNo { get; set; }
+        public decimal MoveEmpId { get; set; }
+    }
+
+    public class MoveSerialNumbersDto
+    {
+        public string SourceCartonNo { get; set; }
+        public string TargetCartonNo { get; set; }
+        public decimal MoveEmpId { get; set; }
+    }
 } 

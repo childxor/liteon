@@ -27,7 +27,7 @@ using Newtonsoft.Json;
 namespace IPS_TH.Controllers.Home
 {
     public class HomeController : BaseController
-    { 
+    {
         private readonly string _connectionString;
         private readonly string _hrIpsConnectionString;
         private readonly IConfiguration _configuration;
@@ -713,7 +713,7 @@ namespace IPS_TH.Controllers.Home
                     })
                     .Where(e => e != null)
                     .OrderByDescending(e => e.resignDateValue) // เรียงลำดับตามวันที่ลาออกล่าสุด
-                    .Take(100) // แสดงเฉพาะ 100 คนล่าสุด
+                    .Take(10) // แสดงเฉพาะ 10 คนล่าสุด
                     .ToList();
 
                 // เพิ่ม recentResignedEmployees ในการส่งข้อมูลกลับไปยัง View
@@ -743,150 +743,6 @@ namespace IPS_TH.Controllers.Home
                         stackTrace = ex.StackTrace,
                     }
                 );
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetUpcomingHolidays()
-        {
-            try
-            {
-                var today = DateTime.Today;
-                var thirtyDaysLater = today.AddDays(100);
-
-                // สร้าง HttpClient สำหรับเรียก API
-                using (var httpClient = new HttpClient())
-                {
-                    // ตั้งค่า User-Agent และ Accept header
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
-                    httpClient.DefaultRequestHeaders.Accept.Add(
-                        new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue(
-                            "application/json"
-                        )
-                    );
-
-                    // เรียกข้อมูลวันหยุดจาก myhora.com
-                    var response = await httpClient.GetStringAsync(
-                        "https://www.myhora.com/calendar/ical/holiday.aspx?latest.json"
-                    );
-                    var calendarData = JsonConvert.DeserializeObject<dynamic>(response);
-                    var holidays = new List<dynamic>();
-
-                    // ตรวจสอบว่ามีข้อมูล VCALENDAR หรือไม่
-                    if (calendarData?.VCALENDAR != null)
-                    {
-                        foreach (var calendar in calendarData.VCALENDAR)
-                        {
-                            // ตรวจสอบว่ามีข้อมูล VEVENT หรือไม่
-                            if (calendar?.VEVENT != null)
-                            {
-                                foreach (var event_ in calendar.VEVENT)
-                                {
-                                    try
-                                    {
-                                        // ตรวจสอบว่ามีข้อมูล DTSTART หรือไม่
-                                        var dtstartStr =
-                                            event_["DTSTART;VALUE=DATE"] != null
-                                                ? event_["DTSTART;VALUE=DATE"].ToString()
-                                                : null;
-                                        if (!string.IsNullOrEmpty(dtstartStr))
-                                        {
-                                            // แยกข้อมูลวันที่จาก DTSTART
-                                            var dateStr = dtstartStr;
-                                            if (dtstartStr.Contains(";VALUE=DATE"))
-                                            {
-                                                var parts = dtstartStr.Split(';');
-                                                foreach (var part in parts)
-                                                {
-                                                    if (part.StartsWith("VALUE=DATE"))
-                                                    {
-                                                        dateStr = part.Split('=')[1].Trim('"');
-                                                        break;
-                                                    }
-                                                }
-                                            }
-
-                                            if (
-                                                DateTime.TryParseExact(
-                                                    dateStr,
-                                                    "yyyyMMdd",
-                                                    null,
-                                                    System.Globalization.DateTimeStyles.None,
-                                                    out DateTime holidayDate
-                                                )
-                                            )
-                                            {
-                                                // ตรวจสอบว่าอยู่ในช่วง 100 วันข้างหน้าหรือไม่
-                                                if (
-                                                    holidayDate >= today
-                                                    && holidayDate <= thirtyDaysLater
-                                                )
-                                                {
-                                                    // ดึงข้อมูลเพิ่มเติม
-                                                    var summary =
-                                                        event_["SUMMARY"] != null
-                                                            ? event_["SUMMARY"].ToString()
-                                                            : "วันหยุด";
-                                                    var description =
-                                                        event_["DESCRIPTION"] != null
-                                                            ? event_["DESCRIPTION"].ToString()
-                                                            : "วันหยุดราชการ";
-                                                    var location =
-                                                        event_["LOCATION"] != null
-                                                            ? event_["LOCATION"].ToString()
-                                                            : "";
-                                                    var status =
-                                                        event_["STATUS"] != null
-                                                            ? event_["STATUS"].ToString()
-                                                            : "CONFIRMED";
-
-                                                    holidays.Add(
-                                                        new
-                                                        {
-                                                            holidayDate = holidayDate.ToString(
-                                                                "dd MMMM yyyy"
-                                                            ),
-                                                            daysUntil = (int)
-                                                                (holidayDate - today).TotalDays,
-                                                            holidayName = summary,
-                                                            description = description,
-                                                            location = location,
-                                                            status = status,
-                                                            lunarDate = description.Contains(
-                                                                "เดือน"
-                                                            )
-                                                                ? description
-                                                                : "",
-                                                        }
-                                                    );
-                                                }
-                                            }
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        _logger.LogWarning(
-                                            ex,
-                                            "Error processing holiday event: {Message}",
-                                            ex.Message
-                                        );
-                                        continue; // ข้ามไปยังวันหยุดถัดไป
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // เรียงลำดับวันหยุดตามจำนวนวันที่จะมาถึง
-                    holidays = holidays.OrderBy(h => h.daysUntil).ToList();
-
-                    return Json(new { success = true, holidays = holidays });
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting upcoming holidays");
-                return Json(new { success = false, message = "ไม่สามารถดึงข้อมูลวันหยุดได้" });
             }
         }
 
@@ -982,9 +838,463 @@ namespace IPS_TH.Controllers.Home
             [FromBody] sys_user_feedback_comment model
         )
         {
+            model.createdat = DateTime.Now;
             _context.sys_user_feedback_comment.Add(model);
             await _context.SaveChangesAsync();
             return Json(new { success = true });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAccessErrorStats()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // โหลดข้อมูล Person ทั้งหมดก่อน (ลดจำนวนลงเพื่อทดสอบ) 
+                    var personQuery =
+                        @"
+                        SELECT 
+                            rowAutoID, cardNumber, serialNumber, personID, name, englishName, sex, birthday, 
+                            identityType, identityID, deptID, deptName, inID, inName, jobLevelID, jobPositionID, 
+                            category, educational, nation, place, people, specialty, inaugurationDate, leaveJobDate, 
+                            enableDate, disableDate, HealthStatus, interest, introducer, salaryCategory, email, 
+                            address, phone, zip, registerAddress, registerPhone, registerZip, school, department, 
+                            urgentContact, urgentPhone, marriage, spouse, spousePhone, userID, userLevel, password, 
+                            superPassword, modifyTime, operator, reserve1, reserve2, reserve3, reserve4, reserveChar1, 
+                            reserveChar2, reserveChar3, reserveChar4, reserveChar5, reserveChar6, reserveChar7, 
+                            reserveChar8, reserveInt1, reserveInt2, reserveInt3, reserveInt4, reserveInt5, reserveInt6, 
+                            reserveInt7, reserveInt8, pinyin, cardType, cardTypeDesc, subSystem, useCategory, useStatus, 
+                            note, groupID, timeGroup, status, cardCategory, cardStatus, eatStatus, freeNumber, ATT_Free, 
+                            cardNumberSP1, cardNumberSP2, cardNumberSP3, cardNumberSP4, cardNumberSP5, cardNumberSP6, 
+                            FaceUserID, CREATEDATE
+                        FROM Person ";
+
+                    // test hotreload ฟหกดหกดasdfasdfasdfasdfasdfasdf
+
+                    _logger.LogInformation("Executing Person query...");
+                    var persons = await connection.QueryAsync(personQuery);
+                    _logger.LogInformation(
+                        "Person query completed. Found {Count} persons",
+                        persons.Count()
+                    );
+
+                    var personDict = persons.ToDictionary(p => p.cardNumber?.ToString(), p => p);
+                    _logger.LogInformation(
+                        "Person dictionary created with {Count} entries",
+                        personDict.Count
+                    );
+
+                    // โหลดข้อมูล PubEvent ที่มี personName เป็น NULL
+                    var eventQuery =
+                        @"
+                        SELECT TOP 100
+                            rowAutoID, eventType, eventTime, eventName, eventCode, eventCard, 
+                            personID, personName, deptID, deptName, deptCode, deviceID, deviceName, 
+                            deviceType, doorName, deviceL1ID, deviceL1Name, deviceL1Type, 
+                            deviceL2ID, deviceL2Name, deviceL2Type, deviceL3ID, deviceL3Name, 
+                            tag, reserve1, reserve2, reserve3, reserve4, systemType, sourcePK, 
+                            systemName, InOut, EmailAlarmSend, cctvUpdate, extend1, NewEventCode_Id, 
+                            NewEventCode_Name, NewEventCode_Type, Temperature, DeductAmount, 
+                            PreviousBalance, NowBalance, DeductType
+                        FROM PubEvent
+                        WHERE personName IS NULL
+                        ORDER BY eventTime DESC";
+
+                    _logger.LogInformation("Executing PubEvent query...");
+                    var events = await connection.QueryAsync(eventQuery);
+                    _logger.LogInformation(
+                        "PubEvent query completed. Found {Count} events",
+                        events.Count()
+                    );
+
+                    // รวมข้อมูล Person กับ Event
+                    _logger.LogInformation("Starting to enrich events with person data...");
+                    var enrichedEvents = new List<dynamic>();
+                    foreach (var evt in events)
+                    {
+                        var eventCard = evt.eventCard?.ToString();
+                        var person = personDict.ContainsKey(eventCard)
+                            ? personDict[eventCard]
+                            : null;
+
+                        var enrichedEvent = new
+                        {
+                            // ข้อมูลจาก PubEvent
+                            rowAutoID = evt.rowAutoID,
+                            eventType = evt.eventType,
+                            eventTime = evt.eventTime,
+                            eventName = evt.eventName,
+                            eventCode = evt.eventCode,
+                            eventCard = evt.eventCard,
+                            personID = evt.personID,
+                            personName = evt.personName,
+                            deptID = evt.deptID,
+                            deptName = evt.deptName,
+                            deptCode = evt.deptCode,
+                            deviceID = evt.deviceID,
+                            deviceName = evt.deviceName,
+                            deviceType = evt.deviceType,
+                            doorName = evt.doorName,
+                            deviceL1ID = evt.deviceL1ID,
+                            deviceL1Name = evt.deviceL1Name,
+                            deviceL1Type = evt.deviceL1Type,
+                            deviceL2ID = evt.deviceL2ID,
+                            deviceL2Name = evt.deviceL2Name,
+                            deviceL2Type = evt.deviceL2Type,
+                            deviceL3ID = evt.deviceL3ID,
+                            deviceL3Name = evt.deviceL3Name,
+                            tag = evt.tag,
+                            reserve1 = evt.reserve1,
+                            reserve2 = evt.reserve2,
+                            reserve3 = evt.reserve3,
+                            reserve4 = evt.reserve4,
+                            systemType = evt.systemType,
+                            sourcePK = evt.sourcePK,
+                            systemName = evt.systemName,
+                            InOut = evt.InOut,
+                            EmailAlarmSend = evt.EmailAlarmSend,
+                            cctvUpdate = evt.cctvUpdate,
+                            extend1 = evt.extend1,
+                            NewEventCode_Id = evt.NewEventCode_Id,
+                            NewEventCode_Name = evt.NewEventCode_Name,
+                            NewEventCode_Type = evt.NewEventCode_Type,
+                            Temperature = evt.Temperature,
+                            DeductAmount = evt.DeductAmount,
+                            PreviousBalance = evt.PreviousBalance,
+                            NowBalance = evt.NowBalance,
+                            DeductType = evt.DeductType,
+
+                            // ข้อมูลจาก Person (ถ้ามี)
+                            personNameFromCard = person?.name,
+                            personEnglishName = person?.englishName,
+                            personDeptName = person?.deptName,
+                            personPhone = person?.phone,
+                            personEmail = person?.email,
+                            personStatus = person?.status,
+                            personCardStatus = person?.cardStatus,
+                            personEnableDate = person?.enableDate,
+                            personDisableDate = person?.disableDate,
+                        };
+
+                        enrichedEvents.Add(enrichedEvent);
+                    }
+
+                    _logger.LogInformation(
+                        "Enrichment completed. Returning {Count} enriched events",
+                        enrichedEvents.Count
+                    );
+                    return Json(
+                        new
+                        {
+                            success = true,
+                            data = enrichedEvents,
+                            totalCount = enrichedEvents.Count,
+                            personCount = persons.Count(),
+                        }
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error getting access error stats from SQL944. Connection string: {ConnectionString}",
+                    _sql944ConnectionString?.Substring(
+                        0,
+                        Math.Min(50, _sql944ConnectionString?.Length ?? 0)
+                    )
+                );
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "เกิดข้อผิดพลาดในการดึงข้อมูลสถานะผิดพลาด",
+                        error = ex.Message,
+                        details = ex.ToString(),
+                    }
+                );
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> TestSQL944Connection()
+        {
+            try
+            {
+                _logger.LogInformation("Testing SQL944 connection...");
+
+                if (string.IsNullOrEmpty(_sql944ConnectionString))
+                {
+                    return Json(
+                        new
+                        {
+                            success = false,
+                            message = "SQL944 connection string is null or empty",
+                        }
+                    );
+                }
+
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    _logger.LogInformation("Successfully connected to SQL944");
+
+                    // ทดสอบ query ง่ายๆ
+                    var testQuery = "SELECT COUNT(*) as Count FROM Person";
+                    var result = await connection.QueryFirstAsync<int>(testQuery);
+
+                    return Json(
+                        new
+                        {
+                            success = true,
+                            message = "เชื่อมต่อสำเร็จ",
+                            personCount = result,
+                        }
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing SQL944 connection");
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+                        error = ex.Message,
+                    }
+                );
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPhoneList()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var sql =
+                        @"
+                        SELECT TOP (200)
+                            personID,
+                            name,
+                            deptName,
+                            phone,
+                            cardNumber
+                        FROM Person
+                        WHERE personID LIKE '%-2%'
+                          AND phone IS NOT NULL
+                          AND LTRIM(RTRIM(phone)) <> ''
+                        ORDER BY name";
+
+                    var data = await connection.QueryAsync(sql);
+                    var count = data?.Count() ?? 0;
+                    return Json(
+                        new
+                        {
+                            success = true,
+                            count,
+                            data,
+                        }
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching phone list from SQL944");
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "เกิดข้อผิดพลาดในการดึงข้อมูลเบอร์โทรศัพท์",
+                        error = ex.Message,
+                    }
+                );
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> FindPersonForPhone(string personId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(personId))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุ PersonID" });
+                }
+
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var sql =
+                        @"
+                        SELECT TOP 1 personID, name, deptName, phone, cardNumber
+                        FROM Person
+                        WHERE personID = @pid and personid not like '%-1%'";
+
+                    var data = await connection.QueryFirstOrDefaultAsync(
+                        sql,
+                        new { pid = personId }
+                    );
+
+                    if (data == null)
+                    {
+                        var altId = personId.Contains('-') ? personId : personId + "-2";
+                        data = await connection.QueryFirstOrDefaultAsync(sql, new { pid = altId });
+                    }
+
+                    if (data == null)
+                    {
+                        return Json(new { success = false, message = "ไม่พบชื่อ" });
+                    }
+
+                    return Json(new { success = true, data });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error finding person for phone");
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "เกิดข้อผิดพลาดในการค้นหา",
+                        error = ex.Message,
+                    }
+                );
+            }
+        }
+
+        public class UpdatePhoneRequest
+        {
+            public string personId { get; set; } = string.Empty;
+            public string phone { get; set; } = string.Empty;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdatePhone([FromBody] UpdatePhoneRequest req)
+        {
+            try
+            {
+                if (req == null || string.IsNullOrWhiteSpace(req.personId))
+                {
+                    return Json(new { success = false, message = "ข้อมูลไม่ถูกต้อง" });
+                }
+
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var sql =
+                        @"
+                        UPDATE Person SET phone = @phone
+                        WHERE personID = @personID;
+                        SELECT personID, name, deptName, phone, cardNumber
+                        FROM Person WHERE personID = @personID";
+
+                    var data = await connection.QueryFirstOrDefaultAsync(
+                        sql,
+                        new { personID = req.personId, phone = (object?)req.phone ?? DBNull.Value }
+                    );
+
+                    if (data == null)
+                    {
+                        // ลองด้วย personID + '-2' กรณีไม่พบ
+                        var altId = req.personId.Contains('-') ? req.personId : req.personId + "-2";
+                        data = await connection.QueryFirstOrDefaultAsync(
+                            sql,
+                            new { personID = altId, phone = (object?)req.phone ?? DBNull.Value }
+                        );
+                    }
+
+                    if (data == null)
+                    {
+                        return Json(new { success = false, message = "ไม่พบชื่อ" });
+                    }
+
+                    return Json(new { success = true, data });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating phone");
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "เกิดข้อผิดพลาดในการบันทึก",
+                        error = ex.Message,
+                    }
+                );
+            }
+        }
+
+        public class ClearPhoneRequest
+        {
+            public string personId { get; set; } = string.Empty;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ClearPhone([FromBody] ClearPhoneRequest req)
+        {
+            try
+            {
+                if (req == null || string.IsNullOrWhiteSpace(req.personId))
+                {
+                    return Json(new { success = false, message = "ข้อมูลไม่ถูกต้อง" });
+                }
+
+                using (var connection = new SqlConnection(_sql944ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var sql =
+                        @"
+                        UPDATE Person SET phone = NULL
+                        WHERE personID = @personID;
+                        SELECT personID, name, deptName, phone, cardNumber
+                        FROM Person WHERE personID = @personID";
+
+                    var data = await connection.QueryFirstOrDefaultAsync(
+                        sql,
+                        new { personID = req.personId }
+                    );
+                    if (data == null)
+                    {
+                        var altId = req.personId.Contains('-') ? req.personId : req.personId + "-2";
+                        data = await connection.QueryFirstOrDefaultAsync(
+                            sql,
+                            new { personID = altId }
+                        );
+                    }
+
+                    if (data == null)
+                    {
+                        return Json(new { success = false, message = "ไม่พบชื่อ" });
+                    }
+
+                    return Json(new { success = true, data });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing phone");
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "เกิดข้อผิดพลาดในการลบข้อมูล",
+                        error = ex.Message,
+                    }
+                );
+            }
         }
     }
 }

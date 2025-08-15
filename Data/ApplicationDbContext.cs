@@ -4,6 +4,7 @@ using Dapper;
 using IPS_TH.Models; // ตรวจสอบให้แน่ใจว่ามีการนำเข้า Models
 using IPS_TH.Models.Employee;
 using IPS_TH.Models.AssetFactory;
+using IPS_TH.Models.Attendance;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPS_TH.Data
@@ -39,6 +40,7 @@ namespace IPS_TH.Data
 
         // Attendance
         public DbSet<emp_wrkplan> emp_wrkplan { get; set; }
+        public DbSet<TOTPlan> TOTPlan { get; set; }
 
         // Cabinet_emp
         public DbSet<Cabinet_emp> Cabinet_emp { get; set; }

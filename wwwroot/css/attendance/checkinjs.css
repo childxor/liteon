@@ -1,0 +1,160 @@
+
+#employeeComputersModal .modal-dialog {
+    max-width: none !important;
+    width: 95vw !important;
+    margin: 2.5vh auto !important;
+}
+
+/* ปุ่มเลือกเวลาโอที */
+.ot-time-btn {
+    min-width: 100px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ot-time-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ot-time-btn.btn-primary {
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+    border: none;
+    color: white;
+}
+
+.ot-time-btn.btn-outline-primary {
+    border: 2px solid #0d6efd;
+    color: #0d6efd;
+}
+
+.ot-time-btn.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+    border-color: #0d6efd;
+    color: white;
+}
+
+#customTimeBtn {
+    min-width: 120px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#customTimeBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ปรับปรุง DataTable */
+#computersTable {
+    font-size: 14px !important;
+    border-collapse: collapse !important;
+}
+
+#computersTable th {
+    background-color: #0d6efd !important;
+    color: white !important;
+    font-weight: bold !important;
+    border: 1px solid #dee2e6 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+}
+
+#computersTable td {
+    border: 1px solid #dee2e6 !important;
+    padding: 8px !important;
+    vertical-align: middle !important;
+}
+
+#computersTable tbody tr:hover {
+    background-color: #f8f9fa !important;
+}
+
+/* ปรับปรุงการแสดงผล badge */
+.badge {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+}
+
+/* ปรับการแสดงผล DataTable controls */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    margin-bottom: 10px !important;
+}
+
+/* ปรับปรุงการแสดงผล search box */
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #ced4da !important;
+    border-radius: 4px !important;
+    padding: 6px 12px !important;
+    margin-left: 8px !important;
+}
+
+/* ปรับปรุงการแสดงผล pagination */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 6px 12px !important;
+    margin-left: 2px !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 4px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #0d6efd !important;
+    color: white !important;
+    border-color: #0d6efd !important;
+}
+
+/* ปรับปรุงการแสดงผล scroll bar */
+.dataTables_scrollBody {
+    border: 1px solid #dee2e6 !important;
+}
+
+.dataTables_scrollBody::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+.dataTables_scrollBody::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+}
+
+.dataTables_scrollBody::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+}
+
+.dataTables_scrollBody::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+
+/* ปรับปรุงการแสดงผล loading */
+.dataTables_processing {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 4px !important;
+    padding: 20px !important;
+}
+
+/* ปรับปรุงการแสดงผลสำหรับ mobile */
+@media (max-width: 768px) {
+    #employeeComputersModal .modal-dialog {
+        width: 98vw !important;
+        margin: 1vh auto !important;
+    }
+
+    #computersTable {
+        font-size: 12px !important;
+    }
+
+    #computersTable th,
+    #computersTable td {
+        padding: 6px 4px !important;
+    }
+}

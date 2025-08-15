@@ -844,6 +844,102 @@ namespace IPS_TH.Controllers.Employee
         }
 
         [HttpPost]
+        [Route("~/api/Cabinet/ReleaseResignedOwners")]
+        public async Task<IActionResult> ReleaseResignedOwners()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                using (var ces941Connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    await ces941Connection.OpenAsync();
+
+                    // ดึงรายการตู้ที่มีผู้ครอบครองอยู่
+                    var cabinetList = (await connection.QueryAsync<dynamic>(
+                        @"SELECT Id, No, Owner, status
+                          FROM Cabinet_emp
+                          WHERE record_status = 'N' AND ISNULL(Owner,'') <> ''"
+                    )).ToList();
+
+                    if (!cabinetList.Any())
+                    {
+                        return Ok(new { Affected = 0, Message = "ไม่มีตู้ที่มีผู้ครอบครอง" });
+                    }
+
+                    var ownerIds = cabinetList
+                        .Select(c => (string)c.Owner)
+                        .Where(o => !string.IsNullOrWhiteSpace(o))
+                        .Distinct()
+                        .ToList();
+
+                    if (!ownerIds.Any())
+                    {
+                        return Ok(new { Affected = 0, Message = "ไม่มีผู้ครอบครองให้ตรวจสอบ" });
+                    }
+
+                    // ตรวจสอบพนักงานที่ลาออกจาก CES941
+                    string resignParamNames = string.Join(
+                        ",",
+                        ownerIds.Select((_, i) => $"@p{i}")
+                    );
+
+                    var resignParams = new DynamicParameters();
+                    for (int i = 0; i < ownerIds.Count; i++)
+                    {
+                        resignParams.Add($"p{i}", ownerIds[i]);
+                    }
+
+                    var resignedOwners = (await ces941Connection.QueryAsync<string>(
+                        $@"SELECT CAST(EmpNo AS VARCHAR)
+                           FROM MEmpBasic
+                           WHERE CAST(EmpNo AS VARCHAR) IN ({resignParamNames})
+                             AND EmpResignDate IS NOT NULL",
+                        resignParams
+                    )).ToList();
+
+                    if (!resignedOwners.Any())
+                    {
+                        return Ok(new { Affected = 0, Message = "ไม่พบเจ้าของตู้ที่ลาออกแล้ว" });
+                    }
+
+                    // อัปเดตตู้เฉพาะที่สถานะเป็นมีผู้ใช้งาน (1) และเจ้าของลาออกแล้ว
+                    var updateParams = new DynamicParameters();
+                    for (int i = 0; i < resignedOwners.Count; i++)
+                    {
+                        updateParams.Add($"r{i}", resignedOwners[i]);
+                    }
+                    updateParams.Add("updated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    updateParams.Add("updated_by", User?.Identity?.Name ?? "system");
+
+                    string inClause = string.Join(
+                        ",",
+                        resignedOwners.Select((_, i) => $"@r{i}")
+                    );
+
+                    var affected = await connection.ExecuteAsync(
+                        $@"UPDATE Cabinet_emp
+                           SET Owner = '',
+                               status = '0',
+                               updated_at = @updated_at,
+                               updated_by = @updated_by
+                         WHERE record_status = 'N'
+                           AND status = '1'
+                           AND ISNULL(Owner,'') <> ''
+                           AND CAST(Owner AS VARCHAR) IN ({inClause})",
+                        updateParams
+                    );
+
+                    return Ok(new { Affected = affected, Message = affected > 0 ? "คืนตู้สำเร็จ" : "ไม่มีรายการที่ต้องคืน" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"เกิดข้อผิดพลาด: {ex.Message}");
+            }
+        }
+
+        [HttpPost]
         [Route("~/api/Cabinet/BatchCreate")]
         public async Task<IActionResult> BatchCreateCabinets([FromBody] CabinetRangeModel model)
         {
@@ -1900,7 +1996,7 @@ namespace IPS_TH.Controllers.Employee
         // เพิ่ม method ดึงสถิติข้อมูล
         private async Task<dynamic> GetCabinetStatsData()
         {
-            try
+            try 
             {
                 using (var connection = new SqlConnection(_connectionString))
                 {

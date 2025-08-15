@@ -185,6 +185,386 @@
             </div>
         </div>
 
+        <!-- Phone List Section (SQL944) -->
+        <div class="stats-section mb-4" id="phoneListSection" style="display: none;">
+            <div class="section-header mb-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="section-icon me-3">
+                            <i class="fas fa-phone fa-2x text-primary"></i>
+                        </div>
+                        <div>
+                            <h4 class="section-title mb-1">รายชื่อที่มีเบอร์โทรศัพท์</h4>
+                            <p class="section-subtitle mb-0">เบอร์โทรศัพท์ที่มีอยู่ในระบบเป็นเบอร์โต๊ะทำงาน</p>
+                        </div>
+                    </div>
+                    <span class="badge bg-primary"><i class="fas fa-phone me-1"></i><span id="phoneCount">0 รายการ</span></span>
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="row g-2 align-items-end"> 
+                            <div class="col-md-4">
+                                <label class="form-label mb-1"><i class="fas fa-id-badge me-1 text-secondary"></i>ค้นหา/เพิ่มเบอร์ (PersonID)</label>
+                                <input type="text" class="form-control" id="inputFindPersonId" placeholder="เช่น 10129029">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label mb-1"><i class="fas fa-phone me-1 text-secondary"></i>เบอร์โทรศัพท์โต๊ะทำงาน</label>
+                                <input type="text" class="form-control" id="inputPhoneValue" placeholder="เช่น 344" disabled>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-primary" id="btnFindPerson"><i class="fas fa-user-search me-1"></i>ค้นหา</button>
+                                    <button type="button" class="btn btn-primary" id="btnSavePhone" disabled><i class="fas fa-save me-1"></i>บันทึกเบอร์</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="btnClearForm"><i class="fas fa-undo me-1"></i>ล้างฟอร์ม</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3" id="personResult" style="display:none;">
+                            <div class="alert alert-info mb-0 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div><i class="fas fa-user me-1 text-secondary"></i><strong>ชื่อ:</strong> <span id="resultName">-</span> <span class="text-muted">(<span id="resultPersonId">-</span>)</span></div>
+                                        <div class="small text-muted"><i class="fas fa-building me-1"></i><strong>แผนก:</strong> <span id="resultDept">-</span> | <i class="fas fa-id-card me-1"></i><strong>Card:</strong> <span id="resultCard">-</span></div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenEditModal" style="display:none;"><i class="fas fa-pen me-1"></i>แก้ไขในหน้าต่าง</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle" id="phoneTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;"><i class="fas fa-hashtag me-1 text-secondary"></i>#</th>
+                                    <th><i class="fas fa-id-card me-1 text-secondary"></i>CardNumber</th>
+                                    <th><i class="fas fa-user me-1 text-secondary"></i>ชื่อ</th>
+                                    <th><i class="fas fa-building me-1 text-secondary"></i>แผนก</th>
+                                    <th><i class="fas fa-phone me-1 text-secondary"></i>เบอร์โทรศัพท์</th>
+                                    <th style="width: 160px;"><i class="fas fa-sliders-h me-1 text-secondary"></i>การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="phoneTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">ไม่มีข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function(){
+                function renderPhoneTable(list){
+                    const tbody = document.getElementById('phoneTableBody');
+                    if(!tbody) return;
+                    if(!list || list.length === 0){
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูล</td></tr>';
+                        return;
+                    }
+                    const keyword = (document.getElementById('phoneSearch')?.value || '').toLowerCase();
+                    const filtered = list.filter(x => {
+                        const name = (x.name || '').toString().toLowerCase();
+                        const dept = (x.deptName || '').toString().toLowerCase();
+                        const phone = (x.phone || '').toString().toLowerCase();
+                        const pid = (x.personID || '').toString().toLowerCase();
+                        const card = (x.cardNumber || '').toString().toLowerCase();
+                        const all = [name, dept, phone, pid, card].join(' ');
+                        return !keyword || all.includes(keyword);
+                    });
+                    let html = '';
+                    filtered.forEach((x, idx) => {
+                        html += '<tr>'+
+                            '<td>'+ (idx+1) +'</td>'+
+                            '<td>'+ (x.cardNumber || '-') +'</td>'+
+                            '<td>'+ (x.name || '-') +'</td>'+
+                            '<td>'+ (x.deptName || '-') +'</td>'+
+                            '<td>'+ (x.phone || '-') +'</td>'+
+                            '<td>'+
+                                '<div class="btn-group btn-group-sm" role="group">'+
+                                    '<button type="button" class="btn btn-outline-primary btn-edit-phone" data-person="'+ (x.personID || '') +'" data-name="'+ (x.name || '') +'" data-dept="'+ (x.deptName || '') +'" data-phone="'+ (x.phone || '') +'"><i class="fas fa-pen"></i></button>'+
+                                    '<button type="button" class="btn btn-outline-danger btn-clear-phone" data-person="'+ (x.personID || '') +'" data-name="'+ (x.name || '') +'"><i class="fas fa-trash"></i></button>'+
+                                '</div>'+
+                            '</td>'+
+                        '</tr>';
+                    });
+                    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูล</td></tr>';
+                    document.getElementById('phoneCount').textContent = (filtered.length || 0) + ' รายการ';
+                }
+
+                function loadPhoneList(){
+                    const section = document.getElementById('phoneListSection');
+                    fetch((window.appBasePath || '') + 'Home/GetPhoneList')
+                        .then(r => r.json())
+                        .then(res => {
+                            if(res && res.success){
+                                if(section) section.style.display = '';
+                                renderPhoneTable(res.data || []);
+                            } else {
+                                if(section) section.style.display = '';
+                                renderPhoneTable([]);
+                            }
+                        })
+                        .catch(() => {
+                            if(section) section.style.display = '';
+                            renderPhoneTable([]);
+                        });
+                }
+
+                document.addEventListener('DOMContentLoaded', function(){
+                    const search = document.getElementById('phoneSearch');
+                    if(search){
+                        search.addEventListener('input', function(){
+                            try{
+                                // เก็บข้อมูลล่าสุดไว้ในตัวแปรบน window เพื่อประสิทธิภาพ
+                                if(window._phoneCache){
+                                    renderPhoneTable(window._phoneCache);
+                                }
+                            }catch{}
+                        });
+                    }
+                    // โหลดข้อมูลครั้งแรก และแคชไว้
+                    const originalRender = renderPhoneTable;
+                    window.renderPhoneTable = function(list){
+                        window._phoneCache = Array.isArray(list) ? list : [];
+                        originalRender(window._phoneCache);
+                    };
+                    loadPhoneList();
+
+                    // ค้นหา/เพิ่มเบอร์ ด้วย PersonID (ถ้าไม่พบจะลองเติม -2 ฝั่งเซิร์ฟเวอร์)
+                    const btnFind = document.getElementById('btnFindPerson');
+                    const btnSave = document.getElementById('btnSavePhone');
+                    const btnClear = document.getElementById('btnClearForm');
+                    const inputPid = document.getElementById('inputFindPersonId');
+                    const inputPhone = document.getElementById('inputPhoneValue');
+                    const personResult = document.getElementById('personResult');
+                    const resultName = document.getElementById('resultName');
+                    const resultPersonId = document.getElementById('resultPersonId');
+                    const resultDept = document.getElementById('resultDept');
+                    const resultCard = document.getElementById('resultCard');
+                    const btnOpenEditModal = document.getElementById('btnOpenEditModal');
+
+                    function resetForm(){
+                        inputPid.value = '';
+                        inputPhone.value = '';
+                        inputPhone.disabled = true;
+                        btnSave.disabled = true;
+                        personResult.style.display = 'none';
+                        btnOpenEditModal.style.display = 'none';
+                    }
+                    if(btnClear){ btnClear.addEventListener('click', resetForm); }
+
+                    if(btnFind){
+                        btnFind.addEventListener('click', function(){
+                            const pid = (inputPid.value || '').trim();
+                            if(!pid){
+                                Swal.fire({ icon: 'warning', title: 'กรุณาระบุ PersonID', timer: 1500, showConfirmButton: false });
+                                return;
+                            }
+                            fetch((window.appBasePath || '') + 'Home/FindPersonForPhone?personId=' + encodeURIComponent(pid))
+                                .then(r => r.json())
+                                .then(res => {
+                                    if(res && res.success){
+                                        const d = res.data || {};
+                                        resultName.textContent = d.name || '-';
+                                        resultPersonId.textContent = d.personID || pid;
+                                        resultDept.textContent = d.deptName || '-';
+                                        resultCard.textContent = d.cardNumber || '-';
+                                        inputPhone.value = d.phone || '';
+                                        inputPhone.disabled = false;
+                                        btnSave.disabled = false;
+                                        personResult.style.display = '';
+                                        btnOpenEditModal.style.display = '';
+                                        btnOpenEditModal.onclick = function(){
+                                            openEditModal(d.personID || pid, d.name || '-', d.deptName || '-', d.phone || '');
+                                        };
+                                    } else {
+                                        Swal.fire({ icon: 'warning', title: 'ไม่พบชื่อ', timer: 1500, showConfirmButton: false });
+                                        resetForm();
+                                    }
+                                })
+                                .catch(() => { Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการค้นหา', timer: 1800, showConfirmButton: false }); });
+                        });
+                    }
+
+                    if(btnSave){
+                        btnSave.addEventListener('click', function(){
+                            const pidShown = resultPersonId.textContent || (inputPid.value || '').trim();
+                            const phoneVal = inputPhone.value || '';
+                            if(!pidShown){ Swal.fire({ icon: 'warning', title: 'ไม่พบ PersonID', timer: 1500, showConfirmButton: false }); return; }
+                            fetch((window.appBasePath || '') + 'Home/UpdatePhone', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ personId: pidShown, phone: phoneVal })
+                            })
+                            .then(r => r.json())
+                            .then(res => {
+                                if(res && res.success){
+                                    loadPhoneList();
+                                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
+                                } else {
+                                    Swal.fire({ icon: 'error', title: res?.message || 'บันทึกไม่สำเร็จ', timer: 1800, showConfirmButton: false });
+                                }
+                            })
+                            .catch(() => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการบันทึก', timer: 1800, showConfirmButton: false }));
+                        });
+                    }
+
+                    // Modal แก้ไข และยืนยันลบ
+                    const editModalEl = document.getElementById('editPhoneModal');
+                    const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+                    const editPid = document.getElementById('editPersonId');
+                    const editName = document.getElementById('editName');
+                    const editDept = document.getElementById('editDept');
+                    const editPhone = document.getElementById('editPhone');
+                    const btnEditSave = document.getElementById('btnEditSave');
+
+                    window.openEditModal = function(personId, name, dept, phone){
+                        if(!editModal) return;
+                        editPid.value = personId || '';
+                        editName.textContent = name || '-';
+                        editDept.textContent = dept || '-';
+                        editPhone.value = phone || '';
+                        editModal.show();
+                    }
+
+                    if(btnEditSave){
+                        btnEditSave.addEventListener('click', function(){
+                            const pid = editPid.value || '';
+                            const phoneVal = editPhone.value || '';
+                            fetch((window.appBasePath || '') + 'Home/UpdatePhone', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ personId: pid, phone: phoneVal })
+                            })
+                            .then(r => r.json())
+                            .then(res => {
+                                if(res && res.success){
+                                    editModal.hide();
+                                    loadPhoneList();
+                                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
+                                } else {
+                                    Swal.fire({ icon: 'error', title: res?.message || 'บันทึกไม่สำเร็จ', timer: 1800, showConfirmButton: false });
+                                }
+                            })
+                            .catch(() => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการบันทึก', timer: 1800, showConfirmButton: false }));
+                        });
+                    }
+
+                    const clearModalEl = document.getElementById('confirmClearModal');
+                    const clearModal = clearModalEl ? new bootstrap.Modal(clearModalEl) : null;
+                    const clearPid = document.getElementById('clearPersonId');
+                    const clearName = document.getElementById('clearName');
+                    const btnClearConfirm = document.getElementById('btnClearConfirm');
+
+                    function openClearModal(personId, name){
+                        if(!clearModal) return;
+                        clearPid.value = personId || '';
+                        clearName.textContent = name || '-';
+                        clearModal.show();
+                    }
+
+                    if(btnClearConfirm){
+                        btnClearConfirm.addEventListener('click', function(){
+                            const pid = clearPid.value || '';
+                            fetch((window.appBasePath || '') + 'Home/ClearPhone', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ personId: pid })
+                            })
+                            .then(r => r.json())
+                            .then(res => {
+                                if(res && res.success){
+                                    clearModal.hide();
+                                    loadPhoneList();
+                                    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500, showConfirmButton: false });
+                                } else {
+                                    Swal.fire({ icon: 'error', title: res?.message || 'ลบไม่สำเร็จ', timer: 1800, showConfirmButton: false });
+                                }
+                            })
+                            .catch(() => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการลบ', timer: 1800, showConfirmButton: false }));
+                        });
+                    }
+
+                    // ปุ่มแก้ไข/ลบ ในตาราง (Event Delegation)
+                    document.getElementById('phoneTable')?.addEventListener('click', function(e){
+                        const target = e.target.closest('button');
+                        if(!target) return;
+                        if(target.classList.contains('btn-edit-phone')){
+                            const pid = target.getAttribute('data-person') || '';
+                            const name = target.getAttribute('data-name') || '';
+                            const dept = target.getAttribute('data-dept') || '';
+                            const phone = target.getAttribute('data-phone') || '';
+                            openEditModal(pid, name, dept, phone);
+                        }
+                        if(target.classList.contains('btn-clear-phone')){
+                            const pid = target.getAttribute('data-person') || '';
+                            const name = target.getAttribute('data-name') || '';
+                            openClearModal(pid, name);
+                        }
+                    });
+                });
+            })();
+        </script>
+
+        <!-- Modal: Edit Phone -->
+        <div class="modal fade" id="editPhoneModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-phone me-2"></i>แก้ไขเบอร์โทรศัพท์</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            <label class="form-label mb-1">PersonID</label>
+                            <input type="text" class="form-control" id="editPersonId" disabled>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-1">ชื่อ</label>
+                            <div class="form-control-plaintext" id="editName">-</div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-1">แผนก</label>
+                            <div class="form-control-plaintext" id="editDept">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label mb-1">เบอร์โทรศัพท์</label>
+                            <input type="text" class="form-control" id="editPhone" placeholder="เช่น 0812345678">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                        <button type="button" class="btn btn-primary" id="btnEditSave">บันทึก</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Confirm Clear -->
+        <div class="modal fade" id="confirmClearModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบเบอร์</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="clearPersonId">
+                        ต้องการลบเบอร์ของ <strong id="clearName">-</strong> ใช่หรือไม่?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="button" class="btn btn-danger" id="btnClearConfirm">ลบ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Cabinet & Computer Statistics Section -->
         <div class="stats-section mb-4" id="cabinetComputerStatsContainer" style="display: none;">
             <div class="row">
@@ -483,232 +863,7 @@
                 </div>
             </div>
         </div>
-
-        <!-- Upcoming Holidays Section -->
-        <div class="row mt-4 mb-4">
-            <div class="col-12">
-                <div class="card shadow-rainy border-0">
-                    <div class="card-header bg-rainy-light border-bottom">
-                        <h5 class="card-title mb-0 text-rainy-dark" data-translate="upcoming_holidays">
-                            <i class="fas fa-calendar-alt me-2 text-rainy-warning"></i>
-                            @Context.Session.GetTranslation("upcoming_holidays")
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="upcomingHolidays" class="row g-3">
-                            <div class="col-12 text-center text-rainy-muted">
-                                <i class="fas fa-spinner fa-spin me-2"></i> <span
-                                    data-translate="loading_data">@Context.Session.GetTranslation("loading_data")</span>...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Feedback Board Section -->
-        <div class="row mb-5">
-            <!-- กระดานความคิดเห็น -->
-            <div class="col-md-6">
-                <div class="card shadow-rainy border-0 h-100">
-                    <div
-                        class="card-header bg-rainy-light border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-rainy-dark" data-translate="feedback_board">
-                            <i class="fas fa-comments me-2 text-rainy-primary"></i>
-                            @Context.Session.GetTranslation("feedback_board")
-                        </h5>
-                        <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#feedbackModal"
-                            style="background: linear-gradient(45deg, #4a90e2, #5cb3ff); color: white; border: none; box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);"
-                            data-translate="add_feedback">
-                            <i class="fas fa-plus me-1"></i> @Context.Session.GetTranslation("add_feedback")
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-4" id="feedbackList"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ข่าวประกาศ -->
-            <div class="col-md-6">
-                <div class="card shadow-rainy border-0 h-100">
-                    <div
-                        class="card-header bg-rainy-light border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-rainy-dark" data-translate="announcement">
-                            <i class="fas fa-bullhorn me-2 text-rainy-warning"></i>
-                            @Context.Session.GetTranslation("announcement")
-                        </h5>
-                        @if (ViewBag.IsAdmin == "true")
-                        {
-                            <button type="button" class="btn btn-sm" data-bs-toggle="modal"
-                                data-bs-target="#announcementModal"
-                                style="background: linear-gradient(45deg, #f59e0b, #fbbf24); color: white; border: none; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);"
-                                data-translate="add_announcement">
-                                <i class="fas fa-plus me-1"></i> @Context.Session.GetTranslation("add_announcement")
-                            </button>
-                        }
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-4" id="announcementList">
-                            <!-- ตัวอย่างข่าวประกาศ -->
-                            <div class="col-12 d-none">
-                                <div class="card border-0 shadow-sm mb-3">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <h6 class="card-title mb-1"
-                                                    data-translate="annual_holiday_announcement">
-                                                    @Context.Session.GetTranslation("annual_holiday_announcement")</h6>
-                                                <small class="text-rainy-muted"
-                                                    data-translate="hr_department">@Context.Session.GetTranslation("hr_department")</small>
-                                            </div>
-                                            <span class="badge bg-rainy-warning"
-                                                data-translate="important">@Context.Session.GetTranslation("important")</span>
-                                        </div>
-                                        <p class="card-text" data-translate="holiday_announcement_content">
-                                            @Context.Session.GetTranslation("holiday_announcement_content")</p>
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <small class="text-rainy-muted">15 มี.ค. 2567</small>
-                                            <button class="btn btn-sm btn-outline-rainy-warning">
-                                                <i class="fas fa-eye me-1"></i> <span
-                                                    data-translate="read_more">@Context.Session.GetTranslation("read_more")</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Feedback Modal -->
-        <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-rainy-light">
-                        <h5 class="modal-title" id="feedbackModalLabel">
-                            <i class="fas fa-comment-dots me-2 text-rainy-primary"></i>
-                            <span
-                                data-translate="add_new_feedback">@Context.Session.GetTranslation("add_new_feedback")</span>
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="feedbackForm">
-                            <div class="mb-3">
-                                <label for="feedbackType" class="form-label"
-                                    data-translate="feedback_type">@Context.Session.GetTranslation("feedback_type")</label>
-                                <select class="form-select" id="feedbackType" required>
-                                    <option value="" data-translate="select_feedback_type">
-                                        @Context.Session.GetTranslation("select_feedback_type")</option>
-                                    <option value="feature">Feature Request</option>
-                                    <option value="bug">Bug Report</option>
-                                    <option value="improvement">Improvement</option>
-                                    <option value="other" data-translate="other">
-                                        @Context.Session.GetTranslation("other")</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="feedbackTitle" class="form-label"
-                                    data-translate="title">@Context.Session.GetTranslation("title")</label>
-                                <input type="text" class="form-control" id="feedbackTitle" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="feedbackContent" class="form-label"
-                                    data-translate="details">@Context.Session.GetTranslation("details")</label>
-                                <textarea class="form-control" id="feedbackContent" rows="4" required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="anonymousFeedback">
-                                    <label class="form-check-label" for="anonymousFeedback"
-                                        data-translate="send_anonymous_feedback">
-                                        @Context.Session.GetTranslation("send_anonymous_feedback")
-                                    </label>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-rainy-secondary" data-bs-dismiss="modal"
-                            data-translate="cancel">@Context.Session.GetTranslation("cancel")</button>
-                        <button type="button" class="btn btn-rainy-primary" id="submitFeedback">
-                            <i class="fas fa-paper-plane me-1"></i> <span
-                                data-translate="send_feedback">@Context.Session.GetTranslation("send_feedback")</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Announcement Modal -->
-        <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-rainy-light">
-                        <h5 class="modal-title" id="announcementModalLabel">
-                            <i class="fas fa-bullhorn me-2 text-rainy-warning"></i>
-                            <span
-                                data-translate="add_new_announcement">@Context.Session.GetTranslation("add_new_announcement")</span>
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="announcementForm">
-                            <div class="mb-3">
-                                <label for="announcementTitle" class="form-label"
-                                    data-translate="announcement_title">@Context.Session.GetTranslation("announcement_title")</label>
-                                <input type="text" class="form-control" id="announcementTitle" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="announcementContent" class="form-label"
-                                    data-translate="details">@Context.Session.GetTranslation("details")</label>
-                                <textarea class="form-control" id="announcementContent" rows="4" required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="announcementDepartment" class="form-label"
-                                    data-translate="announcing_department">@Context.Session.GetTranslation("announcing_department")</label>
-                                <select class="form-select" id="announcementDepartment" required>
-                                    <option value="" data-translate="select_department">
-                                        @Context.Session.GetTranslation("select_department")</option>
-                                    <option value="hr" data-translate="hr_department">
-                                        @Context.Session.GetTranslation("hr_department")</option>
-                                    <option value="it" data-translate="it_department">
-                                        @Context.Session.GetTranslation("it_department")</option>
-                                    <option value="admin" data-translate="admin_department">
-                                        @Context.Session.GetTranslation("admin_department")</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="announcementPriority" class="form-label"
-                                    data-translate="importance">@Context.Session.GetTranslation("importance")</label>
-                                <select class="form-select" id="announcementPriority" required>
-                                    <option value="normal" data-translate="normal">
-                                        @Context.Session.GetTranslation("normal")</option>
-                                    <option value="important" data-translate="important">
-                                        @Context.Session.GetTranslation("important")</option>
-                                    <option value="urgent" data-translate="urgent">
-                                        @Context.Session.GetTranslation("urgent")</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-rainy-secondary" data-bs-dismiss="modal"
-                            data-translate="cancel">@Context.Session.GetTranslation("cancel")</button>
-                        <button type="button" class="btn btn-rainy-warning" id="submitAnnouncement">
-                            <i class="fas fa-paper-plane me-1"></i> <span
-                                data-translate="announce">@Context.Session.GetTranslation("announce")</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        
         <!-- Charts Row -->
         <div class="row g-4 mb-5">
             <div class="col-xl-6">
@@ -877,6 +1032,184 @@
                                     data-translate="no_resigned_employees">@Context.Session.GetTranslation("no_resigned_employees")</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Access Error Statistics Section -->
+        <div class="row mb-4 mt-5">
+            <div class="col-12">
+                <div class="card shadow-rainy border-0">
+                    <div class="card-header bg-rainy-light border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-rainy-dark">
+                                <i class="fas fa-exclamation-triangle me-2 text-rainy-warning"></i>
+                                <span data-translate="access_error_statistics">สถานะผิดพลาดการเข้าออก</span>
+                            </h5>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-rainy-warning rounded-pill me-2" id="errorCount" title="จำนวนสถานะผิดพลาด">0</span>
+                                <span class="badge bg-info rounded-pill me-2" id="personCount" title="จำนวนข้อมูลบุคคลที่โหลดมา">0</span>
+                                <small class="text-rainy-muted me-2" id="lastUpdate">อัปเดตล่าสุด: -</small>
+                                <button type="button" class="btn btn-outline-success btn-sm me-2" id="btnTestConnection">
+                                    <i class="fas fa-database me-1"></i>ทดสอบการเชื่อมต่อ
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="btnRefreshErrors">
+                                    <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Toolbar -->
+                        <div class="row g-2 mb-3 align-items-center">
+                            <div class="col-md-4">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="errorSearch" placeholder="ค้นหา: บัตร / ชื่อ / แผนก / ประตู / เหตุการณ์">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="doorFilter" class="form-select form-select-sm">
+                                    <option value="">ทุกประตู</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="eventFilter" class="form-select form-select-sm">
+                                    <option value="">ทุกเหตุการณ์</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" id="btnPrevPage"><i class="fas fa-chevron-left"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary disabled" id="pageInfo">1/1</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="btnNextPage"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped table-sm align-middle" id="accessErrorTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-clock me-1"></i>เวลา
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-id-card me-1"></i>บัตร
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-user me-1"></i>บุคคล
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-building me-1"></i>แผนก
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-door-open me-1"></i>ประตู
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-exclamation-circle me-1"></i>เหตุการณ์
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-thermometer-half me-1"></i>อุณหภูมิ
+                                        </th>
+                                        <th scope="col" class="text-nowrap">
+                                            <i class="fas fa-info-circle me-1"></i>ข้อมูลเพิ่มเติม
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accessErrorTableBody">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-rainy-muted">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูล...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal รายละเอียด -->
+        <div class="modal fade" id="errorDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title"><i class="fas fa-info-circle me-2 text-warning"></i>รายละเอียดเหตุการณ์</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">เวลา</div>
+                                        <div id="md_eventTime" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">บัตร</div>
+                                        <div id="md_eventCard" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">บุคคล</div>
+                                        <div id="md_person" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">แผนก</div>
+                                        <div id="md_dept" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">ประตู/อุปกรณ์</div>
+                                        <div id="md_door" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">เหตุการณ์</div>
+                                        <div id="md_event" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">อุณหภูมิ</div>
+                                        <div id="md_temp" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body py-2">
+                                        <div class="small text-muted">สถานะบัตร</div>
+                                        <div id="md_cardStatus" class="fw-semibold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิด</button>
                     </div>
                 </div>
             </div>
@@ -1380,6 +1713,115 @@
     #cabinetComputerStatsContainer .col-lg-6:last-child .row:nth-child(4) .col-6:nth-child(4) .card {
         animation-delay: 0.8s;
     }
+
+    /* CSS สำหรับ Access Error Table */
+    #accessErrorTable {
+        font-size: 0.875rem;
+    }
+
+    #accessErrorTable th {
+        font-weight: 600;
+        color: var(--rainy-dark);
+        border-bottom: 2px solid rgba(74, 144, 226, 0.1);
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    #accessErrorTable td {
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(74, 144, 226, 0.05);
+    }
+
+    #accessErrorTable tbody tr:hover {
+        background-color: rgba(74, 144, 226, 0.05);
+        transition: background-color 0.2s ease;
+    }
+
+    #accessErrorTable .table-warning {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+
+    #accessErrorTable .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+    }
+
+    /* Animation สำหรับ Access Error Table */
+    #accessErrorTable tbody tr {
+        animation: slideInRight 0.5s ease-out;
+    }
+
+    #accessErrorTable tbody tr:nth-child(1) { animation-delay: 0.1s; }
+    #accessErrorTable tbody tr:nth-child(2) { animation-delay: 0.2s; }
+    #accessErrorTable tbody tr:nth-child(3) { animation-delay: 0.3s; }
+    #accessErrorTable tbody tr:nth-child(4) { animation-delay: 0.4s; }
+    #accessErrorTable tbody tr:nth-child(5) { animation-delay: 0.5s; }
+
+    @@keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* Responsive สำหรับ Access Error Table */
+    @@media (max-width: 768px) {
+        #accessErrorTable {
+            font-size: 0.75rem;
+        }
+        
+        #accessErrorTable th,
+        #accessErrorTable td {
+            padding: 0.5rem 0.25rem;
+        }
+        
+        #accessErrorTable .badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.4rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        #accessErrorTable {
+            font-size: 0.7rem;
+        }
+        
+        #accessErrorTable th,
+        #accessErrorTable td {
+            padding: 0.25rem 0.1rem;
+        }
+        
+        #accessErrorTable .badge {
+            font-size: 0.6rem;
+            padding: 0.15rem 0.3rem;
+        }
+    }
+
+    /* CSS สำหรับ tooltip */
+    [title] {
+        position: relative;
+        cursor: help;
+    }
+
+    /* CSS สำหรับข้อมูลเพิ่มเติม */
+    .person-info {
+        max-width: 200px;
+        word-wrap: break-word;
+    }
+
+    .person-info small {
+        line-height: 1.2;
+        margin-bottom: 0.1rem;
+    }
+
+    .person-info .badge {
+        margin-top: 0.1rem;
+        font-size: 0.6rem;
+    }
 </style>
 
 <!-- Add Raindrops -->
@@ -1485,13 +1927,12 @@
             loadCabinetStats();
             // Load computer statistics
             loadComputerStats();
+            // Load access error statistics
+            loadAccessErrorStats();
             // Language handling
             setupLanguageHandling();
             // Add raindrops animation 
             createRaindrops();
-            loadFeedbackList();
-            // Load upcoming holidays
-            loadUpcomingHolidays();
             // Setup toggle details functionality
             setupToggleDetails();
 
@@ -1499,46 +1940,47 @@
             setInterval(loadCabinetStats, 30000);
             // รีเฟรชสถิติคอมพิวเตอร์ทุก ๆ 30 วินาที
             setInterval(loadComputerStats, 30000);
-            // ส่งความคิดเห็นใหม่
-            $('#submitFeedback').on('click', function () {
-                const data = {
-                    username: '@ViewBag.username', // ดึงชื่อพนักงานจาก session
-                    department: 'แผนก', // ดึงจาก session จริง
-                    type: $('#feedbackType').val(),
-                    title: $('#feedbackTitle').val(),
-                    content: $('#feedbackContent').val(),
-                    isanonymous: $('#anonymousFeedback').is(':checked')
-                };
-                $.ajax({
-                    url: appBasePath + 'Home/AddFeedback',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(data),
-                    success: function (res) {
-                        if (res.success) {
-                            $('#feedbackModal').modal('hide');
-                            loadFeedbackList();
-                        }
-                    }
-                });
+            // รีเฟรชสถานะผิดพลาดทุก ๆ 60 วินาที
+            setInterval(loadAccessErrorStats, 60000);
+            // Setup refresh button
+            $('#btnRefreshErrors').on('click', function() {
+                $(this).find('i').addClass('fa-spin');
+                loadAccessErrorStats();
+                setTimeout(() => {
+                    $(this).find('i').removeClass('fa-spin');
+                }, 1000);
             });
-            // Like/Dislike
-            $(document).on('click', '.btn-like', function () {
-                const feedbackid = $(this).data('id');
-                const $btn = $(this);
-                const currentStatus = $btn.hasClass('active') ? 'unlike' : 'like';
 
-                $.post(appBasePath + 'Home/LikeFeedback', {
-                    feedbackid,
-                    username: '@ViewBag.username',
-                    status: currentStatus
-                }, function (res) {
-                    if (res.success) {
-                        loadFeedbackList();
-                    }
-                });
+            // Setup test connection button
+            $('#btnTestConnection').on('click', function() {
+                $(this).find('i').addClass('fa-spin');
+                testSQL944Connection();
+                setTimeout(() => {
+                    $(this).find('i').removeClass('fa-spin');
+                }, 1000);
             });
-            // เพิ่ม Dislike และ Comment ตาม pattern เดียวกัน
+
+            // ฟิลเตอร์/ค้นหา และเปลี่ยนหน้า
+            $('#errorSearch').on('input', function(){
+                window._accessErrorPage = 1;
+                displayAccessErrorStats(applyAccessErrorFilters()); 
+            });
+            $('#doorFilter, #eventFilter').on('change', function(){
+                window._accessErrorPage = 1;
+                displayAccessErrorStats(applyAccessErrorFilters());
+            });
+            $('#btnPrevPage').on('click', function(){
+                if (window._accessErrorPage > 1) {
+                    window._accessErrorPage--;
+                    displayAccessErrorStats(applyAccessErrorFilters());
+                }
+            });
+            $('#btnNextPage').on('click', function(){
+                if (window._accessErrorPage < (window._accessErrorTotalPages || 1)) {
+                    window._accessErrorPage++;
+                    displayAccessErrorStats(applyAccessErrorFilters());
+                }
+            });
         });
 
         function clearCharts() {
@@ -1571,7 +2013,7 @@
                 success: function (data) {
                     if (data.success) {
                         updateBasicStats(data);
-                        displayRecentResignedEmployees(data.recentResignedEmployees);
+                        displayRecentResignedEmployees(data.recentResignedEmployees); 
                         displayDepartmentChart(data.departmentStats);
                         displayMonthlyChart(data.monthlyStats);
                         displayStartTodayEmployees(data.startTodayEmployees);
@@ -1589,7 +2031,6 @@
                 type: 'GET',
                 success: function (data) {
                     if (data.success) {
-                        console.log('Leave Stats Data:', data);
                         displayLeaveByMonthChart(data.leaveByMonth);
                         displayLeaveTypeChart(data.leaveTypes);
                         displayLeaveDaysByMonthChart(data.leaveDaysByMonth);
@@ -1817,6 +2258,287 @@
 
             // แสดงส่วน Cabinet & Computer Stats Cards แม้จะเกิดข้อผิดพลาด
             $('#cabinetComputerStatsContainer').fadeIn(800);
+        }
+
+        function loadAccessErrorStats() {
+            $.ajax({
+                url: appBasePath + 'Home/GetAccessErrorStats',
+                type: 'GET',
+                success: function (data) {
+                    if (data.success) {
+                        // เก็บ cache และเตรียม filter options
+                        window._accessErrorCache = Array.isArray(data.data) ? data.data : [];
+                        buildFilterOptions(window._accessErrorCache);
+                        window._accessErrorPage = 1;
+                        displayAccessErrorStats(applyAccessErrorFilters());
+                        $('#errorCount').text(data.totalCount || 0);
+                        $('#personCount').text(data.personCount || 0);
+                        $('#lastUpdate').text(`อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`);
+                    } else {
+                        console.error('Failed to load access error statistics:', data.message);
+                        showDefaultAccessErrorStats();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error loading access error statistics:', error);
+                    showDefaultAccessErrorStats();
+                }
+            });
+        }
+
+        // สร้างตัวเลือกกรองจากข้อมูลล่าสุด
+        function buildFilterOptions(data) {
+            const doors = [...new Set(data.map(x => (x.doorName || x.deviceName || '').toString()).filter(Boolean))].sort();
+            const events = [...new Set(data.map(x => (x.eventName || x.eventCode || '').toString()).filter(Boolean))].sort();
+
+            const $door = $('#doorFilter');
+            const $event = $('#eventFilter');
+            $door.find('option:not(:first)').remove();
+            $event.find('option:not(:first)').remove();
+            doors.forEach(d => $door.append(`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`));
+            events.forEach(e => $event.append(`<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`));
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // นำ filter มาใช้กับ cache และแบ่งหน้า
+        function applyAccessErrorFilters() {
+            const query = ($('#errorSearch').val() || '').toString().toLowerCase();
+            const door = ($('#doorFilter').val() || '').toString();
+            const evt = ($('#eventFilter').val() || '').toString();
+            const source = Array.isArray(window._accessErrorCache) ? window._accessErrorCache : [];
+
+            let filtered = source.filter(item => {
+                const text = [
+                    item.eventCard,
+                    item.personNameFromCard || item.personName,
+                    item.personDeptName || item.deptName,
+                    item.doorName || item.deviceName,
+                    item.eventName || item.eventCode
+                ].map(v => (v || '').toString().toLowerCase()).join(' ');
+
+                const doorMatch = !door || (item.doorName || item.deviceName || '') === door;
+                const eventMatch = !evt || (item.eventName || item.eventCode || '') === evt;
+                const textMatch = !query || text.includes(query);
+                return doorMatch && eventMatch && textMatch;
+            });
+
+            // Pagination
+            const pageSize = 10;
+            const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            window._accessErrorTotalPages = totalPages;
+            if (!window._accessErrorPage || window._accessErrorPage < 1) window._accessErrorPage = 1;
+            if (window._accessErrorPage > totalPages) window._accessErrorPage = totalPages;
+            const start = (window._accessErrorPage - 1) * pageSize;
+            const pageData = filtered.slice(start, start + pageSize);
+            $('#pageInfo').text(`${window._accessErrorPage}/${totalPages}`);
+            return pageData;
+        }
+
+        function displayAccessErrorStats(data) {
+            const tbody = $('#accessErrorTableBody');
+            tbody.empty();
+
+            if (data && data.length > 0) {
+                data.forEach((item, index) => {
+                    const row = $(`
+                        <tr class="${index < 5 ? 'table-warning' : ''} access-row" data-index="${index}">
+                            <td class="text-nowrap">
+                                <small class="text-rainy-muted">
+                                    ${formatDateTime(item.eventTime)}
+                                </small>
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge bg-light text-dark">
+                                    ${item.eventCard || '-'}
+                                </span>
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="text-rainy-danger fw-bold">
+                                    ${item.personNameFromCard || item.personName || 'ไม่ระบุ'}
+                                </span>
+                                ${item.personEnglishName ? `<br><small class="text-rainy-muted">${item.personEnglishName}</small>` : ''}
+                            </td>
+                            <td class="text-nowrap">
+                                <small class="text-rainy-muted">
+                                    ${item.personDeptName || item.deptName || '-'}
+                                </small>
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge bg-info text-white">
+                                    ${item.doorName || item.deviceName || '-'}
+                                </span>
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge bg-warning text-dark">
+                                    ${item.eventName || item.eventCode || '-'}
+                                </span>
+                            </td>
+                            <td class="text-nowrap">
+                                ${item.Temperature ? 
+                                    `<span class="badge ${getTemperatureBadgeClass(item.Temperature)}">
+                                        ${item.Temperature}°C
+                                    </span>` : 
+                                    '<span class="text-rainy-muted">-</span>'
+                                }
+                            </td>
+                            <td class="text-nowrap">
+                                <div class="d-flex flex-column person-info">
+                                    ${item.personPhone ? `<small class="text-rainy-muted"><i class="fas fa-phone me-1"></i>${item.personPhone}</small>` : ''}
+                                    ${item.personEmail ? `<small class="text-rainy-muted"><i class="fas fa-envelope me-1"></i>${item.personEmail}</small>` : ''}
+                                    ${item.personStatus ? `<small class="badge ${getStatusBadgeClass(item.personStatus)}">${item.personStatus}</small>` : ''}
+                                    ${item.personCardStatus ? `<small class="badge ${getCardStatusBadgeClass(item.personCardStatus)}">${item.personCardStatus}</small>` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                    // คลิกแถวเพื่อเปิด Modal รายละเอียด
+                    row.on('click', function() {
+                        const modal = new bootstrap.Modal(document.getElementById('errorDetailModal'));
+                        $('#md_eventTime').text(formatDateTime(item.eventTime));
+                        $('#md_eventCard').text(item.eventCard || '-');
+                        $('#md_person').html(`${item.personNameFromCard || item.personName || '-'}${item.personEnglishName ? `<div class="small text-muted">${item.personEnglishName}</div>` : ''}`);
+                        $('#md_dept').text(item.personDeptName || item.deptName || '-');
+                        $('#md_door').text(item.doorName || item.deviceName || '-');
+                        $('#md_event').text(item.eventName || item.eventCode || '-');
+                        $('#md_temp').text(item.Temperature ? `${item.Temperature}°C` : '-');
+                        $('#md_cardStatus').text(item.personCardStatus || '-');
+                        modal.show();
+                    });
+                    tbody.append(row);
+                });
+            } else {
+                tbody.html(`
+                    <tr>
+                        <td colspan="8" class="text-center text-rainy-muted">
+                            <i class="fas fa-check-circle me-2"></i>ไม่พบข้อมูลสถานะผิดพลาด
+                        </td>
+                    </tr>
+                `);
+            }
+        }
+
+        function showDefaultAccessErrorStats() {
+            const tbody = $('#accessErrorTableBody');
+            tbody.html(`
+                <tr>
+                    <td colspan="8" class="text-center text-rainy-muted">
+                        <i class="fas fa-exclamation-triangle me-2"></i>ไม่สามารถโหลดข้อมูลได้
+                    </td>
+                </tr>
+            `);
+            $('#errorCount').text('0');
+            $('#personCount').text('0');
+            $('#lastUpdate').text('อัปเดตล่าสุด: -');
+        }
+
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '-';
+            
+            try {
+                const date = new Date(dateTimeStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) {
+                    return 'เมื่อสักครู่';
+                } else if (diffMins < 60) {
+                    return `${diffMins} นาทีที่แล้ว`;
+                } else if (diffHours < 24) {
+                    return `${diffHours} ชั่วโมงที่แล้ว`;
+                } else if (diffDays < 7) {
+                    return `${diffDays} วันที่แล้ว`;
+                } else {
+                    return date.toLocaleDateString('th-TH', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            } catch (e) {
+                return dateTimeStr;
+            }
+        }
+
+        function getTemperatureBadgeClass(temperature) {
+            const temp = parseFloat(temperature);
+            if (temp >= 37.5) return 'bg-danger';
+            if (temp >= 37.0) return 'bg-warning';
+            if (temp >= 36.0) return 'bg-success';
+            return 'bg-secondary';
+        }
+
+        function getStatusBadgeClass(status) {
+            if (!status) return 'bg-secondary';
+            const statusLower = status.toString().toLowerCase();
+            if (statusLower.includes('active') || statusLower.includes('enable')) return 'bg-success';
+            if (statusLower.includes('inactive') || statusLower.includes('disable')) return 'bg-danger';
+            if (statusLower.includes('pending')) return 'bg-warning';
+            return 'bg-secondary';
+        }
+
+        function getCardStatusBadgeClass(cardStatus) {
+            if (!cardStatus) return 'bg-secondary';
+            const statusLower = cardStatus.toString().toLowerCase();
+            if (statusLower.includes('active') || statusLower.includes('valid')) return 'bg-success';
+            if (statusLower.includes('inactive') || statusLower.includes('invalid')) return 'bg-danger';
+            if (statusLower.includes('expired')) return 'bg-warning';
+            return 'bg-secondary';
+        }
+
+        function testSQL944Connection() {
+            $.ajax({
+                url: appBasePath + 'Home/TestSQL944Connection',
+                type: 'GET',
+                success: function (data) {
+                    if (data.success) {
+                        showSuccess(`เชื่อมต่อสำเร็จ! จำนวนข้อมูล Person: ${data.personCount}`);
+                    } else {
+                        showError(`การเชื่อมต่อล้มเหลว: ${data.message}`);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    showError(`เกิดข้อผิดพลาดในการทดสอบ: ${error}`);
+                }
+            });
+        }
+
+        function showSuccess(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ',
+                    text: message,
+                    confirmButtonText: 'ตกลง'
+                });
+            } else {
+                alert('สำเร็จ: ' + message);
+            }
+        }
+
+        function showError(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: message,
+                    confirmButtonText: 'ตกลง'
+                });
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + message);
+            }
         }
 
         function updateBasicStats(data) {
@@ -2060,6 +2782,10 @@
             // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
             const localizedLabels = data.map(d => getLocalizedMonth(d.month));
 
+            // คำนวณ stepSize อัตโนมัติ
+            const maxValue = Math.max(...data.map(d => d.count));
+            const stepSize = maxValue > 50 ? Math.ceil(maxValue / 20) : maxValue > 10 ? Math.ceil(maxValue / 10) : 1;
+
             window.leaveByMonthChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -2087,7 +2813,8 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                stepSize: 1,
+                                stepSize: stepSize,
+                                maxTicksLimit: 10,
                                 font: {
                                     size: 10
                                 }
@@ -2151,6 +2878,10 @@
             // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
             const localizedLabels = data.map(d => getLocalizedMonth(d.month));
 
+            // คำนวณ stepSize อัตโนมัติ
+            const maxValue = Math.max(...data.map(d => d.days));
+            const stepSize = maxValue > 100 ? Math.ceil(maxValue / 20) : maxValue > 50 ? Math.ceil(maxValue / 10) : maxValue > 10 ? Math.ceil(maxValue / 5) : 1;
+
             window.leaveDaysByMonthChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -2173,9 +2904,10 @@
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            beginAtZero: true, 
                             ticks: {
-                                stepSize: 1,
+                                stepSize: stepSize,
+                                maxTicksLimit: 10,
                                 font: {
                                     size: 10
                                 }
@@ -2202,6 +2934,10 @@
             // แปลงชื่อแผนกให้สั้นลงหากยาวเกินไป
             const localizedLabels = data.map(d => getLocalizedDepartment(d.department));
 
+            // คำนวณ stepSize อัตโนมัติ
+            const maxValue = Math.max(...data.map(d => d.count));
+            const stepSize = maxValue > 100 ? Math.ceil(maxValue / 20) : maxValue > 50 ? Math.ceil(maxValue / 10) : maxValue > 10 ? Math.ceil(maxValue / 5) : 1;
+
             window.leaveByDepartmentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -2227,7 +2963,8 @@
                         x: {
                             beginAtZero: true,
                             ticks: {
-                                stepSize: 1,
+                                stepSize: stepSize,
+                                maxTicksLimit: 10,
                                 font: {
                                     size: 10
                                 }
@@ -2251,6 +2988,10 @@
 
             // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
             const localizedLabels = data.map(d => getLocalizedMonth(d.month));
+
+            // คำนวณ stepSize อัตโนมัติ (สำหรับค่าเฉลี่ย ใช้ทศนิยม)
+            const maxValue = Math.max(...data.map(d => d.averageDuration));
+            const stepSize = maxValue > 20 ? Math.ceil(maxValue / 10) : maxValue > 10 ? Math.ceil(maxValue / 5) : 1;
 
             window.averageLeaveDurationChart = new Chart(ctx, {
                 type: 'line',
@@ -2279,7 +3020,8 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                stepSize: 1,
+                                stepSize: stepSize,
+                                maxTicksLimit: 10,
                                 font: {
                                     size: 10
                                 }
@@ -2305,6 +3047,10 @@
 
             // แปลงชื่อเดือนเป็นภาษาท้องถิ่น
             const localizedLabels = data.map(d => getLocalizedMonth(d.month));
+
+            // คำนวณ stepSize อัตโนมัติ (ใช้ผลรวมของ workday + holiday)
+            const maxValue = Math.max(...data.map(d => d.workday + d.holiday));
+            const stepSize = maxValue > 100 ? Math.ceil(maxValue / 20) : maxValue > 50 ? Math.ceil(maxValue / 10) : maxValue > 10 ? Math.ceil(maxValue / 5) : 1;
 
             window.workdayHolidayLeaveChart = new Chart(ctx, {
                 type: 'bar',
@@ -2353,7 +3099,8 @@
                             stacked: true,
                             beginAtZero: true,
                             ticks: {
-                                stepSize: 1,
+                                stepSize: stepSize,
+                                maxTicksLimit: 10,
                                 font: {
                                     size: 10
                                 }
@@ -2425,100 +3172,7 @@
             }
         }
 
-        function loadFeedbackList() {
-            $.get(appBasePath + 'Home/GetFeedbackList', function (res) {
-                if (res.success) {
-                    let html = '';
-                    res.data.forEach(fb => {
-                        const isLiked = res.likes.some(like =>
-                            like.feedbackid === fb.id &&
-                            like.username === '@ViewBag.username' &&
-                            like.status === 'like'
-                        );
 
-                        html += `
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-0 shadow-sm mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <h6 class="card-title mb-1">${fb.isanonymous ? '@Context.Session.GetTranslation("anonymous")' : (fb.username || '')}</h6>
-                                            <small class="text-rainy-muted">${fb.department || ''}</small>
-                                        </div>
-                                        <span class="badge bg-rainy-primary">${fb.type}</span>
-                                    </div>
-                                    <p class="card-text">${fb.content}</p>
-                                    <div class="d-flex justify-content-between align-items-center mt-3">
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm ${isLiked ? 'btn-rainy-primary active' : 'btn-outline-rainy-primary'} btn-like" data-id="${fb.id}">
-                                                <i class="fas fa-thumbs-up me-1"></i> ${fb.likecount}
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-rainy-secondary btn-comment" data-id="${fb.id}">
-                                                <i class="fas fa-comment me-1"></i> ${fb.commentcount}
-                                            </button>
-                                        </div>
-                                        <small class="text-rainy-muted">${fb.createdat ? fb.createdat.split('T')[0] : ''}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        `;
-                    });
-                    $('#feedbackList').html(html);
-                }
-            });
-        }
-
-        // เพิ่ม function สำหรับโหลดข้อมูลวันหยุด
-        function loadUpcomingHolidays() {
-            $.get(appBasePath + 'Home/GetUpcomingHolidays', function (res) {
-                if (res.success) {
-                    const container = $('#upcomingHolidays');
-                    if (res.holidays && res.holidays.length > 0) {
-                        let html = '';
-                        res.holidays.forEach(holiday => {
-                            const daysUntil = holiday.daysUntil;
-                            const badgeClass = daysUntil <= 7 ? 'bg-rainy-danger' :
-                                daysUntil <= 14 ? 'bg-rainy-warning' :
-                                    'bg-rainy-primary';
-
-                            html += `
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <h6 class="card-title mb-0">${holiday.holidayName}</h6>
-                                            <span class="badge ${badgeClass}">
-                                                ${daysUntil === 0 ? '@Context.Session.GetTranslation("today")' :
-                                    daysUntil === 1 ? '@Context.Session.GetTranslation("tomorrow")' :
-                                        `${daysUntil} @Context.Session.GetTranslation("days")`}
-                                            </span>
-                                        </div>
-                                        <p class="card-text text-rainy-muted mb-2">
-                                            <i class="fas fa-calendar me-2"></i>
-                                            ${holiday.holidayDate}
-                                        </p>
-                                        <p class="card-text small text-rainy-muted">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            ${holiday.description || '@Context.Session.GetTranslation("annual_holiday")'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            `;
-                        });
-                        container.html(html);
-                    } else {
-                        container.html(`
-                            <div class="col-12 text-center text-rainy-muted">
-                                <i class="fas fa-calendar-times me-2"></i>
-                                @Context.Session.GetTranslation("no_upcoming_holidays")
-                            </div>
-                        `);
-                    }
-                }
-            });
-        }
 
         // ฟังก์ชันสำหรับควบคุมการซ่อน/ขยายส่วนรายละเอียด
         function setupToggleDetails() {

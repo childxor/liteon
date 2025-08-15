@@ -53,7 +53,8 @@ namespace IPS_TH.Controllers
                 if (tableExists == 0)
                 {
                     // สร้างตารางอัตโนมัติ
-                    var createTableSql = @"
+                    var createTableSql =
+                        @"
                         CREATE TABLE OracleActivityHistory (
                             Id BIGINT IDENTITY(1,1) PRIMARY KEY,
                             SessionId NVARCHAR(50) NOT NULL,
@@ -106,7 +107,9 @@ namespace IPS_TH.Controllers
                     // เพิ่มข้อมูลทดสอบ
                     await AddTestData(msConnection);
 
-                    return Json(new { success = true, message = "สร้างตารางและข้อมูลทดสอบเรียบร้อยแล้ว" });
+                    return Json(
+                        new { success = true, message = "สร้างตารางและข้อมูลทดสอบเรียบร้อยแล้ว" }
+                    );
                 }
                 else
                 {
@@ -118,7 +121,9 @@ namespace IPS_TH.Controllers
                     if (recordCount == 0)
                     {
                         await AddTestData(msConnection);
-                        return Json(new { success = true, message = "เพิ่มข้อมูลทดสอบเรียบร้อยแล้ว" });
+                        return Json(
+                            new { success = true, message = "เพิ่มข้อมูลทดสอบเรียบร้อยแล้ว" }
+                        );
                     }
 
                     return Json(new { success = true, message = "ตารางและข้อมูลมีอยู่แล้ว" });
@@ -137,36 +142,44 @@ namespace IPS_TH.Controllers
             var userName = GetCurrentUserName();
 
             // เพิ่ม Session ทดสอบ
-            var sessionSql = @"
+            var sessionSql =
+                @"
                 IF NOT EXISTS (SELECT 1 FROM OracleUserSessions WHERE SessionId = @SessionId)
                 BEGIN
                     INSERT INTO OracleUserSessions (SessionId, UserId, UserName, ClientIP, UserAgent)
                     VALUES (@SessionId, @UserId, @UserName, @ClientIP, @UserAgent)
                 END";
 
-            await connection.ExecuteAsync(sessionSql, new
-            {
-                SessionId = sessionId,
-                UserId = userId,
-                UserName = userName,
-                ClientIP = GetClientIP(),
-                UserAgent = GetUserAgent()
-            });
+            await connection.ExecuteAsync(
+                sessionSql,
+                new
+                {
+                    SessionId = sessionId,
+                    UserId = userId,
+                    UserName = userName,
+                    ClientIP = GetClientIP(),
+                    UserAgent = GetUserAgent(),
+                }
+            );
 
             // เพิ่มข้อมูลประวัติทดสอบ
-            var historySql = @"
+            var historySql =
+                @"
                 INSERT INTO OracleActivityHistory (SessionId, UserId, UserName, ActivityType, SqlCommand, TableName, AffectedRows, ExecutionTimeMs, IsSuccess)
                 VALUES 
                     (@SessionId, @UserId, @UserName, 'CONNECTION_TEST', 'SELECT ''Oracle Connection Success!'' FROM DUAL', 'DUAL', 1, 150, 1),
                     (@SessionId, @UserId, @UserName, 'SELECT', 'SELECT * FROM TEmpLeave WHERE EmpNo = :EmpNo', 'TEmpLeave', 5, 245, 1),
                     (@SessionId, @UserId, @UserName, 'UPDATE', 'UPDATE TEmpLeave SET Status = ''Approved'' WHERE EmpNo = :EmpNo', 'TEmpLeave', 2, 180, 1)";
 
-            await connection.ExecuteAsync(historySql, new
-            {
-                SessionId = sessionId,
-                UserId = userId,
-                UserName = userName
-            });
+            await connection.ExecuteAsync(
+                historySql,
+                new
+                {
+                    SessionId = sessionId,
+                    UserId = userId,
+                    UserName = userName,
+                }
+            );
         }
 
         private string? GetClientIP()
@@ -215,7 +228,8 @@ namespace IPS_TH.Controllers
                 }
 
                 // ดึงข้อมูลประวัติแบบ grouped
-                var sql = @"
+                var sql =
+                    @"
                     WITH GroupedHistory AS (
                         SELECT 
                             ROW_NUMBER() OVER (ORDER BY MAX(CreatedDate) DESC) as RowNum,
@@ -263,7 +277,7 @@ namespace IPS_TH.Controllers
                         errorCount = (int)r.ErrorCount,
                         totalAffectedRows = (int)r.TotalAffectedRows,
                         lastUser = (string)r.LastUser,
-                        hasErrors = (int)r.ErrorCount > 0
+                        hasErrors = (int)r.ErrorCount > 0,
                     })
                     .ToList();
 
@@ -303,7 +317,8 @@ namespace IPS_TH.Controllers
                 );
                 await msConnection.OpenAsync();
 
-                var sql = @"
+                var sql =
+                    @"
                     SELECT 
                         Id,
                         SessionId,
@@ -347,10 +362,10 @@ namespace IPS_TH.Controllers
                         clientIP = (string)r.ClientIP,
                         userAgent = (string)r.UserAgent,
                         createdDate = ((DateTime)r.CreatedDate).ToString("dd/MM/yyyy HH:mm:ss"),
-                        statusBadge = (bool)r.IsSuccess ? 
-                            "<span class='badge bg-success'>สำเร็จ</span>" : 
-                            "<span class='badge bg-danger'>ผิดพลาด</span>",
-                        executionTime = $"{(int)r.ExecutionTimeMs} ms"
+                        statusBadge = (bool)r.IsSuccess
+                            ? "<span class='badge bg-success'>สำเร็จ</span>"
+                            : "<span class='badge bg-danger'>ผิดพลาด</span>",
+                        executionTime = $"{(int)r.ExecutionTimeMs} ms",
                     })
                     .ToList();
 
@@ -377,7 +392,8 @@ namespace IPS_TH.Controllers
                 await connection.OpenAsync();
 
                 // ดึงข้อมูลคอลัมน์จาก Oracle
-                var columnSql = @"
+                var columnSql =
+                    @"
                     SELECT 
                         COLUMN_NAME,
                         DATA_TYPE,
@@ -391,18 +407,35 @@ namespace IPS_TH.Controllers
                     WHERE TABLE_NAME = UPPER(:tableName)
                     ORDER BY COLUMN_ID";
 
-                var columns = await connection.QueryAsync(columnSql, new { tableName = tableName.ToUpper() });
+                var columns = await connection.QueryAsync(
+                    columnSql,
+                    new { tableName = tableName.ToUpper() }
+                );
 
-                var columnInfo = columns.Select(c => new
-                {
-                    columnName = (string)c.COLUMN_NAME,
-                    dataType = FormatDataType((string)c.DATA_TYPE, c.DATA_LENGTH, c.DATA_PRECISION, c.DATA_SCALE),
-                    nullable = (string)c.NULLABLE == "Y" ? "YES" : "NO",
-                    defaultValue = c.DATA_DEFAULT?.ToString()?.Trim() ?? "-",
-                    columnId = (decimal?)c.COLUMN_ID ?? 0
-                }).ToList();
+                var columnInfo = columns
+                    .Select(c => new
+                    {
+                        columnName = (string)c.COLUMN_NAME,
+                        dataType = FormatDataType(
+                            (string)c.DATA_TYPE,
+                            c.DATA_LENGTH,
+                            c.DATA_PRECISION,
+                            c.DATA_SCALE
+                        ),
+                        nullable = (string)c.NULLABLE == "Y" ? "YES" : "NO",
+                        defaultValue = c.DATA_DEFAULT?.ToString()?.Trim() ?? "-",
+                        columnId = (decimal?)c.COLUMN_ID ?? 0,
+                    })
+                    .ToList();
 
-                return Json(new { success = true, data = columnInfo, tableName = tableName.ToUpper() });
+                return Json(
+                    new
+                    {
+                        success = true,
+                        data = columnInfo,
+                        tableName = tableName.ToUpper(),
+                    }
+                );
             }
             catch (Exception ex)
             {
@@ -421,7 +454,8 @@ namespace IPS_TH.Controllers
                 );
                 await msConnection.OpenAsync();
 
-                var sql = @"
+                var sql =
+                    @"
                     SELECT 
                         ActivityType,
                         COALESCE(TableName, 'Unknown') as TableName,
@@ -441,17 +475,25 @@ namespace IPS_TH.Controllers
                 var result = await msConnection.QueryAsync(sql, new { Days = days });
 
                 var fileName = $"OracleHistory_{DateTime.Now:yyyyMMdd_HHmmss}";
-                
+
                 if (format.ToLower() == "csv")
                 {
                     var csv = ConvertToCsv(result);
-                    return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", $"{fileName}.csv");
+                    return File(
+                        System.Text.Encoding.UTF8.GetBytes(csv),
+                        "text/csv",
+                        $"{fileName}.csv"
+                    );
                 }
                 else
                 {
                     // สำหรับ Excel format (ใช้ CSV format ชั่วคราว)
                     var csv = ConvertToCsv(result);
-                    return File(System.Text.Encoding.UTF8.GetBytes(csv), "application/vnd.ms-excel", $"{fileName}.xls");
+                    return File(
+                        System.Text.Encoding.UTF8.GetBytes(csv),
+                        "application/vnd.ms-excel",
+                        $"{fileName}.xls"
+                    );
                 }
             }
             catch (Exception ex)
@@ -472,23 +514,29 @@ namespace IPS_TH.Controllers
                 );
                 msConnection.Open();
 
-                var sql = @"
+                var sql =
+                    @"
                     SELECT TOP 1 SqlCommand, Parameters 
                     FROM OracleActivityHistory 
                     WHERE CHECKSUM(UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(SqlCommand, CHAR(9), ' '), CHAR(10), ' '), CHAR(13), ' '))))) = @SqlHash
                         AND ActivityType = @ActivityType
                     ORDER BY CreatedDate DESC";
 
-                var result = msConnection.QueryFirstOrDefault(sql, new { SqlHash = sqlHash, ActivityType = activityType });
+                var result = msConnection.QueryFirstOrDefault(
+                    sql,
+                    new { SqlHash = sqlHash, ActivityType = activityType }
+                );
 
                 if (result != null)
                 {
-                    return Json(new 
-                    { 
-                        success = true, 
-                        sqlCommand = (string)result.SqlCommand,
-                        parameters = (string)result.Parameters ?? "{}"
-                    });
+                    return Json(
+                        new
+                        {
+                            success = true,
+                            sqlCommand = (string)result.SqlCommand,
+                            parameters = (string)result.Parameters ?? "{}",
+                        }
+                    );
                 }
 
                 return Json(new { success = false, message = "ไม่พบ SQL Command" });
@@ -502,14 +550,18 @@ namespace IPS_TH.Controllers
         private string ConvertToCsv(IEnumerable<dynamic> data)
         {
             var csv = new System.Text.StringBuilder();
-            
+
             // Header
-            csv.AppendLine("ActivityType,TableName,SqlCommand,Parameters,AffectedRows,ExecutionTimeMs,IsSuccess,ErrorMessage,UserName,CreatedDate,ClientIP");
+            csv.AppendLine(
+                "ActivityType,TableName,SqlCommand,Parameters,AffectedRows,ExecutionTimeMs,IsSuccess,ErrorMessage,UserName,CreatedDate,ClientIP"
+            );
 
             // Data rows
             foreach (var item in data)
             {
-                csv.AppendLine($"{EscapeCsvField(item.ActivityType)},{EscapeCsvField(item.TableName)},{EscapeCsvField(item.SqlCommand)},{EscapeCsvField(item.Parameters)},{item.AffectedRows},{item.ExecutionTimeMs},{item.IsSuccess},{EscapeCsvField(item.ErrorMessage)},{EscapeCsvField(item.UserName)},{item.CreatedDate},{EscapeCsvField(item.ClientIP)}");
+                csv.AppendLine(
+                    $"{EscapeCsvField(item.ActivityType)},{EscapeCsvField(item.TableName)},{EscapeCsvField(item.SqlCommand)},{EscapeCsvField(item.Parameters)},{item.AffectedRows},{item.ExecutionTimeMs},{item.IsSuccess},{EscapeCsvField(item.ErrorMessage)},{EscapeCsvField(item.UserName)},{item.CreatedDate},{EscapeCsvField(item.ClientIP)}"
+                );
             }
 
             return csv.ToString();
@@ -517,8 +569,9 @@ namespace IPS_TH.Controllers
 
         private string EscapeCsvField(object field)
         {
-            if (field == null) return "";
-            
+            if (field == null)
+                return "";
+
             var value = field.ToString();
             if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
             {
@@ -647,25 +700,29 @@ namespace IPS_TH.Controllers
                         _configuration.GetConnectionString("DefaultConnection")
                     );
                     await msConnection.OpenAsync();
-                    
-                    var historySql = @"
+
+                    var historySql =
+                        @"
                         INSERT INTO OracleActivityHistory (SessionId, UserId, UserName, ActivityType, SqlCommand, TableName, AffectedRows, ExecutionTimeMs, IsSuccess, ClientIP, UserAgent, CreatedDate)
                         VALUES (@SessionId, @UserId, @UserName, @ActivityType, @SqlCommand, @TableName, @AffectedRows, @ExecutionTimeMs, @IsSuccess, @ClientIP, @UserAgent, GETDATE())";
-                    
-                    await msConnection.ExecuteAsync(historySql, new
-                    {
-                        SessionId = sessionId,
-                        UserId = GetCurrentUserId(),
-                        UserName = GetCurrentUserName(),
-                        ActivityType = "CONNECTION_TEST",
-                        SqlCommand = "SELECT 'Oracle Connection Success!' FROM DUAL",
-                        TableName = "DUAL",
-                        AffectedRows = 1,
-                        ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
-                        IsSuccess = isSuccess,
-                        ClientIP = GetClientIP(),
-                        UserAgent = GetUserAgent()
-                    });
+
+                    await msConnection.ExecuteAsync(
+                        historySql,
+                        new
+                        {
+                            SessionId = sessionId,
+                            UserId = GetCurrentUserId(),
+                            UserName = GetCurrentUserName(),
+                            ActivityType = "CONNECTION_TEST",
+                            SqlCommand = "SELECT 'Oracle Connection Success!' FROM DUAL",
+                            TableName = "DUAL",
+                            AffectedRows = 1,
+                            ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                            IsSuccess = isSuccess,
+                            ClientIP = GetClientIP(),
+                            UserAgent = GetUserAgent(),
+                        }
+                    );
                 }
                 catch (Exception historyEx)
                 {
@@ -694,26 +751,30 @@ namespace IPS_TH.Controllers
                         _configuration.GetConnectionString("DefaultConnection")
                     );
                     await msConnection.OpenAsync();
-                    
-                    var historySql = @"
+
+                    var historySql =
+                        @"
                         INSERT INTO OracleActivityHistory (SessionId, UserId, UserName, ActivityType, SqlCommand, TableName, AffectedRows, ExecutionTimeMs, IsSuccess, ErrorMessage, ClientIP, UserAgent, CreatedDate)
                         VALUES (@SessionId, @UserId, @UserName, @ActivityType, @SqlCommand, @TableName, @AffectedRows, @ExecutionTimeMs, @IsSuccess, @ErrorMessage, @ClientIP, @UserAgent, GETDATE())";
-                    
-                    await msConnection.ExecuteAsync(historySql, new
-                    {
-                        SessionId = sessionId,
-                        UserId = GetCurrentUserId(),
-                        UserName = GetCurrentUserName(),
-                        ActivityType = "CONNECTION_TEST",
-                        SqlCommand = "SELECT 'Oracle Connection Success!' FROM DUAL",
-                        TableName = "DUAL",
-                        AffectedRows = 0,
-                        ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
-                        IsSuccess = isSuccess,
-                        ErrorMessage = errorMessage,
-                        ClientIP = GetClientIP(),
-                        UserAgent = GetUserAgent()
-                    });
+
+                    await msConnection.ExecuteAsync(
+                        historySql,
+                        new
+                        {
+                            SessionId = sessionId,
+                            UserId = GetCurrentUserId(),
+                            UserName = GetCurrentUserName(),
+                            ActivityType = "CONNECTION_TEST",
+                            SqlCommand = "SELECT 'Oracle Connection Success!' FROM DUAL",
+                            TableName = "DUAL",
+                            AffectedRows = 0,
+                            ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                            IsSuccess = isSuccess,
+                            ErrorMessage = errorMessage,
+                            ClientIP = GetClientIP(),
+                            UserAgent = GetUserAgent(),
+                        }
+                    );
                 }
                 catch (Exception historyEx)
                 {
@@ -783,7 +844,7 @@ namespace IPS_TH.Controllers
             }
         }
 
-        // รัน SQL Query แบบยืดหยุ่นและแสดงผลเป็น DataTable
+        // รัน SQL Query แบบยืดหยุ่นและแสดงผลเป็น DataTable (เฉพาะ SELECT เท่านั้น)
         [HttpPost]
         public async Task<IActionResult> ExecuteQuery(string sqlQuery, string parameters = "")
         {
@@ -798,6 +859,13 @@ namespace IPS_TH.Controllers
                 if (string.IsNullOrWhiteSpace(sqlQuery))
                 {
                     return Json(new { success = false, message = "กรุณาระบุ SQL Query" });
+                }
+
+                // ตรวจสอบว่าเป็น SELECT เท่านั้น
+                var trimmedQuery = sqlQuery.Trim().ToUpper();
+                if (!trimmedQuery.StartsWith("SELECT"))
+                {
+                    return Json(new { success = false, message = "อนุญาตให้รันเฉพาะ SELECT เท่านั้น ไม่สามารถ UPDATE, INSERT, หรือ DELETE ได้" });
                 }
 
                 using var connection = _oracleContext.Database.GetDbConnection();
@@ -841,26 +909,30 @@ namespace IPS_TH.Controllers
                         _configuration.GetConnectionString("DefaultConnection")
                     );
                     await msConnection.OpenAsync();
-                    
-                    var historySql = @"
+
+                    var historySql =
+                        @"
                         INSERT INTO OracleActivityHistory (SessionId, UserId, UserName, ActivityType, SqlCommand, Parameters, TableName, AffectedRows, ExecutionTimeMs, IsSuccess, ClientIP, UserAgent, CreatedDate)
                         VALUES (@SessionId, @UserId, @UserName, @ActivityType, @SqlCommand, @Parameters, @TableName, @AffectedRows, @ExecutionTimeMs, @IsSuccess, @ClientIP, @UserAgent, GETDATE())";
-                    
-                    await msConnection.ExecuteAsync(historySql, new
-                    {
-                        SessionId = sessionId,
-                        UserId = GetCurrentUserId(),
-                        UserName = GetCurrentUserName(),
-                        ActivityType = "SELECT",
-                        SqlCommand = sqlQuery,
-                        Parameters = parameters,
-                        TableName = ExtractTableNameFromSql(sqlQuery),
-                        AffectedRows = rowCount,
-                        ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
-                        IsSuccess = isSuccess,
-                        ClientIP = GetClientIP(),
-                        UserAgent = GetUserAgent()
-                    });
+
+                    await msConnection.ExecuteAsync(
+                        historySql,
+                        new
+                        {
+                            SessionId = sessionId,
+                            UserId = GetCurrentUserId(),
+                            UserName = GetCurrentUserName(),
+                            ActivityType = "SELECT",
+                            SqlCommand = sqlQuery,
+                            Parameters = parameters,
+                            TableName = ExtractTableNameFromSql(sqlQuery),
+                            AffectedRows = rowCount,
+                            ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                            IsSuccess = isSuccess,
+                            ClientIP = GetClientIP(),
+                            UserAgent = GetUserAgent(),
+                        }
+                    );
                 }
                 catch (Exception historyEx)
                 {
@@ -893,27 +965,31 @@ namespace IPS_TH.Controllers
                         _configuration.GetConnectionString("DefaultConnection")
                     );
                     await msConnection.OpenAsync();
-                    
-                    var historySql = @"
+
+                    var historySql =
+                        @"
                         INSERT INTO OracleActivityHistory (SessionId, UserId, UserName, ActivityType, SqlCommand, Parameters, TableName, AffectedRows, ExecutionTimeMs, IsSuccess, ErrorMessage, ClientIP, UserAgent, CreatedDate)
                         VALUES (@SessionId, @UserId, @UserName, @ActivityType, @SqlCommand, @Parameters, @TableName, @AffectedRows, @ExecutionTimeMs, @IsSuccess, @ErrorMessage, @ClientIP, @UserAgent, GETDATE())";
-                    
-                    await msConnection.ExecuteAsync(historySql, new
-                    {
-                        SessionId = sessionId,
-                        UserId = GetCurrentUserId(),
-                        UserName = GetCurrentUserName(),
-                        ActivityType = "SELECT",
-                        SqlCommand = sqlQuery,
-                        Parameters = parameters,
-                        TableName = ExtractTableNameFromSql(sqlQuery),
-                        AffectedRows = 0,
-                        ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
-                        IsSuccess = isSuccess,
-                        ErrorMessage = errorMessage,
-                        ClientIP = GetClientIP(),
-                        UserAgent = GetUserAgent()
-                    });
+
+                    await msConnection.ExecuteAsync(
+                        historySql,
+                        new
+                        {
+                            SessionId = sessionId,
+                            UserId = GetCurrentUserId(),
+                            UserName = GetCurrentUserName(),
+                            ActivityType = "SELECT",
+                            SqlCommand = sqlQuery,
+                            Parameters = parameters,
+                            TableName = ExtractTableNameFromSql(sqlQuery),
+                            AffectedRows = 0,
+                            ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                            IsSuccess = isSuccess,
+                            ErrorMessage = errorMessage,
+                            ClientIP = GetClientIP(),
+                            UserAgent = GetUserAgent(),
+                        }
+                    );
                 }
                 catch (Exception historyEx)
                 {

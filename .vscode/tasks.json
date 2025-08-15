@@ -7,9 +7,9 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/IPS_TH.sln",
+                "${workspaceFolder}/IPS_TH.csproj",
                 "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
+                "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
         },
@@ -19,12 +19,12 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/IPS_TH.sln",
+                "${workspaceFolder}/IPS_TH.csproj",
                 "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
+                "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
-        }, 
+        },
         {
             "label": "watch",
             "command": "dotnet",
@@ -33,9 +33,13 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/IPS_TH.sln"
+                "${workspaceFolder}/IPS_TH.csproj"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "isBackground": true,
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
         }
     ]
 }
