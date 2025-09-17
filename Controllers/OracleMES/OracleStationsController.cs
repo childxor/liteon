@@ -16,7 +16,7 @@ namespace IPS_TH.Controllers
         private readonly OracleHistoryDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IOracleHistoryService _historyService;
-
+ 
         public OracleStationsController(
             OracleHistoryDbContext context,
             IConfiguration configuration,
@@ -1952,6 +1952,193 @@ namespace IPS_TH.Controllers
             {
                 Console.WriteLine($"MoveSerialNumbers - General error: {ex.Message}");
                 Console.WriteLine($"MoveSerialNumbers - Stack trace: {ex.StackTrace}");
+
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // เมธอดสำหรับย้าย Serial Numbers ไปยัง Pallet โดยตรง
+        [HttpPost]
+        public async Task<IActionResult> MoveSerialNumbersToPallet([FromBody] MoveSerialNumbersToPalletDto request)
+        {
+            try
+            {
+                Console.WriteLine($"MoveSerialNumbersToPallet - Request received:");
+                Console.WriteLine($"SourceCartonNo: {request?.SourceCartonNo}");
+                Console.WriteLine($"TargetPalletNo: {request?.TargetPalletNo}");
+                Console.WriteLine($"MoveEmpId: {request?.MoveEmpId}");
+
+                if (request == null)
+                {
+                    Console.WriteLine("MoveSerialNumbersToPallet - Request is null");
+                    return Json(new { success = false, message = "ข้อมูลที่ส่งมาไม่ถูกต้อง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.SourceCartonNo))
+                {
+                    Console.WriteLine("MoveSerialNumbersToPallet - SourceCartonNo is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขกล่องต้นทาง" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.TargetPalletNo))
+                {
+                    Console.WriteLine("MoveSerialNumbersToPallet - TargetPalletNo is null or empty");
+                    return Json(new { success = false, message = "กรุณาระบุหมายเลขพาเลทปลายทาง" });
+                }
+
+                // ตรวจสอบว่าไม่ย้ายไปยังพาเลทเดียวกัน
+                if (request.SourceCartonNo == request.TargetPalletNo)
+                {
+                    Console.WriteLine("MoveSerialNumbersToPallet - Source carton and target pallet are the same");
+                    return Json(new { success = false, message = "ไม่สามารถเปลี่ยนไปยังพาเลทเดียวกันได้" });
+                }
+
+                if (request.MoveEmpId <= 0)
+                {
+                    Console.WriteLine("MoveSerialNumbersToPallet - MoveEmpId is invalid");
+                    return Json(new { success = false, message = "กรุณาระบุรหัสพนักงานที่ย้าย" });
+                }
+
+                Console.WriteLine($"MoveSerialNumbersToPallet - All validations passed:");
+                Console.WriteLine($"SourceCartonNo: {request.SourceCartonNo}");
+                Console.WriteLine($"TargetPalletNo: {request.TargetPalletNo}");
+                Console.WriteLine($"MoveEmpId: {request.MoveEmpId}");
+                Console.WriteLine($"MoveSerialNumbersToPallet - This will change PALLET_NO only, CARTON_NO remains the same");
+
+                var connectionString = _configuration.GetConnectionString("OracleConnection");
+                using var connection = new OracleConnection(connectionString);
+
+                await connection.OpenAsync();
+                Console.WriteLine("MoveSerialNumbersToPallet - Connection opened successfully");
+                Console.WriteLine($"MoveSerialNumbersToPallet - Connection state: {connection.State}");
+
+                if (connection.State != ConnectionState.Open)
+                {
+                    Console.WriteLine(
+                        "MoveSerialNumbersToPallet - Connection is not open, attempting to open again"
+                    );
+                    await connection.OpenAsync();
+                }
+
+                using var transaction = connection.BeginTransaction();
+                Console.WriteLine("MoveSerialNumbersToPallet - Transaction started successfully");
+
+                try
+                {
+                    // ตรวจสอบว่ากล่องต้นทางมีอยู่จริง
+                    var sourceCartonSql = @"
+                        SELECT 
+                            c.CARTON_NO as CartonNo,
+                            c.WORK_ORDER as WorkOrder,
+                            c.PART_ID as PartId,
+                            c.CLOSE_FLAG as CloseFlag,
+                            c.CREATE_TIME as CreateTime,
+                            (SELECT COUNT(*) FROM g_sn_status s WHERE s.CARTON_NO = c.CARTON_NO) as SerialCount
+                        FROM g_pack_carton c
+                        WHERE c.CARTON_NO = :cartonNo";
+
+                    var sourceCarton = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        sourceCartonSql,
+                        new { cartonNo = request.SourceCartonNo },
+                        transaction
+                    );
+
+                    if (sourceCarton == null)
+                    {
+                        transaction.Rollback();
+                        return Json(new { success = false, message = "ไม่พบกล่องต้นทางที่ต้องการ" });
+                    }
+
+                    Console.WriteLine(
+                        $"MoveSerialNumbersToPallet - Source carton serial count: {sourceCarton.SerialCount}"
+                    );
+
+                                    if (sourceCarton.SerialCount == 0)
+                {
+                    transaction.Rollback();
+                    Console.WriteLine("MoveSerialNumbersToPallet - Source carton has no serial numbers");
+                    return Json(new { success = false, message = "กล่องต้นทางไม่มี Serial Numbers ที่จะเปลี่ยน Pallet" });
+                }
+
+                    // ตรวจสอบว่าพาเลทปลายทางมีอยู่จริง
+                    var targetPalletSql = @"
+                        SELECT 
+                            p.PALLET_NO as PalletNo,
+                            p.WORK_ORDER as WorkOrder,
+                            p.PART_ID as PartId,
+                            p.CLOSE_FLAG as CloseFlag
+                        FROM g_pack_pallet p
+                        WHERE p.PALLET_NO = :palletNo";
+
+                    var targetPallet = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                        targetPalletSql,
+                        new { palletNo = request.TargetPalletNo },
+                        transaction
+                    );
+
+                    if (targetPallet == null)
+                    {
+                        transaction.Rollback();
+                        return Json(new { success = false, message = "ไม่พบพาเลทปลายทางที่ต้องการ" });
+                    }
+
+                    // ย้าย Serial Numbers จากกล่องไปยังพาเลท
+                    var moveSerialSql = @"
+                        UPDATE g_sn_status 
+                        SET 
+                            PALLET_NO = :targetPalletNo 
+                        WHERE CARTON_NO = :sourceCartonNo";
+
+                    var serialRowsAffected = await connection.ExecuteAsync(
+                        moveSerialSql,
+                        new
+                        {
+                            targetPalletNo = request.TargetPalletNo,
+                            sourceCartonNo = request.SourceCartonNo
+                        },
+                        transaction
+                    );
+
+                    Console.WriteLine(
+                        $"MoveSerialNumbersToPallet - Successfully changed PALLET_NO for {serialRowsAffected} serial numbers"
+                    );
+                    Console.WriteLine(
+                        $"MoveSerialNumbersToPallet - Serial numbers in carton {request.SourceCartonNo} now belong to pallet {request.TargetPalletNo}"
+                    );
+
+                    // บันทึกการเปลี่ยนแปลง
+                    transaction.Commit();
+                    Console.WriteLine("MoveSerialNumbersToPallet - Transaction committed successfully");
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = $"เปลี่ยน Pallet ของ Serial Numbers สำเร็จ {serialRowsAffected} รายการ จากกล่อง {request.SourceCartonNo} ไปยังพาเลท {request.TargetPalletNo}",
+                        serialCount = serialRowsAffected
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"MoveSerialNumbersToPallet - Transaction error: {ex.Message}");
+                    Console.WriteLine($"MoveSerialNumbersToPallet - Stack trace: {ex.StackTrace}");
+
+                    try
+                    {
+                        transaction.Rollback();
+                        Console.WriteLine("MoveSerialNumbersToPallet - Transaction rolled back");
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        Console.WriteLine($"MoveSerialNumbersToPallet - Error during rollback: {rollbackEx.Message}");
+                    }
+
+                    return Json(new { success = false, message = ex.Message });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MoveSerialNumbersToPallet - General error: {ex.Message}");
+                Console.WriteLine($"MoveSerialNumbersToPallet - Stack trace: {ex.StackTrace}");
 
                 return Json(new { success = false, message = ex.Message });
             }

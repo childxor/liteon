@@ -16,6 +16,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore; // สำหรับ EF Core
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json; // เพิ่มการนำเข้าสำหรับ JsonConvert
+using Dapper; // เพิ่มเพื่อใช้งาน QueryAsync/ExecuteAsync ของ Dapper
 
 namespace IPS_TH.Controllers
 {
@@ -35,6 +36,9 @@ namespace IPS_TH.Controllers
 
         private readonly string _defaultConnectionString;
 
+        private readonly string _ces941ConnectionString;
+        private readonly string _hrIpsConnectionString;
+
         // Constructor ที่รับ ApplicationDbContext
         public AuthenController(
             ApplicationDbContext context,
@@ -52,6 +56,8 @@ namespace IPS_TH.Controllers
                 ?? _configuration["SQL944ConnectionString"];
             _defaultConnectionString = _configuration.GetConnectionString("DefaultConnection");
             _employeeController = employeeController;
+                        _ces941ConnectionString = _configuration.GetConnectionString("CES941");
+                        _hrIpsConnectionString = _configuration.GetConnectionString("HR_IPS");
         }
 
         [HttpGet]
@@ -104,6 +110,58 @@ namespace IPS_TH.Controllers
         public IActionResult Registers()
         {
             return View();
+        }
+
+        //function get department from CES941
+        public async Task<IActionResult> GetDepartmentsFromCES941(string aduser)
+        {
+            var departments = new List<Dictionary<string, object>>();
+            using (var connection = new SqlConnection(_ces941ConnectionString))
+            {
+                await connection.OpenAsync();
+                using (var command = new SqlCommand("SELECT ADUser, EmpNo, PrefixName, EmpName, EmpLName, TitleShort FROM vEmployee WHERE Language = 'EN' AND ADUser = @aduser", connection))
+                {
+                    command.Parameters.AddWithValue("@aduser", aduser);
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var row = new Dictionary<string, object>();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                            }
+                            departments.Add(row);
+                        }
+                    }
+                }
+            }
+            return Json(departments);
+        }
+
+        // ดึง TitleShort จาก CES941 ตาม ADUser (ใช้ภาษา EN)
+        private async Task<string> GetTitleShortFromCES941ByAdUser(string aduser)
+        {
+            if (string.IsNullOrWhiteSpace(aduser)) return string.Empty;
+            using (var connection = new SqlConnection(_ces941ConnectionString))
+            {
+                var query = "SELECT TOP 1 TitleShort,WorkArea FROM vEmployee WHERE Language = 'EN' AND ADUser = @aduser";
+                var result = await connection.QueryAsync<dynamic>(query, new { aduser });
+                return result.FirstOrDefault()?.TitleShort ?? string.Empty;
+            }
+        }
+
+        // ดึงทั้ง TitleShort และ WorkArea เพื่อเก็บใน Session
+        private async Task<(string TitleShort, string WorkArea)> GetDeptInfoFromCES941ByAdUser(string aduser)
+        {
+            if (string.IsNullOrWhiteSpace(aduser)) return (string.Empty, string.Empty);
+            using (var connection = new SqlConnection(_ces941ConnectionString))
+            {
+                var query = "SELECT TOP 1 TitleShort, WorkArea FROM vEmployee WHERE Language = 'EN' AND ADUser = @aduser";
+                var result = await connection.QueryAsync<dynamic>(query, new { aduser });
+                var row = result.FirstOrDefault();
+                return (row?.TitleShort?.ToString() ?? string.Empty, row?.WorkArea?.ToString() ?? string.Empty);
+            }
         }
 
         [HttpPost]
@@ -222,7 +280,9 @@ namespace IPS_TH.Controllers
                 );
                 HttpContext.Session.SetString("IsAdmin", isAdmin.ToString());
                 HttpContext.Session.SetString("Language", userAccount.Language ?? "th");
-                HttpContext.Session.SetString("Department", userAccount.Department ?? "");
+                var deptInfo = await GetDeptInfoFromCES941ByAdUser(domainUsername);
+                HttpContext.Session.SetString("Department", deptInfo.TitleShort ?? "");
+                HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? "");
                 HttpContext.Session.SetString("UserName", domainUsername ?? "");
 
                 // โหลดข้อมูลภาษาเมื่อ login

@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Principal;
-using System.Text.Encodings.Web; 
+using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Dapper;
 using IPS_TH.Data;
@@ -847,7 +847,7 @@ namespace IPS_TH.Controllers.Home
         [HttpGet]
         public async Task<IActionResult> GetAccessErrorStats()
         {
-            try
+            try 
             {
                 using (var connection = new SqlConnection(_sql944ConnectionString))
                 {
@@ -870,9 +870,11 @@ namespace IPS_TH.Controllers.Home
                             note, groupID, timeGroup, status, cardCategory, cardStatus, eatStatus, freeNumber, ATT_Free, 
                             cardNumberSP1, cardNumberSP2, cardNumberSP3, cardNumberSP4, cardNumberSP5, cardNumberSP6, 
                             FaceUserID, CREATEDATE
-                        FROM Person ";
+                        FROM Person 
+                        WHERE personID LIKE '%-2%'
+                        ORDER BY name";
 
-                    // test hotreload ฟหกดหกดasdfasdfasdfasdfasdfasdf
+                    // test hotreload 
 
                     _logger.LogInformation("Executing Person query...");
                     var persons = await connection.QueryAsync(personQuery);

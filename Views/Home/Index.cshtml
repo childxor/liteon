@@ -235,7 +235,20 @@
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped align-middle" id="phoneTable">
+                        <div id="phoneTableLoading" class="text-center py-4" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">กำลังโหลด...</span>
+                            </div>
+                            <p class="mt-2 text-muted">กำลังโหลดข้อมูลเบอร์โทรศัพท์...</p>
+                        </div>
+                        <div id="phoneTableError" class="text-center py-4" style="display: none;">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                            <p class="text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadPhoneList()">
+                                <i class="fas fa-redo me-1"></i>ลองใหม่
+                            </button>
+                        </div>
+                        <table class="table table-sm table-striped align-middle datatable" id="phoneTable" style="width: 100%">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 60px;"><i class="fas fa-hashtag me-1 text-secondary"></i>#</th>
@@ -247,9 +260,7 @@
                                 </tr>
                             </thead>
                             <tbody id="phoneTableBody">
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted">ไม่มีข้อมูล</td>
-                                </tr>
+                                <!-- ข้อมูลจะถูกโหลดผ่าน DataTable -->
                             </tbody>
                         </table>
                     </div>
@@ -260,73 +271,106 @@
         <script>
             (function(){
                 function renderPhoneTable(list){
-                    const tbody = document.getElementById('phoneTableBody');
-                    if(!tbody) return;
-                    if(!list || list.length === 0){
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูล</td></tr>';
+                    // ตรวจสอบว่า DataTable ถูกสร้างแล้วหรือไม่
+                    if (!window.phoneDataTable || !window.phoneDataTable.clear) {
+                        console.warn('DataTable ยังไม่เริ่มต้น');
                         return;
                     }
-                    const keyword = (document.getElementById('phoneSearch')?.value || '').toLowerCase();
-                    const filtered = list.filter(x => {
-                        const name = (x.name || '').toString().toLowerCase();
-                        const dept = (x.deptName || '').toString().toLowerCase();
-                        const phone = (x.phone || '').toString().toLowerCase();
-                        const pid = (x.personID || '').toString().toLowerCase();
-                        const card = (x.cardNumber || '').toString().toLowerCase();
-                        const all = [name, dept, phone, pid, card].join(' ');
-                        return !keyword || all.includes(keyword);
-                    });
-                    let html = '';
-                    filtered.forEach((x, idx) => {
-                        html += '<tr>'+
-                            '<td>'+ (idx+1) +'</td>'+
-                            '<td>'+ (x.cardNumber || '-') +'</td>'+
-                            '<td>'+ (x.name || '-') +'</td>'+
-                            '<td>'+ (x.deptName || '-') +'</td>'+
-                            '<td>'+ (x.phone || '-') +'</td>'+
-                            '<td>'+
-                                '<div class="btn-group btn-group-sm" role="group">'+
-                                    '<button type="button" class="btn btn-outline-primary btn-edit-phone" data-person="'+ (x.personID || '') +'" data-name="'+ (x.name || '') +'" data-dept="'+ (x.deptName || '') +'" data-phone="'+ (x.phone || '') +'"><i class="fas fa-pen"></i></button>'+
-                                    '<button type="button" class="btn btn-outline-danger btn-clear-phone" data-person="'+ (x.personID || '') +'" data-name="'+ (x.name || '') +'"><i class="fas fa-trash"></i></button>'+
-                                '</div>'+
-                            '</td>'+
-                        '</tr>';
-                    });
-                    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูล</td></tr>';
-                    document.getElementById('phoneCount').textContent = (filtered.length || 0) + ' รายการ';
+                    
+                    if(!list || list.length === 0){
+                        // ล้างข้อมูลใน DataTable
+                        window.phoneDataTable.clear().draw();
+                        document.getElementById('phoneCount').textContent = '0 รายการ';
+                        return;
+                    }
+                    
+                    // สร้างข้อมูลสำหรับ DataTable
+                    const tableData = list.map((x, idx) => [
+                        (idx + 1).toString(),
+                        (x.cardNumber || '-'),
+                        (x.name || '-'),
+                        (x.deptName || '-'),
+                        (x.phone || '-'),
+                        `<div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-edit-phone" data-person="${x.personID || ''}" data-name="${x.name || ''}" data-dept="${x.deptName || ''}" data-phone="${x.phone || ''}">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-clear-phone" data-person="${x.personID || ''}" data-name="${x.name || ''}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>`
+                    ]);
+                    
+                    try {
+                        // อัปเดตข้อมูลใน DataTable
+                        window.phoneDataTable.clear().rows.add(tableData).draw();
+                        
+                        // อัปเดตจำนวนรายการ
+                        document.getElementById('phoneCount').textContent = (list.length || 0) + ' รายการ';
+                    } catch (error) {
+                        console.error('เกิดข้อผิดพลาดในการอัปเดต DataTable:', error);
+                        // ลองเริ่มต้น DataTable ใหม่
+                        if (window.phoneDataTable && window.phoneDataTable.destroy) {
+                            window.phoneDataTable.destroy();
+                            window.phoneDataTable = null;
+                        }
+                        initializePhoneDataTable();
+                        // ลองอัปเดตข้อมูลอีกครั้ง
+                        setTimeout(() => {
+                            if (window.phoneDataTable && window.phoneDataTable.clear) {
+                                window.phoneDataTable.clear().rows.add(tableData).draw();
+                                document.getElementById('phoneCount').textContent = (list.length || 0) + ' รายการ';
+                            }
+                        }, 100);
+                    }
                 }
 
                 function loadPhoneList(){
                     const section = document.getElementById('phoneListSection');
+                    const loadingEl = document.getElementById('phoneTableLoading');
+                    const errorEl = document.getElementById('phoneTableError');
+                    const tableEl = document.getElementById('phoneTable');
+                    
+                    // แสดง section ก่อน
+                    if(section) section.style.display = '';
+                    
+                    // แสดง loading state
+                    if(loadingEl) loadingEl.style.display = '';
+                    if(errorEl) errorEl.style.display = 'none';
+                    if(tableEl) tableEl.style.display = 'none';
+                    
+                    // ตรวจสอบว่า DataTable เริ่มต้นแล้วหรือไม่
+                    if (!window.phoneDataTable || !window.phoneDataTable.clear) {
+                        console.warn('DataTable ยังไม่เริ่มต้น กำลังรอ...');
+                        // รอให้ DataTable เริ่มต้นแล้วค่อยโหลดข้อมูล
+                        setTimeout(loadPhoneList, 500);
+                        return;
+                    }
+                    
                     fetch((window.appBasePath || '') + 'Home/GetPhoneList')
                         .then(r => r.json())
                         .then(res => {
+                            // ซ่อน loading state
+                            if(loadingEl) loadingEl.style.display = 'none';
+                            if(tableEl) tableEl.style.display = '';
+                            
                             if(res && res.success){
-                                if(section) section.style.display = '';
                                 renderPhoneTable(res.data || []);
                             } else {
-                                if(section) section.style.display = '';
                                 renderPhoneTable([]);
                             }
                         })
-                        .catch(() => {
-                            if(section) section.style.display = '';
-                            renderPhoneTable([]);
+                        .catch((error) => {
+                            console.error('เกิดข้อผิดพลาดในการโหลดข้อมูลเบอร์โทรศัพท์:', error);
+                            
+                            // ซ่อน loading state และแสดง error state
+                            if(loadingEl) loadingEl.style.display = 'none';
+                            if(errorEl) errorEl.style.display = '';
+                            if(tableEl) tableEl.style.display = 'none';
                         });
                 }
 
                 document.addEventListener('DOMContentLoaded', function(){
-                    const search = document.getElementById('phoneSearch');
-                    if(search){
-                        search.addEventListener('input', function(){
-                            try{
-                                // เก็บข้อมูลล่าสุดไว้ในตัวแปรบน window เพื่อประสิทธิภาพ
-                                if(window._phoneCache){
-                                    renderPhoneTable(window._phoneCache);
-                                }
-                            }catch{}
-                        });
-                    }
                     // โหลดข้อมูลครั้งแรก และแคชไว้
                     const originalRender = renderPhoneTable;
                     window.renderPhoneTable = function(list){
@@ -490,22 +534,21 @@
                         });
                     }
 
-                    // ปุ่มแก้ไข/ลบ ในตาราง (Event Delegation)
-                    document.getElementById('phoneTable')?.addEventListener('click', function(e){
-                        const target = e.target.closest('button');
-                        if(!target) return;
-                        if(target.classList.contains('btn-edit-phone')){
-                            const pid = target.getAttribute('data-person') || '';
-                            const name = target.getAttribute('data-name') || '';
-                            const dept = target.getAttribute('data-dept') || '';
-                            const phone = target.getAttribute('data-phone') || '';
-                            openEditModal(pid, name, dept, phone);
-                        }
-                        if(target.classList.contains('btn-clear-phone')){
-                            const pid = target.getAttribute('data-person') || '';
-                            const name = target.getAttribute('data-name') || '';
-                            openClearModal(pid, name);
-                        }
+                    // ปุ่มแก้ไข/ลบ ในตาราง (Event Delegation สำหรับ DataTable)
+                    $(document).on('click', '#phoneTable .btn-edit-phone', function(e){
+                        e.preventDefault();
+                        const pid = $(this).data('person') || '';
+                        const name = $(this).data('name') || '';
+                        const dept = $(this).data('dept') || '';
+                        const phone = $(this).data('phone') || '';
+                        openEditModal(pid, name, dept, phone);
+                    });
+                    
+                    $(document).on('click', '#phoneTable .btn-clear-phone', function(e){
+                        e.preventDefault();
+                        const pid = $(this).data('person') || '';
+                        const name = $(this).data('name') || '';
+                        openClearModal(pid, name);
                     });
                 });
             })();
@@ -1822,6 +1865,111 @@
         margin-top: 0.1rem;
         font-size: 0.6rem;
     }
+
+    /* CSS สำหรับ DataTable */
+    #phoneTable.dataTable {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+
+    #phoneTable.dataTable thead th {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 0.75rem 0.5rem;
+        vertical-align: middle;
+    }
+
+    #phoneTable.dataTable tbody td {
+        padding: 0.75rem 0.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+    #phoneTable.dataTable tbody tr:hover {
+        background-color: rgba(74, 144, 226, 0.05);
+        transition: background-color 0.2s ease;
+    }
+
+    /* ปรับแต่ง DataTable Controls */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        margin: 0.5rem 0;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        margin-left: 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter input:focus {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+        outline: 0;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        margin: 0 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        margin: 0 0.125rem;
+        background: white;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #4a90e2;
+        color: white;
+        border-color: #4a90e2;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #4a90e2;
+        color: white;
+        border-color: #4a90e2;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        color: #6c757d;
+        cursor: not-allowed;
+        background: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    /* Responsive สำหรับ DataTable */
+    @@media (max-width: 768px) {
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+        
+        #phoneTable.dataTable thead th,
+        #phoneTable.dataTable tbody td {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.875rem;
+        }
+    }
 </style>
 
 <!-- Add Raindrops -->
@@ -1935,6 +2083,21 @@
             createRaindrops();
             // Setup toggle details functionality
             setupToggleDetails();
+            
+            // ตรวจสอบและรอให้ DataTable library โหลดเสร็จ
+            if (typeof $.fn.DataTable === 'undefined') {
+                // ถ้า DataTable ยังไม่โหลด ให้รอ
+                const checkDataTable = setInterval(function() {
+                    if (typeof $.fn.DataTable !== 'undefined') {
+                        clearInterval(checkDataTable);
+                        // เริ่มต้น DataTable หลังจาก library โหลดเสร็จ
+                        setTimeout(initializePhoneDataTable, 100);
+                    }
+                }, 100);
+            } else {
+                // ถ้า DataTable โหลดแล้ว ให้เริ่มต้นทันที
+                setTimeout(initializePhoneDataTable, 100);
+            }
 
             // รีเฟรชสถิติตู้ทุก ๆ 30 วินาที
             setInterval(loadCabinetStats, 30000);
@@ -1983,8 +2146,97 @@
             });
         });
 
+
+        // ฟังก์ชันเริ่มต้น DataTable สำหรับตารางเบอร์โทรศัพท์
+        function initializePhoneDataTable() {
+            // ตรวจสอบว่า DataTable library โหลดแล้ว
+            if (typeof $.fn.DataTable === 'undefined') {
+                console.warn('DataTable library ยังไม่โหลด');
+                return;
+            }
+            
+            // ตรวจสอบว่า element phoneTable มีอยู่
+            if ($('#phoneTable').length === 0) {
+                console.warn('ไม่พบ element phoneTable');
+                return;
+            }
+            
+            // ตรวจสอบว่า DataTable ถูกเริ่มต้นแล้วหรือไม่
+            if ($.fn.DataTable.isDataTable('#phoneTable')) {
+                console.log('DataTable ถูกเริ่มต้นแล้ว');
+                window.phoneDataTable = $('#phoneTable').DataTable();
+                return;
+            }
+            
+            // เริ่มต้น DataTable พร้อมข้อมูลเริ่มต้น
+            try {
+                window.phoneDataTable = $('#phoneTable').DataTable({
+                    data: [],
+                    columns: [
+                        { title: '#', width: '60px' },
+                        { title: 'CardNumber' },
+                        { title: 'ชื่อ' },
+                        { title: 'แผนก' },
+                        { title: 'เบอร์โทรศัพท์' },
+                        { title: 'การจัดการ', width: '160px', orderable: false, searchable: false }
+                    ],
+                    language: {
+                        url: '/js/datatables/i18n/th.json',
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการต่อหน้า",
+                        info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                        infoEmpty: "แสดง 0 ถึง 0 จาก 0 รายการ",
+                        infoFiltered: "(กรองจาก _MAX_ รายการทั้งหมด)",
+                        paginate: {
+                            first: "หน้าแรก",
+                            previous: "ก่อนหน้า",
+                            next: "ถัดไป",
+                            last: "หน้าสุดท้าย"
+                        },
+                        emptyTable: "ไม่มีข้อมูลในตาราง",
+                        zeroRecords: "ไม่พบข้อมูลที่ค้นหา"
+                    },
+                    responsive: {
+                        details: {
+                            display: $.fn.dataTable.Responsive.display.modal({
+                                header: function(row) {
+                                    var data = row.data();
+                                    return '<h5 class="modal-title">รายละเอียด: ' + data[2] + '</h5>';
+                                }
+                            }),
+                            renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+                                tableClass: 'table table-sm table-bordered'
+                            })
+                        }
+                    },
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6"f>>' +
+                         '<"row"<"col-md-12"tr>>' +
+                         '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                    pageLength: 10,
+                    order: [[0, 'asc']],
+                    columnDefs: [
+                        {
+                            targets: [0], // คอลัมน์ #
+                            className: 'text-center'
+                        },
+                        {
+                            targets: [5], // คอลัมน์การจัดการ
+                            className: 'text-center'
+                        }
+                    ]
+                });
+                
+                console.log('DataTable สำหรับตารางเบอร์โทรศัพท์เริ่มต้นสำเร็จ');
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการเริ่มต้น DataTable:', error);
+            }
+        }
+
         function clearCharts() {
             try {
+                // ทำความสะอาด Charts
                 if (window.departmentChart && window.departmentChart.destroy) window.departmentChart.destroy();
                 if (window.monthlyChart && window.monthlyChart.destroy) window.monthlyChart.destroy();
                 if (window.leaveByMonthChart && window.leaveByMonthChart.destroy) window.leaveByMonthChart.destroy();
@@ -2001,6 +2253,8 @@
                         if (chart) chart.destroy();
                     });
                 }
+                
+                // ทำความสะอาด DataTable
             } catch (e) {
                 console.warn('Chart cleanup warning:', e);
             }
@@ -2253,7 +2507,7 @@
             $('#damagedComputers').text('0');
             $('#disposedComputers').text('0');
             $('#inactiveComputers').text('0');
-            $('#spareComputers').text('0');
+            $('#spareComputers').text('0'); 
             $('#computersWithMac').text('0');
 
             // แสดงส่วน Cabinet & Computer Stats Cards แม้จะเกิดข้อผิดพลาด
@@ -3158,6 +3412,7 @@
                 alert(message);
             }
         }
+        
         // Add raindrops animation
         function createRaindrops() {
             const container = document.getElementById('raindrops');

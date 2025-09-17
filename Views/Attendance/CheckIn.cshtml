@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 }
-
+ 
 <style>
     .badge.bg-info {
         font-size: 0.9rem;
@@ -97,6 +97,54 @@
         box-shadow: 0 2px 5px rgba(78, 115, 223, 0.2);
         border: none;
         font-weight: 600;
+    }
+
+    /* ปุ่มประวัติการเปลี่ยนกะ */
+    .shift-history-btn {
+        transition: all 0.3s ease;
+        border: 1px solid #007bff;
+        background-color: #ffffff;
+        color: #007bff;
+        min-width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shift-history-btn:hover {
+        background-color: #007bff;
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        border-color: #007bff;
+    }
+
+    .shift-history-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+    }
+
+    .shift-history-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    .shift-history-btn i {
+        font-size: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .shift-history-btn:hover i {
+        transform: scale(1.1);
+    }
+
+    /* เพิ่ม animation สำหรับการโหลดข้อมูล */
+    .shift-history-loading {
+        animation: pulse 1.5s infinite;
     }
 
     .dept-info {
@@ -351,53 +399,55 @@
             white-space: nowrap;
             padding: 0.5rem 0.75rem;
             vertical-align: middle;
-        }
-
-        /* ให้คอลัมป์ที่มีเนื้อหายาวสามารถขยายได้ */
-        #mTable th,
-        #mTable td {
             max-width: none;
             width: auto;
         }
 
-            /* คอลัมป์สำคัญกำหนด min-width เท่านั้น เพื่อให้ยืดได้ */
-            #mTable th:nth-child(2), /* รหัสพนักงาน */
-            #mTable td:nth-child(2) {
-                min-width: 100px;
-                width: auto;
-            }
+    /* Keyframes สำหรับ animation */
+    @@keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
 
-            #mTable th:nth-child(3), /* ชื่อ-นามสกุล */
-            #mTable td:nth-child(3) {
-                min-width: 150px;
-                width: auto;
-                white-space: normal;
-                word-wrap: break-word;
-            }
+        /* คอลัมป์สำคัญกำหนด min-width เท่านั้น เพื่อให้ยืดได้ */
+        #mTable th:nth-child(2), /* รหัสพนักงาน */
+        #mTable td:nth-child(2) {
+            min-width: 100px;
+            width: auto;
+        }
 
-            /* ปรับคอลัมป์เวลาเข้า-ออกให้ยืดได้ตามเนื้อหา */
-            #mTable th:nth-child(9), /* เวลาเข้า-ออก */
-            #mTable td:nth-child(9) {
-                min-width: 180px;
-                width: auto;
-                white-space: normal;
-            }
+        #mTable th:nth-child(3), /* ชื่อ-นามสกุล */
+        #mTable td:nth-child(3) {
+            min-width: 150px;
+            width: auto;
+            white-space: normal;
+            word-wrap: break-word;
+        }
 
-            /* ปรับคอลัมป์สถานะ */
-            #mTable th:nth-child(11), /* สถานะ */
-            #mTable td:nth-child(11) {
-                min-width: 100px;
-                width: auto;
-                text-align: center;
-            }
+        /* ปรับคอลัมป์เวลาเข้า-ออกให้ยืดได้ตามเนื้อหา */
+        #mTable th:nth-child(9), /* เวลาเข้า-ออก */
+        #mTable td:nth-child(9) {
+            min-width: 180px;
+            width: auto;
+            white-space: normal;
+        }
 
-            /* ปรับคอลัมป์จัดการ */
-            #mTable th:nth-child(12), /* จัดการ */
-            #mTable td:nth-child(12) {
-                min-width: 80px;
-                width: auto;
-                text-align: center;
-            }
+        /* ปรับคอลัมป์สถานะ */
+        #mTable th:nth-child(11), /* สถานะ */
+        #mTable td:nth-child(11) {
+            min-width: 100px;
+            width: auto;
+            text-align: center;
+        }
+
+        /* ปรับคอลัมป์จัดการ */
+        #mTable th:nth-child(12), /* จัดการ */
+        #mTable td:nth-child(12) {
+            min-width: 80px;
+            width: auto;
+            text-align: center;
+        }
 
             /* คอลัมป์อื่นๆ ให้ยืดอัตโนมัติ */
             #mTable th:nth-child(4), /* แผนก */
@@ -1086,18 +1136,15 @@
                                                         <i class="far fa-clock"></i>
                                                     </span>
                                                     <select class="form-select shadow-none" id="shiftFilter">
-                                                        <option value="all">ทั้งหมด</option>
+                                                        <option value="all" selected>ทั้งหมด</option>
                                                         @foreach (var shift in ViewBag.Shiftdept)
                                                         {
-                                                            <option value="@shift.shift_code">
-                                                                @shift.shift_name
-                                                                (@shift.shift_group)
-                                                            </option>
+                                                            <option value="@shift.wrkPlanID">@shift.wrkPlanID</option>
                                                         }
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
+                                            <div class="col-6"> 
                                                 <div class="input-group mb-2">
                                                     <span class="input-group-text bg-gradient-primary text-white">
                                                         <i class="fas fa-users"></i>
@@ -1108,19 +1155,25 @@
                                                             <option value="all" selected>ทั้งหมด</option>
                                                             @foreach (var dept in ViewBag.Dept)
                                                             {
-                                                                <option value="@dept.name">@dept.name</option>
+                                                                <option value="@dept.deptID">@dept.deptID</option>
                                                             }
                                                         }
                                                         else
                                                         {
-                                                            @foreach (var dept in ViewBag.Dept)
-                                                            {
-                                                                if (dept.name == sessionDept)
-                                                                {
-                                                                    <option value="@dept.name" selected>@dept.name</option>
-                                                                }
-                                                            }
+                                                            <option value="@ViewData["CurrentUserDepartment"]" selected>@ViewData["CurrentUserDepartment"]</option>
                                                         }
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="input-group mb-2">
+                                                    <span class="input-group-text bg-gradient-primary text-white">
+                                                        <i class="fas fa-user-check"></i>
+                                                    </span>
+                                                    <select class="form-select shadow-none" id="idlFilter">
+                                                        <option value="all" selected>พนักงานทั้งหมด</option>
+                                                        <option value="monthly">พนักงานรายเดือน</option>
+                                                        <option value="daily">พนักงานรายวัน</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -1250,12 +1303,12 @@
                                         <input class="form-check-input column-toggle" type="checkbox" value="4" id="col-rDate" checked>
                                         <label class="form-check-label small" for="col-rDate">
                                             <i class="fas fa-calendar-alt me-1"></i>วันที่
-                                        </label>
+                                        </label> 
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-check">
-                                        <input class="form-check-input column-toggle" type="checkbox" value="5" id="col-shiftGroup">
+                                        <input class="form-check-input column-toggle" type="checkbox" value="5" id="col-shiftGroup" checked>
                                         <label class="form-check-label small" for="col-shiftGroup">
                                             <i class="fas fa-layer-group me-1"></i>กลุ่มของกะ
                                         </label>
@@ -1442,18 +1495,18 @@
                             <option value="" selected>-- เลือกแผนก --</option>
                             @if (canEdit)
                             {
-                                foreach (var dept in ViewBag.Dept)
+                                foreach (var dept in ViewBag.Shiftfromces941)
                                 {
-                                    <option value="@dept.name">@dept.name</option>
+                                    <option value="@dept.WrkPlanID">@dept.WrkPlanID</option>
                                 }
                             }
                             else
                             {
-                                foreach (var dept in ViewBag.Dept)
+                                foreach (var dept in ViewBag.Shiftfromces941)
                                 {
-                                    if (ViewData["CurrentUserDepartment"] != null && dept.name == ViewData["CurrentUserDepartment"].ToString())
+                                    if (ViewData["CurrentUserDepartment"] != null && dept.WrkPlanID == ViewData["CurrentUserDepartment"].ToString())
                                     {
-                                        <option value="@dept.name" selected>@dept.name</option>
+                                        <option value="@dept.WrkPlanID" selected>@dept.WrkPlanID</option>
                                     }
                                 }
                             }
@@ -1466,11 +1519,11 @@
                             <i class="fas fa-clock me-1 text-primary"></i>กะการทำงาน
                         </label>
                         <select class="form-select" id="shiftSelect" name="shift" required>
-                            <option value="" selected>-- เลือกกะการทำงาน --</option>
-                            @foreach (var shift in ViewBag.Shiftdept)
+                            <option value="" selected>-- เลือกกะการทำงาน --</option> 
+                            @foreach (var shift in ViewBag.Shiftfromces941)
                             {
-                                <option value="@shift.shift_group" data-start="@shift.start_time" data-end="@shift.end_time">
-                                    @shift.shift_name (@shift.shift_group) - @shift.start_time - @shift.end_time
+                                <option value="@shift.WrkPlanID" data-start="@shift.startTime" data-end="@shift.endTime">
+                                    @shift.WrkPlanID (@shift.WrkPlanID) - @shift.startTime - @shift.endTime
                                 </option>
                             }
                         </select>
@@ -2284,6 +2337,42 @@
                 padding: 6px 4px !important;
             }
         }
+
+        /* Custom colors for leave type badges */
+        .badge.bg-orange {
+            background-color: #fd7e14 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-teal {
+            background-color: #20c997 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-indigo {
+            background-color: #6610f2 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-pink {
+            background-color: #e83e8c !important;
+            color: white !important;
+        }
+        
+        .badge.bg-cyan {
+            background-color: #0dcaf0 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-lime {
+            background-color: #84cc16 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-amber {
+            background-color: #f59e0b !important;
+            color: white !important;
+        }
     </style>
     
     <script>
@@ -2638,7 +2727,7 @@
                                         width: '80px',
                                         render: function(data, type, row) {
                                             // ตรวจสอบว่าเป็น adisaks หรือไม่
-                                            var currentUsername = '@ViewBag.UserName';
+                                            var currentUsername = '@ViewBag.UserName'.toLowerCase();
                                             var isAdisak = (currentUsername === 'adisaks');
 
                                             if (!isAdisak) {
@@ -2722,13 +2811,16 @@
                             endDate: moment().format('YYYY-MM-DD'),
                             shiftFilter: 'all'
                         };
-                        // สร้าง DataTable โดยใช้ค่า filter เริ่มต้น
-                        dataTable = createDataTable(initialFilters);
+                        // โหลดปลั๊กอินปุ่ม แล้วค่อยสร้าง DataTable
+                        ensureDataTablesButtons().then(function() {
+                            // สร้าง DataTable โดยใช้ค่า filter เริ่มต้น
+                            dataTable = createDataTable(initialFilters);
 
-                        // อัพเดตการแสดงคอลัมป์หลังจากสร้างตารางเสร็จ
-                        setTimeout(function() {
-                            updateColumnVisibility();
-                        }, 500);
+                            // อัพเดตการแสดงคอลัมป์หลังจากสร้างตารางเสร็จ
+                            setTimeout(function() {
+                                updateColumnVisibility();
+                            }, 500);
+                        });
                         // จัดการ Date Range Toggle
                         $('#dateRangeToggle').change(function() {
                             const isChecked = $(this).prop('checked');
@@ -2880,13 +2972,23 @@
                                 }
                             });
                         });
-                        // แก้ไข: เปลี่ยนจากการกดที่แถวเป็นการกดที่คอลัมน์กะเท่านั้น
-                        $('#mTable').on('click', 'tbody td:nth-child(7)', function() {
+                        // Event handler สำหรับการคลิกที่ปุ่มประวัติการเปลี่ยนกะ
+                        $('#mTable').on('click', '.shift-history-btn', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
                             const data = dataTable.row($(this).closest('tr')).data();
                             if (data) {
                                 showShiftHistory(data);
                             }
                         });
+
+                        // Event handler สำหรับการคลิกที่คอลัมน์กะ (ยกเลิกการใช้งานเดิม)
+                        // $('#mTable').on('click', 'tbody td:nth-child(7)', function() {
+                        //     const data = dataTable.row($(this).closest('tr')).data();
+                        //     if (data) {
+                        //         showShiftHistory(data);
+                        //     }
+                        // });
 
                         // Event handler สำหรับปุ่มเพิ่มโอที
                         $('#mTable').on('click', '.add-ot-btn', function(e) {
@@ -2931,15 +3033,18 @@
                         $('#employeeInfo').text(`${personName} (${personId})`);
                         $('#departmentInfo').text(deptName);
                         // เก็บข้อมูลสำหรับการเพิ่มกะ
-                        $('#shiftPersonId').val(personId);
+                        $('#shiftPersonId').val(personId); 
                         // แสดง loading
                         $('.shift-history-container').html(`
-                    <div class="d-flex justify-content-center p-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">กำลังโหลดข้อมูล...</span>
-                        </div>
-                    </div>
-                    `);
+                            <div class="d-flex justify-content-center p-3">
+                                <div class="spinner-border text-primary shift-history-loading" role="status">
+                                    <span class="visually-hidden">กำลังโหลดข้อมูล...</span>
+                                </div>
+                                <div class="ms-3">
+                                    <small class="text-muted">กำลังโหลดประวัติการเปลี่ยนกะ...</small>
+                                </div>
+                            </div>
+                        `);
                         // เปิด modal
                         const shiftHistoryModal = new bootstrap.Modal(document.getElementById('shiftHistoryModal'));
                         shiftHistoryModal.show();
@@ -3442,6 +3547,7 @@
                         const filters = {
                             dept: $(document.getElementById('selectDistrup')).val(),
                             personName: $('#employeeNameSearch').val(),
+                            idlFilter: $('#idlFilter').val() || 'all',
                             startDate: isDateRange ?
                                 ($('#startDate').val() || currentDate) : ($('#selectedDate').val() || currentDate),
                             endDate: isDateRange ?
@@ -3476,6 +3582,7 @@
                                 $('#selectDistrup').val(filters.dept);
                             }
                             $('#employeeNameSearch').val(filters.personName);
+                            $('#idlFilter').val(filters.idlFilter || 'all');
                             $('#shiftFilter').val(filters.shiftFilter);
                             $('#hideAbsentSwitch').prop('checked', filters.hideAbsent);
                             $('#hideResignedSwitch').prop('checked', filters.hideResigned);
@@ -3483,6 +3590,41 @@
                             return filters;
                         }
                         return null;
+                    }
+
+                    // ฟังก์ชันช่วยโหลดสคริปต์และสไตล์สำหรับปุ่ม Export (DataTables Buttons)
+                    function loadScript(url) {
+                        return new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = url;
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+
+                    function loadCss(url) {
+                        if ([...document.styleSheets].some(s => s.href && s.href.indexOf(url) !== -1)) return;
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = url;
+                        document.head.appendChild(link);
+                    }
+
+                    async function ensureDataTablesButtons() {
+                        // โหลด CSS ของ Buttons (ธีม Bootstrap 5)
+                        loadCss('https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css');
+
+                        // โหลด JSZip ถ้ายังไม่มี (สำหรับ Excel)
+                        if (!window.JSZip) {
+                            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+                        }
+                        // โหลดปลั๊กอิน Buttons ของ DataTables ถ้ายังไม่มี
+                        if (!($.fn.dataTable && $.fn.dataTable.Buttons)) {
+                            await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js');
+                            await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js');
+                            await loadScript('https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js');
+                        }
                     }
                     // ฟังก์ชันสร้าง DataTable
                     function createDataTable(initialFilters) {
@@ -3497,15 +3639,17 @@
                             {
                                 title: "<i class='fas fa-id-card me-2'></i>รหัสพนักงาน",
                                 data: "personID",
+                                name: "empId",
                                 orderable: false,
                                 className: "align-middle"
                             },
                             {
                                 title: "<i class='fas fa-user me-2'></i>ชื่อ-นามสกุล",
                                 data: "personName",
+                                name: "empName",
                                 className: "align-middle",
                                 render: function(data, type, row) {
-                                    let displayText = row.personName;
+                                    let displayText = '<span class="emp-name-text">' + row.personName + '</span>';
 
                                     // แสดงข้อมูลตู้เก็บของหรือปุ่มเพิ่มตู้
                                     if (row.cabinetInfo && row.cabinetInfo.No) {
@@ -3533,12 +3677,14 @@
                             {
                                 title: "<i class='fas fa-building me-2'></i>แผนก",
                                 data: "deptName",
+                                name: "dept",
                                 orderable: false,
                                 className: "align-middle"
                             },
                             {
                                 title: "<i class='fas fa-calendar-alt me-2'></i>วันที่",
                                 data: "rDate",
+                                name: "rdate",
                                 className: "align-middle",
                                 orderable: false,
                                 render: function(data) {
@@ -3548,15 +3694,43 @@
                             {
                                 title: "<i class='fas fa-layer-group me-2'></i>กลุ่มของกะ",
                                 data: "shift_group",
+                                name: "shiftGroup",
                                 className: "align-middle",
                                 orderable: false,
-                                render: function(data) {
-                                    return '<span class="badge bg-info">' + data + '</span>';
+                                render: function(data, type, row) {
+                                    var shiftfromsql944hrips = row.shiftfromsql944hrips;
+                                    // แสดงข้อมูล shift_group เสมอ แต่เพิ่มสัญลักษณ์เตือนเมื่อไม่ตรงกัน
+                                    if (shiftfromsql944hrips != data) {
+                                        return '<div class="d-flex align-items-center gap-1">' +
+                                               '<span class="badge bg-danger me-1" ' +
+                                               'title="กะปัจจุบัน: ' + (shiftfromsql944hrips || 'ไม่ระบุ') + ' | กะที่กำหนด: ' + (data || 'ไม่ระบุ') + '" ' +
+                                               'data-bs-toggle="tooltip" ' +
+                                               'onclick="showShiftDifference(\'' + (shiftfromsql944hrips || 'ไม่ระบุ') + '\', \'' + (data || 'ไม่ระบุ') + '\')" ' +
+                                               'style="cursor: pointer;">' + 
+                                               '<i class="fas fa-exclamation-triangle"></i>' + 
+                                               '</span>' +
+                                               '<span class="badge bg-warning text-dark">' + (data || 'ไม่ระบุ') + '</span>' +
+                                               '<button class="btn btn-sm btn-outline-primary ms-1" ' +
+                                               'title="อัพเดทกะจาก HR-IPS" ' +
+                                               'data-bs-toggle="tooltip" ' +
+                                               'onclick="updateShiftFromHR(\'' + row.personID + '\', \'' + row.rDate + '\', \'' + (shiftfromsql944hrips || '') + '\', \'' + (data || '') + '\', \'' + (row.deptName || '') + '\', \'' + (row.personName || '') + '\')" ' +
+                                               'style="padding: 2px 6px; font-size: 10px;">' +
+                                               '<i class="fas fa-sync-alt"></i>' +
+                                               '</button>' +
+                                               '</div>';
+                                    } else {
+                                        return '<span class="badge bg-info" ' +
+                                               'title="กะปัจจุบัน: ' + (shiftfromsql944hrips || 'ไม่ระบุ') + ' | กะที่กำหนด: ' + (data || 'ไม่ระบุ') + '" ' +
+                                               'data-bs-toggle="tooltip">' + 
+                                               data + 
+                                               '</span>';
+                                    }
                                 }
                             },
                             {
                                 title: "<i class='fas fa-clock me-2'></i>กะ <i class='fas fa-info-circle text-primary' data-bs-toggle='tooltip' title='คลิกเพื่อดูประวัติการเปลี่ยนกะ'></i>",
                                 data: "shift",
+                                name: "shiftCode",
                                 className: "align-middle shift-column",
                                 orderable: false,
                                 render: function(data) {
@@ -3566,7 +3740,11 @@
                                     return '<div class="d-flex align-items-center">' +
                                         icon +
                                         '<span class="ms-2">' + data + '</span>' +
-                                        '<i class="fas fa-history text-primary ms-2 small" data-bs-toggle="tooltip" title="คลิกเพื่อดูประวัติการเปลี่ยนกะ"></i>' +
+                                        '<button type="button" class="btn btn-sm btn-outline-primary ms-2 shift-history-btn" ' +
+                                        'data-bs-toggle="tooltip" title="คลิกเพื่อดูประวัติการเปลี่ยนกะ" ' +
+                                        'style="padding: 2px 6px; font-size: 10px; border-radius: 12px; cursor: pointer;">' +
+                                        '<i class="fas fa-history"></i>' +
+                                        '</button>' +
                                         '</div>';
                                 }
                             },
@@ -3723,6 +3901,7 @@
                             {
                                 title: "<i class='fas fa-business-time me-2'></i>เวลาทำงาน",
                                 data: null,
+                                name: "workHoursDeducted",
                                 className: "align-middle",
                                 orderable: false,
                                 render: function(data, type, row) {
@@ -3758,152 +3937,97 @@
                                 }
                             }
                         ];
-                        var currentUsername = '@ViewBag.UserName';
+                        var currentUsername = '@ViewBag.UserName'.toLowerCase();
                         var isAdisak = (currentUsername === 'adisaks');
                         // เพิ่มคอลัมน์พิเศษสำหรับผู้ใช้ adisaks
-                        if (isAdisak) {
+                        if (isAdisak) { 
                             columns.push({
                                 title: "<i class='fas fa-user-secret me-2'></i>",
                                 data: null,
                                 className: "text-center",
                                 orderable: false,
-                                width: "100px",
-                                render: function(data, type, row) {
+                                width: "200px",
+                                render: function(data, type, row) { 
                                     return `
-                                    <style>
-                                        .custom-dropdown {
-                                            position: relative;
-                                        }
-
-                                        .custom-dropdown .dropdown-menu {
-                                            z-index: 1021 !important;
-                                            position: absolute !important;
-                                            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-                                            border: none;
-                                            border-radius: 0.5rem;
-                                            min-width: 220px;
-                                            background: white;
-                                            transform-origin: top;
-                                            opacity: 0;
-                                            transform: scaleY(0);
-                                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                                            display: block !important;
-                                            margin: 0;
-                                            padding: 0.5rem;
-                                        }
-
-                                        .custom-dropdown .dropdown-menu.show {
-                                            opacity: 1;
-                                            transform: scaleY(1);
-                                        }
-
-                                        .custom-dropdown .dropdown-item {
-                                            padding: 0.75rem 1rem;
-                                            color: #333;
-                                            border-radius: 0.375rem;
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 0.75rem;
-                                            margin-bottom: 0.25rem;
-                                            transform: translateX(0);
-                                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                                            will-change: transform;
-                                        }
-
-                                        .custom-dropdown .dropdown-item:last-child {
-                                            margin-bottom: 0;
-                                        }
-
-                                        .custom-dropdown .dropdown-item:hover {
-                                            background: rgba(13, 110, 253, 0.1);
-                                            transform: translateX(5px);
-                                        }
-
-                                        .custom-dropdown .dropdown-item i {
-                                            width: 20px;
-                                            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                                            will-change: transform;
-                                        }
-
-                                        .custom-dropdown .dropdown-item:hover i {
-                                            transform: scale(1.2);
-                                        }
-
-                                        .custom-dropdown .btn-action {
-                                            background: none;
-                                            border: none;
-                                            color: #6c757d;
-                                            padding: 0.5rem;
-                                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                                            cursor: pointer;
-                                            border-radius: 0.375rem;
-                                        }
-
-                                        .custom-dropdown .btn-action:hover {
-                                            color: #0d6efd;
-                                            background: rgba(13, 110, 253, 0.1);
-                                        }
-
-                                        .custom-dropdown .dropdown-divider {
-                                            margin: 0.5rem 0;
-                                            border-top: 1px solid rgba(0, 0, 0, 0.1);
-                                        }
-                                    </style>
-                                    <div class="custom-dropdown">
-                                        <button class="btn-action" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v"></i>
+                                    <div class="d-flex flex-wrap gap-1 justify-content-center">
+                                        <button class="btn btn-xs btn-outline-success add-time-enter p-1" 
+                                                style="width: 24px; height: 24px; font-size: 10px;"
+                                                data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}"
+                                                title="เพิ่มเวลาเข้างาน">
+                                            <i class="fas fa-sign-in-alt"></i>
                                         </button>
-                                        <div class="dropdown-menu shadow-sm">
-                                            <a class="dropdown-item add-time-enter" href="#"
-                                               data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}">
-                                                <i class="fas fa-sign-in-alt text-success"></i>
-                                                <span>เพิ่มเวลาเข้างาน</span>
-                                            </a>
-
-                                            <a class="dropdown-item add-time-enter-day" href="#"
-                                               data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}">
-                                                <i class="fas fa-sun text-warning"></i>
-                                                <span>เพิ่มเวลาเข้ากลางวัน</span>
-                                            </a>
-
-                                            <div class="dropdown-divider"></div>
-
-                                            <a class="dropdown-item add-time-out" href="#"
-                                               data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}">
-                                                <i class="fas fa-sign-out-alt text-danger"></i>
-                                                <span>เพิ่มเวลาออกงานปกติ</span>
-                                            </a>
-
-                                            <a class="dropdown-item add-ot-out" href="#"
-                                               data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}">
-                                                <i class="fas fa-clock text-info"></i>
-                                                <span>เพิ่มเวลาออกงานแบบ OT</span>
-                                            </a>
-
-                                            <div class="dropdown-divider"></div>
-
-                                            <a class="dropdown-item add-custom-time" href="#"
-                                               data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}">
-                                                <i class="fas fa-edit text-primary"></i>
-                                                <span>ออกงานแบบกำหนดเวลาเอง</span>
-                                            </a>
-
-                                            <div class="dropdown-divider"></div>
-
-                                            <a class="dropdown-item view-delete-log" href="#"
-                                               data-person-id="${row.personID}" data-person-name="${row.personName}">
-                                                <i class="fas fa-history text-secondary"></i>
-                                                <span>ดูประวัติการลบ</span>
-                                            </a>
-                                        </div>
+                                        
+                                        <button class="btn btn-xs btn-outline-warning add-time-enter-day p-1" 
+                                                style="width: 24px; height: 24px; font-size: 10px;"
+                                                data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}"
+                                                title="เพิ่มเวลาเข้ากลางวัน">
+                                            <i class="fas fa-sun"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-xs btn-outline-danger add-time-out p-1" 
+                                                style="width: 24px; height: 24px; font-size: 10px;"
+                                                data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}"
+                                                title="เพิ่มเวลาออกงานปกติ">
+                                            <i class="fas fa-sign-out-alt"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-xs btn-outline-info add-ot-out p-1" 
+                                                style="width: 24px; height: 24px; font-size: 10px;"
+                                                data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}"
+                                                title="เพิ่มเวลาแบบ OT">
+                                            <i class="fas fa-clock"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-xs btn-outline-primary add-custom-time p-1" 
+                                                style="width: 24px; height: 24px; font-size: 10px;"
+                                                data-type="in" data-row-id="${row.personID}" data-rdate="${row.rDate}" data-shift="${row.shift}"
+                                                title="ออกงานแบบกำหนดเวลาเอง">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-xs btn-outline-secondary view-delete-log p-1" 
+                                                style="width: 24px; height: 24px; font-size: 10px;"
+                                                data-person-id="${row.personID}" data-person-name="${row.personName}"
+                                                title="ดูประวัติการลบ">
+                                            <i class="fas fa-history"></i>
+                                        </button>
                                     </div>`;
                                 }
                             });
                         }
+                       
                         // สร้าง DataTable ด้วยคอลัมน์ที่กำหนดแล้ว
                         var table = $('#mTable').DataTable({
                             processing: true,
                             serverSide: false,
+                            dom: 'Bfrtip',
+                            buttons: [
+                                {
+                                    extend: 'excelHtml5',
+                                    text: '<i class="fas fa-file-excel me-1"></i> ส่งออก Excel',
+                                    titleAttr: 'Export to Excel',
+                                    className: 'btn btn-success btn-sm',
+                                    title: 'Attendance_Export_' + moment().format('YYYYMMDD_HHmmss'),
+                                    exportOptions: {
+                                        columns: function (idx, data, node) {
+                                            return $(node).is(':visible') && !$(node).hasClass('details-control') && !$(node).hasClass('no-export');
+                                        },
+                                        format: {
+                                            header: function (data, columnIdx, node) {
+                                                return $(node).text().replace(/\s+/g,' ').trim();
+                                            },
+                                            body: function (data, row, column, node) {
+                                                var $node = $(node);
+                                                var $name = $node.find('.emp-name-text');
+                                                if ($name.length) {
+                                                    return $name.text().trim();
+                                                }
+                                                return $node.text().replace(/\s+/g,' ').trim();
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
                             ajax: {
                                 url: appBasePath + 'Attendance/GetDataHQMS_IPS',
                                 type: 'POST',
@@ -3928,6 +4052,7 @@
                                     return {
                                         dept: $(document.getElementById('selectDistrup')).val(),
                                         personName: $(document.getElementById('employeeNameSearch')).val(),
+                                        idlFilter: $(document.getElementById('idlFilter')).val() || 'all',
                                         startDate: $('#dateRangeToggle').prop('checked') ?
                                             ($('#startDate').val() || initialFilters.startDate) : ($(
                                                 '#selectedDate').val() || initialFilters.startDate),
@@ -4009,14 +4134,17 @@
                         });
                         return table;
                     }
+                 
                     // ฟังก์ชันสำหรับจัดการ dropdown actions
-                    function handleTimeAction(type, rowId, rDate, shift, time) {
+                    function handleTimeAction(type, rowId, rDate, shift, time, timeofwork, shiftInfo) {
                         const data = {
                             type: type,
                             personId: rowId,
                             date: rDate,
                             shift: shift,
-                            time: time
+                            time: time,
+                            timeofwork: timeofwork,
+                            shiftInfo: shiftInfo || {}
                         };
                         Swal.fire({
                             title: 'ยืนยันการดำเนินการ',
@@ -4368,23 +4496,55 @@
                     // เพิ่ม event listeners สำหรับ dropdown items
                     $(document).on('click', '.add-time-enter', function(e) {
                         e.preventDefault();
+                        const $tr = $(this).closest('tr');
+                        const rowData = $('#mTable').DataTable().row($tr).data() || {};
+                        const shiftInfo = rowData.shiftInfo || {
+                            startTime: rowData.shiftStartTime || rowData.shift_start_time || '',
+                            endTime: rowData.shiftEndTime || rowData.shift_end_time || '',
+                            breakStartTime: rowData.breakStartTime || rowData.break_start_time || '',
+                            breakEndTime: rowData.breakEndTime || rowData.break_end_time || ''
+                        };
                         handleTimeAction('in', $(this).data('row-id'), $(this).data('rdate'), $(this).data('shift'),
-                            null);
+                            null, undefined, shiftInfo);
                     });
                     $(document).on('click', '.add-time-enter-day', function(e) {
                         e.preventDefault();
+                        const $tr = $(this).closest('tr');
+                        const rowData = $('#mTable').DataTable().row($tr).data() || {};
+                        const shiftInfo = rowData.shiftInfo || {
+                            startTime: rowData.shiftStartTime || rowData.shift_start_time || '',
+                            endTime: rowData.shiftEndTime || rowData.shift_end_time || '',
+                            breakStartTime: rowData.breakStartTime || rowData.break_start_time || '',
+                            breakEndTime: rowData.breakEndTime || rowData.break_end_time || ''
+                        };
                         handleTimeAction('in-day', $(this).data('row-id'), $(this).data('rdate'), $(this).data('shift'),
-                            null);
+                            null, undefined, shiftInfo);
                     });
                     $(document).on('click', '.add-time-out', function(e) {
                         e.preventDefault();
+                        const $tr = $(this).closest('tr');
+                        const rowData = $('#mTable').DataTable().row($tr).data() || {};
+                        const shiftInfo = rowData.shiftInfo || {
+                            startTime: rowData.shiftStartTime || rowData.shift_start_time || '',
+                            endTime: rowData.shiftEndTime || rowData.shift_end_time || '',
+                            breakStartTime: rowData.breakStartTime || rowData.break_start_time || '',
+                            breakEndTime: rowData.breakEndTime || rowData.break_end_time || ''
+                        };
                         handleTimeAction('out', $(this).data('row-id'), $(this).data('rdate'), $(this).data('shift'),
-                            null);
+                            null, undefined, shiftInfo);
                     });
                     $(document).on('click', '.add-ot-out', function(e) {
                         e.preventDefault();
+                        const $tr = $(this).closest('tr');
+                        const rowData = $('#mTable').DataTable().row($tr).data() || {};
+                        const shiftInfo = rowData.shiftInfo || {
+                            startTime: rowData.shiftStartTime || rowData.shift_start_time || '',
+                            endTime: rowData.shiftEndTime || rowData.shift_end_time || '',
+                            breakStartTime: rowData.breakStartTime || rowData.break_start_time || '',
+                            breakEndTime: rowData.breakEndTime || rowData.break_end_time || ''
+                        };
                         handleTimeAction('ot-out', $(this).data('row-id'), $(this).data('rdate'), $(this).data('shift'),
-                            null);
+                            null, undefined, shiftInfo);
                     });
                     $(document).on('click', '.add-custom-time', function(e) {
                         e.preventDefault();
@@ -4423,8 +4583,16 @@
                                     date,
                                     time
                                 } = result.value;
+                                const $tr = $(this).closest('tr');
+                                const rowData = $('#mTable').DataTable().row($tr).data() || {};
+                                const shiftInfo = rowData.shiftInfo || {
+                                    startTime: rowData.shiftStartTime || rowData.shift_start_time || '',
+                                    endTime: rowData.shiftEndTime || rowData.shift_end_time || '',
+                                    breakStartTime: rowData.breakStartTime || rowData.break_start_time || '',
+                                    breakEndTime: rowData.breakEndTime || rowData.break_end_time || ''
+                                };
                                 handleTimeAction('custom', $(this).data('row-id'), date, $(this).data('shift'),
-                                    time);
+                                    time, undefined, shiftInfo);
                             }
                         });
                     });
@@ -4868,7 +5036,7 @@
                     const leaveTypes = {
                         'AAL': {
                             name: 'ลาพักร้อนล่วงหน้า',
-                            color: 'primary',
+                            color: 'teal',
                             icon: 'fa-umbrella-beach'
                         },
                         'ABS': {
@@ -4878,37 +5046,37 @@
                         },
                         'ACL': {
                             name: 'ลาเนื่องจากอุบัติเหตุ',
-                            color: 'danger',
+                            color: 'pink',
                             icon: 'fa-first-aid'
                         },
                         'AL': {
                             name: 'ลาพักร้อนประจำปี',
-                            color: 'primary',
+                            color: 'cyan',
                             icon: 'fa-umbrella-beach'
                         },
                         'ATR': {
                             name: 'อบรมภายนอก',
-                            color: 'info',
+                            color: 'indigo',
                             icon: 'fa-chalkboard-teacher'
                         },
                         'ATW': {
                             name: 'ทำงานนอกสถานที่',
-                            color: 'info',
+                            color: 'lime',
                             icon: 'fa-building'
                         },
                         'BL': {
                             name: 'ลาเนื่องจากการเสียชีวิตของญาติ',
-                            color: 'secondary',
+                            color: 'dark',
                             icon: 'fa-praying-hands'
                         },
                         'CPS': {
                             name: 'แลกวันลา',
-                            color: 'info',
+                            color: 'amber',
                             icon: 'fa-exchange-alt'
                         },
                         'ML': {
                             name: 'ลารับราชการทหาร',
-                            color: 'dark',
+                            color: 'secondary',
                             icon: 'fa-shield-alt'
                         },
                         'MO': {
@@ -4918,12 +5086,12 @@
                         },
                         'PL': {
                             name: 'ลากิจ',
-                            color: 'success',
+                            color: 'orange',
                             icon: 'fa-user-clock'
                         },
                         'SL': {
                             name: 'ลาป่วย',
-                            color: 'warning',
+                            color: 'primary',
                             icon: 'fa-thermometer-half'
                         },
                         'WL': {
@@ -5167,6 +5335,29 @@
                                 statuses.push(`<span class="badge bg-warning text-dark">
                             <i class="fas fa-exclamation-triangle me-1"></i>โอทีไม่ครบ
                             </span>`);
+                            }
+                        }
+                        // ตรวจสอบว่าต้องขอโอทีหรือไม่ (ย้ายจากคอลัมน์เวลา)
+                        if (row.lastTime && row.shiftInfo) {
+                            const hasOT = row.overtimeInfo && (row.overtimeInfo.hasOvertime || row.overtimeInfo.hasOvertimeDay);
+                            const lastTimeMoment = moment(row.lastTime).format('HH:mm');
+                            const endTimeMoment = moment(row.shiftInfo.endTime, 'HH:mm');
+                            const diffMinutes = moment(lastTimeMoment, 'HH:mm').diff(endTimeMoment, 'minutes');
+                            if (diffMinutes > 30 && !hasOT) {
+                                statuses.push(`<span class="badge bg-warning text-dark" data-bs-toggle="tooltip" data-bs-title="ออกงานเกินเวลา ${diffMinutes} นาที ต้องขอโอที">
+                                    <i class="fas fa-clock me-1"></i>ต้องขอโอที
+                                </span>`);
+                            }
+                        }
+                        // ตรวจสอบการมาสาย: firstTime > shiftInfo.startTime
+                        if (row.firstTime && row.shiftInfo && row.shiftInfo.startTime) {
+                            const firstTimeStr = moment(row.firstTime).format('HH:mm');
+                            const startTimeMoment = moment(row.shiftInfo.startTime, 'HH:mm');
+                            const diffLateMinutes = moment(firstTimeStr, 'HH:mm').diff(startTimeMoment, 'minutes');
+                            if (diffLateMinutes > 0) {
+                                statuses.push(`<span class="badge bg-danger text-light" data-bs-toggle="tooltip" data-bs-title="มาสาย ${diffLateMinutes} นาที">
+                                    <i class="fas fa-user-clock me-1"></i>สาย
+                                </span>`);
                             }
                         }
                         return `<div class="d-flex flex-wrap gap-1">${statuses.join('')}</div>`;
@@ -5603,7 +5794,7 @@
                         2: true,  // ชื่อ-นามสกุล
                         3: true,  // แผนก
                         4: true,  // วันที่
-                        5: false, // กลุ่มของกะ
+                        5: true, // กลุ่มของกะ
                         6: true,  // กะ
                         7: false, // ประเภทวันทำงาน
                         8: true,  // เวลาเข้า-ออก
@@ -7414,6 +7605,144 @@
                     $(document).ready(function() {
                         initializeFlatpickr();
                     });
+
+                    // ฟังก์ชันแสดงความแตกต่างของกะ
+                    function showShiftDifference(currentShift, assignedShift) {
+                        Swal.fire({
+                            title: '<i class="fas fa-exclamation-triangle text-warning"></i> ความแตกต่างของกะ',
+                            html: `
+                                <div class="text-start">
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong class="text-primary">กะปัจจุบัน (HR-IPS):</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="badge bg-info">${currentShift}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong class="text-success">กะที่กำหนด (Workplan):</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="badge bg-success">${assignedShift}</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>หมายเหตุ:</strong> ข้อมูลกะไม่ตรงกัน อาจต้องตรวจสอบและปรับปรุงข้อมูล
+                                    </div>
+                                </div>
+                            `,
+                            icon: 'warning',
+                            confirmButtonText: '<i class="fas fa-check"></i> เข้าใจแล้ว',
+                            confirmButtonColor: '#3085d6',
+                            width: '500px'
+                        });
+                    }
+
+                    // ฟังก์ชันอัพเดทกะจาก HR-IPS
+                    function updateShiftFromHR(personId, date, newShift, currentShift, department, personName) {
+                        Swal.fire({
+                            title: '<i class="fas fa-sync-alt text-primary"></i> อัพเดทกะ',
+                            html: `
+                                <div class="text-start">
+                                    <div class="alert alert-info">
+                                        <strong>รหัสพนักงาน:</strong> ${personId}<br>
+                                        <strong>ชื่อ:</strong> ${personName}<br>
+                                        <strong>แผนก:</strong> ${department}<br>
+                                        <strong>วันที่:</strong> ${date}
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong class="text-warning">กะเดิม:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="badge bg-warning text-dark">${currentShift}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong class="text-success">กะใหม่ (HR-IPS):</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="badge bg-success">${newShift}</span>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>คำเตือน:</strong> การอัพเดทจะเปลี่ยนกะจาก ${currentShift} เป็น ${newShift}
+                                    </div>
+                                </div>
+                            `,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="fas fa-sync-alt"></i> อัพเดท',
+                            cancelButtonText: '<i class="fas fa-times"></i> ยกเลิก',
+                            confirmButtonColor: '#28a745',
+                            cancelButtonColor: '#dc3545',
+                            width: '500px'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // แสดง loading
+                                Swal.fire({
+                                    title: 'กำลังบันทึกข้อมูล...',
+                                    allowOutsideClick: false,
+                                    showConfirmButton: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    }
+                                });
+
+                                // สร้างข้อมูลสำหรับส่ง API (ใช้รูปแบบเดียวกับโค้ดเดิม)
+                                const requestData = {
+                                    personId: personId,
+                                    shift: newShift,
+                                    date: date,
+                                    namePerson: personName,
+                                    remark: 'อัพเดทจาก HR-IPS',
+                                    department: department
+                                };
+
+                                // เรียก API อัพเดทกะ
+                                $.ajax({
+                                    url: appBasePath + 'Attendance/AddShiftForPerson',
+                                    type: 'POST',
+                                    data: requestData,
+                                    success: function(response) {
+                                        if (response.success) {
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'สำเร็จ',
+                                                text: response.message,
+                                                timer: 1500,
+                                                showConfirmButton: false
+                                            }).then(() => {
+                                                // รีเฟรชตาราง
+                                                if (dataTable) {
+                                                    dataTable.ajax.reload();
+                                                }
+                                            });
+                                        } else {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'เกิดข้อผิดพลาด',
+                                                text: response.message
+                                            });
+                                        }
+                                    },
+                                    error: function() {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'เกิดข้อผิดพลาด',
+                                            text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์'
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
 
     </script> 
 }

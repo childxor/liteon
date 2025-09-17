@@ -1,0 +1,985 @@
+@{
+    ViewData["Title"] = "จัดการสิทธิ์ประตูและพนักงาน";
+
+    var userDept = (ViewData["CurrentUserDepartment"] ?? "").ToString();
+
+    var deptList = ViewBag.Dept as IEnumerable<dynamic>;
+
+    var doors = ViewBag.Doors as IEnumerable<dynamic>;
+
+    var shiftdepts = ViewBag.Shiftdept as IEnumerable<dynamic>;
+
+    var errorMessage = ViewBag.ErrorMessage as string;
+
+    var errorDetails = ViewBag.ErrorDetails as string;
+}
+
+<div class="container-fluid py-3 mt-3">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-1 text-primary">
+                        <i class="fas fa-door-open me-2"></i>จัดการสิทธิ์ประตูและพนักงาน
+                    </h4>
+                    <p class="text-muted mb-0">ระบบจัดการสิทธิ์การเข้าออกประตูและข้อมูลพนักงาน</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="btnAddEmployee" type="button" class="btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#employeeModal">
+                        <i class="fas fa-plus me-1"></i>เพิ่มพนักงาน
+                    </button>
+                    <button id="btnReload" type="button" class="btn btn-outline-secondary">
+                        <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert -->
+    @if (!string.IsNullOrEmpty(errorMessage))
+
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>ข้อผิดพลาด:</strong> @errorMessage
+            @if (!string.IsNullOrEmpty(errorDetails))
+
+            {
+                <br>
+
+                <small class="text-muted">รายละเอียด: @errorDetails</small>
+            }
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4" id="statsContainer">
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <i class="fas fa-users fa-2x text-primary"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">พนักงานทั้งหมด</h5>
+                    <h3 class="text-primary mb-0" id="totalEmployees">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <i class="fas fa-door-open fa-2x text-success"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">ประตูทั้งหมด</h5>
+                    <h3 class="text-success mb-0" id="totalDoors">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <i class="fas fa-fingerprint fa-2x text-info"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">มีลายนิ้วมือ</h5>
+                    <h3 class="text-info mb-0" id="totalFingerprint">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <i class="fas fa-building fa-2x text-warning"></i>
+                    </div>
+                    <h5 class="card-title text-muted mb-1">แผนกทั้งหมด</h5>
+                    <h3 class="text-warning mb-0" id="totalDepartments">-</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>ตัวกรองข้อมูล
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-building me-1"></i>แผนก
+                    </label>
+                    <select id="filterDepartment" class="form-select">
+                        <option value="all">ทั้งหมด</option>
+                        @if (deptList != null)
+
+                        {
+
+                            foreach (var d in deptList)
+
+                            {
+
+                                var deptId = d?.deptID?.ToString();
+
+                                var deptName = d?.name?.ToString();
+
+                                if (!string.IsNullOrWhiteSpace(deptId))
+
+                                {
+                                    <option value="@deptId">@deptId - @deptName</option>
+                                }
+
+                            }
+
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-door-open me-1"></i>ประตู
+                    </label>
+                    <select id="filterDoor" class="form-select">
+                        <option value="all">ทั้งหมด</option>
+                        @if (doors != null)
+
+                        {
+
+                            foreach (var door in doors)
+
+                            {
+
+                                var id = door?.doorID?.ToString();
+
+                                var name = door?.doorName?.ToString();
+
+                                if (!string.IsNullOrWhiteSpace(id))
+
+                                {
+                                    <option value="@id">@name</option>
+                                }
+
+                            }
+
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-clock me-1"></i>กะ
+                    </label>
+                    <select id="filterShift" class="form-select">
+                        <option value="all">ทั้งหมด</option>
+                        @if (shiftdepts != null)
+
+                        {
+
+                            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                            foreach (var s in shiftdepts)
+
+                            {
+
+                                var sg = (s?.shift_group ?? s?.shift_name ?? s?.shift_code)?.ToString();
+
+                                if (!string.IsNullOrWhiteSpace(sg) && seen.Add(sg))
+
+                                {
+                                    <option value="@sg">@sg</option>
+                                }
+
+                            }
+
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-info-circle me-1"></i>สถานะ
+                    </label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">ทั้งหมด</option>
+                        <option value="active">ทำงานอยู่</option>
+                        <option value="resigned">ลาออก</option>
+                        <option value="1">มีข้อมูลบัตร/ลายนิ้วมือ</option>
+                        <option value="0">ไม่มีข้อมูลบัตร/ลายนิ้วมือ</option>
+                        <option value="incomplete">ข้อมูลไม่ครบ</option>
+                        <option value="ces941only">เฉพาะ CES941</option>
+                        <option value="sql944only">เฉพาะ SQL944</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-fingerprint me-1"></i>ลายนิ้วมือ
+                    </label>
+                    <select id="filterFingerprint" class="form-select">
+                        <option value="">ทั้งหมด</option>
+                        <option value="has">มี</option>
+                        <option value="none">ไม่มี</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2 pt-2">
+                    <button id="btnSearch" type="button" class="btn btn-success">
+                        <i class="fas fa-search me-1"></i>ค้นหา
+                    </button>
+                    <button id="btnReset" type="button" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo me-1"></i>ล้างตัวกรอง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list me-2"></i>ผลการค้นหา
+            </h6>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small" id="resultCount">0 รายการ</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="viewMode" id="viewAccordion" value="accordion" checked>
+                    <label class="btn btn-outline-secondary" for="viewAccordion">
+                        <i class="fas fa-list"></i>
+                    </label>
+                    <input type="radio" class="btn-check" name="viewMode" id="viewTable" value="table">
+                    <label class="btn btn-outline-secondary" for="viewTable">
+                        <i class="fas fa-table"></i>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="resultContainer">
+                <div class="text-center text-muted py-5" id="emptyState">
+                    <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+                    <p class="mb-0">โปรดเลือกตัวกรองแล้วกดค้นหา</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<!-- Modal: Manage Access -->
+<div class="modal fade" id="accessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title">
+                    <i class="fas fa-key me-2"></i>จัดการสิทธิ์ประตู - <span id="accessModalTitle"></span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 14rem;">ประตู</th>
+                                <th class="text-center">Card</th>
+                                <th class="text-center">Fingerprint</th>
+                                <th style="width: 8rem;">WeekTime</th>
+                                <th style="width: 10rem;" class="text-center">การทำงาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accessTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add/Edit Employee -->
+<div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title" id="employeeModalTitle">
+                    <i class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="employeeForm" class="row g-3">
+                    <input type="hidden" id="empMode" value="add" />
+                    <div class="col-12">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-id-card me-1"></i>รหัสพนักงาน
+                        </label>
+                        <input id="empPersonId" class="form-control" placeholder="เช่น 123456" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-credit-card me-1"></i>เลขบัตร
+                        </label>
+                        <input id="empCardNumber" class="form-control" placeholder="Card Number" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-user me-1"></i>ชื่อ-นามสกุล
+                        </label>
+                        <input id="empName" class="form-control" placeholder="ชื่อ-นามสกุล" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-building me-1"></i>รหัสแผนก
+                        </label>
+                        <input id="empDeptID" class="form-control" placeholder="DeptID" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-building me-1"></i>ชื่อแผนก
+                        </label>
+                        <input id="empDeptName" class="form-control" placeholder="DeptName" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" id="btnSaveEmployee" class="btn btn-primary">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="toast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastBody">ดำเนินการสำเร็จ</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Helper: แสดง Toast
+    const toastEl = document.getElementById('toast');
+    let toast;
+    try {
+        toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+    } catch (e) {
+        toast = { show: () => { } };
+    }
+    function showToast(msg, type = 'success') {
+        const toastBody = document.getElementById('toastBody');
+        toastBody.innerText = msg || 'ดำเนินการสำเร็จ';
+
+        // เปลี่ยนสีตามประเภท
+        const toastEl = document.getElementById('toast');
+        toastEl.className = 'toast align-items-center border-0';
+        if (type === 'success') {
+            toastEl.classList.add('text-bg-success');
+        } else if (type === 'error') {
+            toastEl.classList.add('text-bg-danger');
+        } else if (type === 'warning') {
+            toastEl.classList.add('text-bg-warning');
+        } else {
+            toastEl.classList.add('text-bg-dark');
+        }
+
+        if (toast && toast.show) toast.show();
+    }
+
+    // Anti-forgery
+    const antiToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    function postOptions(bodyObj) {
+        return {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': antiToken
+            },
+            body: JSON.stringify(bodyObj || {})
+        };
+    }
+
+    // ดึงค่าตัวกรอง
+    function getFilters() {
+        return {
+            department: document.getElementById('filterDepartment').value,
+            door: document.getElementById('filterDoor').value,
+            shift: document.getElementById('filterShift').value,
+            status: document.getElementById('filterStatus').value,
+            fingerprint: document.getElementById('filterFingerprint').value
+        };
+    }
+
+    // อัปเดตสถิติ
+    function updateStats(data) {
+        if (!data || !Array.isArray(data)) return;
+
+        const totalEmployees = data.length;
+        const totalDoors = @(doors?.Count() ?? 0);
+        const totalFingerprint = data.filter(e => e.hasFingerprint).length;
+        const totalDepartments = new Set(data.map(e => e.deptID).filter(Boolean)).size;
+
+        document.getElementById('totalEmployees').textContent = totalEmployees.toLocaleString();
+        document.getElementById('totalDoors').textContent = totalDoors.toLocaleString();
+        document.getElementById('totalFingerprint').textContent = totalFingerprint.toLocaleString();
+        document.getElementById('totalDepartments').textContent = totalDepartments.toLocaleString();
+
+        document.getElementById('resultCount').textContent = `${totalEmployees} รายการ`;
+    }
+
+    // โหลดข้อมูลพนักงานจาก API และแสดงผลแบบกลุ่มตามแผนก
+    async function loadEmployees() {
+        const container = document.getElementById('resultContainer');
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">กำลังโหลด...</span>
+                </div>
+                <p class="mb-0">กำลังโหลดข้อมูล...</p>
+            </div>`;
+
+        const q = getFilters();
+        const params = new URLSearchParams();
+        if (q.status) params.append('status', q.status);
+        if (q.door && q.door !== 'all') params.append('door', q.door);
+        if (q.department && q.department !== 'all') params.append('department', q.department);
+        if (q.shift && q.shift !== 'all') params.append('shift', q.shift);
+        if (q.fingerprint) params.append('fingerprint', q.fingerprint);
+
+        try {
+            const res = await fetch('/Employee/GetEmployeesData?' + params.toString(), { method: 'GET' });
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            // ตรวจสอบว่า response เป็น array หรือไม่
+            if (!Array.isArray(data)) {
+                // ถ้าไม่ใช่ array ให้ตรวจสอบว่ามี error message หรือไม่
+                if (data && data.error) {
+                    container.innerHTML = `
+                        <div class="text-center text-danger py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p class="mb-0">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                            <small class="text-muted">${data.error}</small>
+                        </div>`;
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center text-danger py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p class="mb-0">ไม่สามารถโหลดข้อมูลได้</p>
+                            <small class="text-muted">รูปแบบข้อมูลไม่ถูกต้อง</small>
+                        </div>`;
+                }
+                return;
+            }
+
+            // ถ้าไม่มีข้อมูล
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p class="mb-0">ไม่พบข้อมูลพนักงาน</p>
+                        <small class="text-muted">ลองเปลี่ยนตัวกรองหรือตรวจสอบสิทธิ์การเข้าถึง</small>
+                    </div>`;
+                return;
+            }
+
+            updateStats(data);
+            const viewMode = document.querySelector('input[name="viewMode"]:checked').value;
+            try {
+                if (viewMode === 'accordion') {
+                    renderEmployeesGrouped(data);
+                } else {
+                    renderEmployeesTable(data);
+                }
+            } catch (renderError) {
+                console.error('Error rendering employees:', renderError);
+                container.innerHTML = `
+                    <div class="text-center text-danger py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p class="mb-0">เกิดข้อผิดพลาดในการแสดงผลข้อมูล</p>
+                        <small class="text-muted">${renderError.message}</small>
+                        <br><br>
+                        <button class="btn btn-outline-primary" onclick="loadEmployees()">
+                            <i class="fas fa-redo me-1"></i>ลองใหม่
+                        </button>
+                    </div>`;
+            }
+        } catch (err) {
+            console.error('Error loading employees:', err);
+            container.innerHTML = `
+                <div class="text-center text-danger py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <p class="mb-0">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                    <small class="text-muted">${err.message}</small>
+                    <br><br>
+                    <button class="btn btn-outline-primary" onclick="loadEmployees()">
+                        <i class="fas fa-redo me-1"></i>ลองใหม่
+                    </button>
+                </div>`;
+        }
+    }
+
+    function renderEmployeesGrouped(items) {
+        const container = document.getElementById('resultContainer');
+        if (!items || items.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p class="mb-0">ไม่พบข้อมูล</p>
+                </div>`;
+            return;
+        }
+
+        const byDept = new Map();
+        for (const e of items) {
+            const deptId = (e.deptID || 'ไม่ระบุ');
+            if (!byDept.has(deptId)) byDept.set(deptId, []);
+            byDept.get(deptId).push(e);
+        }
+
+        let html = '<div class="accordion" id="deptAccordion">';
+        let i = 0;
+        for (const [deptId, list] of byDept) {
+            const headingId = 'h' + i;
+            const collapseId = 'c' + i;
+            const deptName = (list[0]?.department || '') + (deptId ? ' (' + deptId + ')' : '');
+            const activeCount = list.filter(e => !e.resignDate).length;
+            const resignedCount = list.filter(e => e.resignDate).length;
+
+            html += `
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="${headingId}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                        <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                            <span><i class="fas fa-building me-2"></i>${deptName || 'ไม่ระบุแผนก'}</span>
+                            <div class="d-flex gap-3">
+                                <span class="badge bg-success">${activeCount} คน</span>
+                                ${resignedCount > 0 ? `<span class="badge bg-secondary">${resignedCount} คน</span>` : ''}
+                                <span class="badge bg-primary">${list.length} คน</span>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="${collapseId}" class="accordion-collapse collapse" aria-labelledby="${headingId}" data-bs-parent="#deptAccordion">
+                    <div class="accordion-body p-0">
+                        ${renderEmployeeTableInAccordion(list)}
+                    </div>
+                </div>
+            </div>`;
+            i++;
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // แสดงตารางพนักงานใน accordion (สำหรับแสดงผลแบบกลุ่ม)
+    function renderEmployeeTableInAccordion(items) {
+        if (!items || items.length === 0) {
+            return '<div class="text-center text-muted py-3">ไม่พบข้อมูลพนักงาน</div>';
+        }
+
+        let rows = '';
+        for (const e of items) {
+            const statusBadge = (e.resignDate ?
+                '<span class="badge bg-secondary"><i class="fas fa-user-times me-1"></i>ลาออก</span>' :
+                '<span class="badge bg-success"><i class="fas fa-user-check me-1"></i>ทำงาน</span>');
+            const accessCount = e.accessCount ?? 0;
+            const fp = e.hasFingerprint ?
+                '<span class="badge bg-info text-dark"><i class="fas fa-fingerprint me-1"></i>FP</span>' : '';
+            const card = e.cardNumber ?
+                '<span class="badge bg-warning text-dark"><i class="fas fa-credit-card me-1"></i>Card</span>' : '';
+
+            rows += `
+                <tr>
+                    <td class="text-nowrap fw-bold">${e.personID || ''}</td>
+                    <td class="text-nowrap">${e.cardNumber || '-'}</td>
+                    <td>${e.name || ''}</td>
+                    <td class="text-nowrap">
+                        <span class="badge bg-outline-secondary">${e.shift || '-'}</span>
+                    </td>
+                    <td class="text-nowrap text-center">
+                        <span class="badge bg-primary">${accessCount}</span>
+                    </td>
+                    <td class="text-nowrap">
+                        ${statusBadge} ${fp} ${card}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary" onclick="openAccess('${(e.personID || '').toString().replace(/'/g, "\'")}','${(e.name || '').toString().replace(/'/g, "\'")}')" title="จัดการสิทธิ์ประตู">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="openEdit('${(e.personID || '').toString().replace(/'/g, "\'")}','${(e.cardNumber || '').toString().replace(/'/g, "\'")}','${(e.name || '').toString().replace(/'/g, "\'")}','${(e.deptID || '').toString().replace(/'/g, "\'")}','${(e.department || '').toString().replace(/'/g, "\'")}')" title="แก้ไขข้อมูล">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteEmployee('${(e.personID || '').toString().replace(/'/g, "\'")}')" title="ลบพนักงาน">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        }
+
+        return `
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 8rem;"><i class="fas fa-id-card me-1"></i>รหัส</th>
+                        <th style="width: 10rem;"><i class="fas fa-credit-card me-1"></i>เลขบัตร</th>
+                        <th><i class="fas fa-user me-1"></i>ชื่อ</th>
+                        <th style="width: 8rem;"><i class="fas fa-clock me-1"></i>กะ</th>
+                        <th style="width: 7rem;" class="text-center"><i class="fas fa-key me-1"></i>สิทธิ์</th>
+                        <th style="width: 12rem;"><i class="fas fa-info-circle me-1"></i>สถานะ</th>
+                        <th style="width: 12rem;" class="text-end"><i class="fas fa-cogs me-1"></i>การทำงาน</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+    }
+
+    function renderEmployeesTable(items) {
+        const container = document.getElementById('resultContainer');
+        if (!items || items.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p class="mb-0">ไม่พบข้อมูล</p>
+                </div>`;
+            return;
+        }
+
+        let rows = '';
+        for (const e of items) {
+            const statusBadge = (e.resignDate ?
+                '<span class="badge bg-secondary"><i class="fas fa-user-times me-1"></i>ลาออก</span>' :
+                '<span class="badge bg-success"><i class="fas fa-user-check me-1"></i>ทำงาน</span>');
+            const accessCount = e.accessCount ?? 0;
+            const fp = e.hasFingerprint ?
+                '<span class="badge bg-info text-dark"><i class="fas fa-fingerprint me-1"></i>FP</span>' : '';
+            const card = e.cardNumber ?
+                '<span class="badge bg-warning text-dark"><i class="fas fa-credit-card me-1"></i>Card</span>' : '';
+
+            rows += `
+                <tr>
+                    <td class="text-nowrap fw-bold">${e.personID || ''}</td>
+                    <td class="text-nowrap">${e.cardNumber || '-'}</td>
+                    <td>${e.name || ''}</td>
+                    <td class="text-nowrap">
+                        <span class="badge bg-outline-secondary">${e.shift || '-'}</span>
+                    </td>
+                    <td class="text-nowrap text-center">
+                        <span class="badge bg-primary">${accessCount}</span>
+                    </td>
+                    <td class="text-nowrap">
+                        ${statusBadge} ${fp} ${card}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary" onclick="openAccess('${(e.personID || '').toString().replace(/'/g, "\'")}','${(e.name || '').toString().replace(/'/g, "\'")}')" title="จัดการสิทธิ์ประตู">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="openEdit('${(e.personID || '').toString().replace(/'/g, "\'")}','${(e.cardNumber || '').toString().replace(/'/g, "\'")}','${(e.name || '').toString().replace(/'/g, "\'")}','${(e.deptID || '').toString().replace(/'/g, "\'")}','${(e.department || '').toString().replace(/'/g, "\'")}')" title="แก้ไขข้อมูล">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteEmployee('${(e.personID || '').toString().replace(/'/g, "\'")}')" title="ลบพนักงาน">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        }
+
+        container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 8rem;"><i class="fas fa-id-card me-1"></i>รหัส</th>
+                        <th style="width: 10rem;"><i class="fas fa-credit-card me-1"></i>เลขบัตร</th>
+                        <th><i class="fas fa-user me-1"></i>ชื่อ</th>
+                        <th style="width: 8rem;"><i class="fas fa-clock me-1"></i>กะ</th>
+                        <th style="width: 7rem;" class="text-center"><i class="fas fa-key me-1"></i>สิทธิ์</th>
+                        <th style="width: 12rem;"><i class="fas fa-info-circle me-1"></i>สถานะ</th>
+                        <th style="width: 12rem;" class="text-end"><i class="fas fa-cogs me-1"></i>การทำงาน</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+    }
+
+    // เปิดโมดอลสิทธิ์ประตู
+    async function openAccess(personId, name) {
+        try {
+            const body = { personId };
+            const res = await fetch('/Employee/GetAccess', postOptions(body));
+            const json = await res.json();
+            if (!json?.success) { showToast(json?.error || 'โหลดสิทธิ์ไม่สำเร็จ', 'error'); return; }
+
+            document.getElementById('accessModalTitle').innerText = `${name} (${personId})`;
+            const tbody = document.getElementById('accessTableBody');
+            tbody.innerHTML = '';
+            for (const row of json.data) {
+                const cardChecked = row.hasCardAccess ? 'checked' : '';
+                const fpChecked = row.hasFingerprintAccess ? 'checked' : '';
+                const wt = row.weekTimeID || '';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-nowrap">
+                        <i class="fas fa-door-open me-2"></i>${row.doorName || row.doorID}
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check d-flex justify-content-center">
+                            <input type="checkbox" class="form-check-input" ${cardChecked} data-kind="card">
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check d-flex justify-content-center">
+                            <input type="checkbox" class="form-check-input" ${fpChecked} data-kind="fp">
+                        </div>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm" value="${wt}" placeholder="weekTimeID" style="max-width:7rem">
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-success" data-action="apply">
+                                <i class="fas fa-save me-1"></i>บันทึก
+                            </button>
+                            <button class="btn btn-outline-danger" data-action="revoke">
+                                <i class="fas fa-times me-1"></i>ยกเลิก
+                            </button>
+                        </div>
+                    </td>`;
+
+                // ผูกเหตุการณ์ต่อแถว
+                tr.querySelector('[data-action="apply"]').addEventListener('click', async () => {
+                    const weekTimeID = tr.querySelector('input.form-control').value || null;
+                    const cardOn = tr.querySelector('input[data-kind="card"]').checked;
+                    const fpOn = tr.querySelector('input[data-kind="fp"]').checked;
+                    const requests = [];
+                    if (cardOn) requests.push(fetch('/Employee/UpdateAccess', postOptions({ personId: personId + '-1', doorId: row.doorID, state: 1, weekTimeID, dnfp: 0 })));
+                    if (fpOn) requests.push(fetch('/Employee/UpdateAccess', postOptions({ personId: personId + '-2', doorId: row.doorID, state: 1, weekTimeID, dnfp: 1 })));
+                    const results = await Promise.all(requests);
+                    showToast('อัปเดตสิทธิ์สำเร็จ', 'success');
+                });
+
+                tr.querySelector('[data-action="revoke"]').addEventListener('click', async () => {
+                    const requests = [];
+                    requests.push(fetch('/Employee/UpdateAccess', postOptions({ personId: personId + '-1', doorId: row.doorID, state: 0 })));
+                    requests.push(fetch('/Employee/UpdateAccess', postOptions({ personId: personId + '-2', doorId: row.doorID, state: 0 })));
+                    await Promise.all(requests);
+                    showToast('ยกเลิกสิทธิ์สำเร็จ', 'success');
+                });
+
+                tbody.appendChild(tr);
+            }
+
+            try {
+                const modal = new bootstrap.Modal(document.getElementById('accessModal'));
+                modal.show();
+            } catch (e) {
+                document.getElementById('accessModal').style.display = 'block';
+                document.getElementById('accessModal').classList.add('show');
+            }
+        } catch (err) {
+            showToast('เกิดข้อผิดพลาดในการโหลดสิทธิ์', 'error');
+        }
+    }
+
+    // เพิ่ม/แก้ไขพนักงาน
+    document.getElementById('btnAddEmployee').addEventListener('click', () => {
+        document.getElementById('empMode').value = 'add';
+        document.getElementById('employeeModalTitle').innerHTML = '<i class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน';
+        document.getElementById('empPersonId').value = '';
+        document.getElementById('empCardNumber').value = '';
+        document.getElementById('empName').value = '';
+        document.getElementById('empDeptID').value = document.getElementById('filterDepartment').value === 'all' ? '' : document.getElementById('filterDepartment').value;
+        document.getElementById('empDeptName').value = '';
+    });
+
+    function openEdit(personId, cardNumber, name, deptID, deptName) {
+        const baseId = (personId || '').toString().split('-')[0];
+        document.getElementById('empMode').value = 'edit';
+        document.getElementById('employeeModalTitle').innerHTML = '<i class="fas fa-user-edit me-2"></i>แก้ไขพนักงาน';
+        document.getElementById('empPersonId').value = baseId;
+        document.getElementById('empCardNumber').value = cardNumber || '';
+        document.getElementById('empName').value = name || '';
+        document.getElementById('empDeptID').value = deptID || '';
+        document.getElementById('empDeptName').value = deptName || '';
+        try {
+            const modal = new bootstrap.Modal(document.getElementById('employeeModal'));
+            modal.show();
+        } catch (e) {
+            document.getElementById('employeeModal').style.display = 'block';
+            document.getElementById('employeeModal').classList.add('show');
+        }
+    }
+
+    document.getElementById('btnSaveEmployee').addEventListener('click', async () => {
+        const mode = document.getElementById('empMode').value;
+        const personID = document.getElementById('empPersonId').value.trim();
+        const cardNumber = document.getElementById('empCardNumber').value.trim();
+        const name = document.getElementById('empName').value.trim();
+        const deptID = document.getElementById('empDeptID').value.trim();
+        const deptName = document.getElementById('empDeptName').value.trim();
+
+        if (!personID || !name) { showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning'); return; }
+
+        try {
+            if (mode === 'add') {
+                const res = await fetch('/Employee/AddEmployee', postOptions({ personID, cardNumber, name, deptID, deptName }));
+                const json = await res.json();
+                if (!json?.success) { showToast(json?.message || 'เพิ่มพนักงานไม่สำเร็จ', 'error'); return; }
+                showToast('เพิ่มพนักงานสำเร็จ', 'success');
+            } else {
+                const form = new URLSearchParams();
+                form.append('personID', personID);
+                form.append('cardNumber', cardNumber);
+                form.append('name', name);
+                form.append('deptID', deptID);
+                form.append('deptName', deptName);
+                const res = await fetch('/Employee/UpdateEmployee', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': antiToken }, body: form.toString() });
+                const json = await res.json();
+                if (!json?.success) { showToast(json?.message || 'แก้ไขพนักงานไม่สำเร็จ', 'error'); return; }
+                showToast('แก้ไขพนักงานสำเร็จ', 'success');
+            }
+            try {
+                bootstrap.Modal.getInstance(document.getElementById('employeeModal'))?.hide();
+            } catch (e) {
+                document.getElementById('employeeModal').style.display = 'none';
+                document.getElementById('employeeModal').classList.remove('show');
+            }
+            await loadEmployees();
+        } catch (err) { showToast('เกิดข้อผิดพลาด', 'error'); }
+    });
+
+    // ลบพนักงาน
+    async function deleteEmployee(personId) {
+        if (!confirm('ยืนยันการลบ/ทำเครื่องหมายเพื่อลบพนักงานนี้?')) return;
+        const baseId = (personId || '').toString().split('-')[0];
+        try {
+            const form = new URLSearchParams();
+            form.append('personId', baseId);
+            const res = await fetch('/Employee/DeleteEmployee', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': antiToken }, body: form.toString() });
+            const json = await res.json();
+            if (!json?.success) { showToast(json?.message || 'ลบไม่สำเร็จ', 'error'); return; }
+            showToast(json?.message || 'ดำเนินการสำเร็จ', 'success');
+            await loadEmployees();
+        } catch (err) { showToast('เกิดข้อผิดพลาด', 'error'); }
+    }
+
+    // เปลี่ยนโหมดการแสดงผล
+    document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (document.getElementById('resultContainer').innerHTML.includes('accordion') ||
+                document.getElementById('resultContainer').innerHTML.includes('table')) {
+                loadEmployees();
+            }
+        });
+    });
+
+    // ปุ่มกดและเริ่มต้น
+    document.getElementById('btnSearch').addEventListener('click', loadEmployees);
+    document.getElementById('btnReload').addEventListener('click', loadEmployees);
+    document.getElementById('btnReset').addEventListener('click', () => {
+        document.getElementById('filterDepartment').value = 'all';
+        document.getElementById('filterDoor').value = 'all';
+        document.getElementById('filterShift').value = 'all';
+        document.getElementById('filterStatus').value = '';
+        document.getElementById('filterFingerprint').value = '';
+    });
+
+    // ตรวจสอบว่า function ที่จำเป็นทั้งหมดถูกกำหนดไว้แล้ว
+    function validateRequiredFunctions() {
+        const requiredFunctions = [
+            'loadEmployees',
+            'renderEmployeesGrouped',
+            'renderEmployeesTable',
+            'renderEmployeeTableInAccordion',
+            'updateStats',
+            'showToast',
+            'openAccess',
+            'openEdit',
+            'deleteEmployee'
+        ];
+        
+        const missingFunctions = requiredFunctions.filter(funcName => typeof window[funcName] !== 'function');
+        
+        if (missingFunctions.length > 0) {
+            console.error('Missing required functions:', missingFunctions);
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = `
+                <div class="text-center text-danger py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <p class="mb-0">เกิดข้อผิดพลาดในการโหลดระบบ</p>
+                    <small class="text-muted">ฟังก์ชันที่จำเป็นไม่ครบถ้วน: ${missingFunctions.join(', ')}</small>
+                    <br><br>
+                    <button class="btn btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-redo me-1"></i>รีเฟรชหน้า
+                    </button>
+                </div>`;
+            return false;
+        }
+        
+        return true;
+    }
+
+    // โหลดอัตโนมัติเมื่อมีแผนกของผู้ใช้
+    if ('@userDept') {
+        const sel = document.getElementById('filterDepartment');
+        if (sel && sel.querySelector(`option[value="@userDept"]`)) sel.value = '@userDept';
+        
+        // ตรวจสอบ function ก่อนโหลดข้อมูล
+        if (validateRequiredFunctions()) {
+            loadEmployees();
+        }
+    } else {
+        // ถ้าไม่มีแผนกของผู้ใช้ แสดงข้อความแจ้งเตือน
+        const container = document.getElementById('resultContainer');
+        container.innerHTML = `
+            <div class="text-center text-warning py-5">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p class="mb-0">ไม่สามารถระบุแผนกของผู้ใช้ได้</p>
+                <small class="text-muted">กรุณาตรวจสอบการเข้าสู่ระบบและสิทธิ์การเข้าถึง</small>
+                <br><br>
+                <button class="btn btn-outline-primary" onclick="loadEmployees()">
+                    <i class="fas fa-redo me-1"></i>ลองโหลดข้อมูล
+                </button>
+            </div>`;
+    }
+
+    // เพิ่มการตรวจสอบ session ทุก 5 นาที
+    setInterval(() => {
+        fetch('/Authen/CheckSession', { method: 'GET' })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.isValid) {
+                    showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
+                    setTimeout(() => {
+                        window.location.href = '/Authen/Login';
+                    }, 2000);
+                }
+            })
+            .catch(err => {
+                console.log('Session check failed:', err);
+            });
+    }, 300000); // 5 นาที
+</script>

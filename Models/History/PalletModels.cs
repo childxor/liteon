@@ -123,4 +123,11 @@ namespace IPS_TH.Models.History
         public string TargetCartonNo { get; set; }
         public decimal MoveEmpId { get; set; }
     }
+
+    public class MoveSerialNumbersToPalletDto
+    {
+        public string SourceCartonNo { get; set; }
+        public string TargetPalletNo { get; set; }
+        public decimal MoveEmpId { get; set; }
+    }
 } 

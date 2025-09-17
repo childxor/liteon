@@ -1,0 +1,232 @@
+@model IEnumerable<dynamic>
+@using IPS_TH.Models.Employee
+@using Newtonsoft.Json;
+@using System.Collections.Generic;
+
+@{
+    ViewBag.Title = "จัดการข้อมูลพนักงาน";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var departments = ViewBag.Departments;
+    var shifts = ViewBag.Shifts;
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+    bool isAdmin = permissions?["IsAdmin"] ?? false;
+
+}
+
+
+@* ฟอร์มกรอง + ตารางรายงานสิทธิ์ประตูของพนักงาน（筛选表单 + 员工门禁权限报表） *@
+<div class="container-fluid">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">รายงานสิทธิ์ประตูของพนักงาน</h5>
+        </div>
+        <div class="card-body">
+            @* ฟอร์มกรองข้อมูล（筛选条件） *@
+            @{
+                var selectedDoorId = Convert.ToString(Context?.Request?.Query["doorId"]) ?? string.Empty;
+                var selectedDepartmentId = Convert.ToString(Context?.Request?.Query["departmentId"]) ?? string.Empty;
+                var keyword = Convert.ToString(Context?.Request?.Query["keyword"]) ?? string.Empty;
+
+                object GetProp(object obj, params string[] names)
+                {
+                    if (obj == null) return null;
+                    var type = obj.GetType();
+                    foreach (var name in names)
+                    {
+                        // property by reflection
+                        var pi = type.GetProperty(name);
+                        if (pi != null) return pi.GetValue(obj, null);
+                        // IDictionary<string, object>
+                        if (obj is IDictionary<string, object> dict && dict.TryGetValue(name, out var val)) return val;
+                    }
+                    return null;
+                }
+            }
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label for="doorId" class="form-label">ประตู</label>
+                    <select id="doorId" name="doorId" class="form-select">
+                        <option value="">-- ทั้งหมด --</option>
+                        @if (ViewBag.Doors != null)
+                        {
+                            foreach (var d in ViewBag.Doors)
+                            {
+                                var doorIdVal = Convert.ToString(GetProp(d, "DoorId", "doorID", "doorId")) ?? string.Empty;
+                                var doorNameVal = Convert.ToString(GetProp(d, "DoorName", "doorName")) ?? doorIdVal;
+                                var selected = (selectedDoorId == doorIdVal);
+                                if (selected)
+                                {
+                                    <option value="@doorIdVal" selected="selected">@doorNameVal</option>
+                                }
+                                else
+                                {
+                                    <option value="@doorIdVal">@doorNameVal</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="departmentId" class="form-label">แผนก</label>
+                    <select id="departmentId" name="departmentId" class="form-select">
+                        <option value="">-- ทั้งหมด --</option>
+                        @if (departments != null)
+                        {
+                            foreach (var dep in departments)
+                            {
+                                var depId = Convert.ToString(GetProp(dep, "DepartmentId", "deptID", "DeptId", "WorkArea")) ??
+                                string.Empty;
+                                var depName = Convert.ToString(GetProp(dep, "DepartmentName", "deptName", "DeptName",
+                                "WorkArea")) ?? depId;
+                                var selectedDep = (selectedDepartmentId == depId);
+                                if (selectedDep)
+                                {
+                                    <option value="@depId" selected="selected">@depName</option>
+                                }
+                                else
+                                {
+                                    <option value="@depId">@depName</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="keyword" class="form-label">คำค้น</label>
+                    <div class="input-group">
+                        <input id="keyword" name="keyword" value="@keyword" class="form-control"
+                            placeholder="รหัส/ชื่อพนักงาน">
+                        <button type="submit" class="btn btn-primary">ค้นหา</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-outline-secondary" id="btnPreviewPdf" data-bs-toggle="modal"
+                    data-bs-target="#pdfModal">
+                    <i class="fas fa-file-pdf me-1"></i> พรีวิว PDF
+                </button>
+            </div>
+
+            @* ตารางผลลัพธ์（结果表格） *@
+            <div class="table-responsive">
+                <table id="permissionDoorReport" class="table table-striped table-hover table-sm align-middle w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>รหัสพนักงาน</th>
+                            <th>ชื่อพนักงาน</th>
+                            <th>แผนก</th>
+                            <th>ประตู</th>
+                            <th>สิทธิ์</th>
+                            <th>เริ่มใช้งาน</th>
+                            <th>สิ้นสุด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null)
+                        {
+                            foreach (var item in Model)
+                            {
+                                var code = Convert.ToString(GetProp(item, "EmployeeCode", "employeeCode", "PersonID",
+                                "personID", "EmpID", "empID")) ?? string.Empty;
+                                var name = Convert.ToString(GetProp(item, "EmployeeName", "employeeName", "Name", "name")) ??
+                                string.Empty;
+                                var dept = Convert.ToString(GetProp(item, "DepartmentName", "departmentName", "DeptName",
+                                "deptName", "department")) ?? string.Empty;
+                                var door = Convert.ToString(GetProp(item, "DoorName", "doorName")) ?? string.Empty;
+
+                                var allowedStr = Convert.ToString(GetProp(item, "IsAllowed", "isAllowed"))?.ToLowerInvariant();
+                                bool? allowed = allowedStr == "true" ? true : allowedStr == "false" ? false : (bool?)null;
+
+                                var vfObj = GetProp(item, "ValidFrom", "validFrom", "startDate", "StartDate");
+                                var vtObj = GetProp(item, "ValidTo", "validTo", "modifyTime", "ModifyTime", "EndDate",
+                                "endDate");
+                                DateTime? vf = vfObj as DateTime?;
+                                DateTime? vt = vtObj as DateTime?;
+                                <tr>
+                                    <td>@code</td>
+                                    <td>@name</td>
+                                    <td>@dept</td>
+                                    <td>@door</td>
+                                    <td>
+                                        @if (allowed == true)
+                                        {
+                                            <span class="badge bg-success">อนุญาต</span>
+                                        }
+                                        else if (allowed == false)
+                                        {
+                                            <span class="badge bg-danger">ไม่อนุญาต</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">—</span>
+                                        }
+                                    </td>
+                                    <td>@(vf.HasValue ? vf.Value.ToString("dd/MM/yyyy HH:mm") : "")</td>
+                                    <td>@(vt.HasValue ? vt.Value.ToString("dd/MM/yyyy HH:mm") : "")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @* หมายเหตุ: ตารางนี้ใช้ Bootstrap 5 และ DataTables จะถูกผูกด้วยสคริปต์ด้านล่าง（说明：使用 Bootstrap 5 与下方的 DataTables 初始化） *@
+</div>
+
+@* Modal แสดงพรีวิว PDF：使用 iframe 预览 *@
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfModalLabel">พรีวิว PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="height:80vh;">
+                <iframe id="pdfFrame" src="about:blank" style="border:0; width:100%; height:100%;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                <button type="button" id="btnPrintPdf" class="btn btn-primary">พิมพ์/บันทึกเป็น PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#permissionDoorReport').DataTable();
+
+            // ตั้งค่า URL PDF ตามพารามิเตอร์ค้นหาในหน้าปัจจุบัน（根据当前查询参数设置PDF地址）
+            function buildPdfUrl() {
+                const url = new URL(window.location.href);
+                const doorId = url.searchParams.get('doorId') || '';
+                const departmentId = url.searchParams.get('departmentId') || '';
+                const keyword = url.searchParams.get('keyword') || '';
+                // TODO: ชี้ไปยัง endpoint ที่สร้าง PDF จริง หากมีในอนาคต
+                // ตอนนี้ใช้หน้า HTML เดิมเพื่อพิมพ์เป็น PDF ผ่าน dialog ของเบราว์เซอร์
+                const base = url.origin + url.pathname; // render หน้าเดิม
+                const pdfUrl = `${base}?doorId=${encodeURIComponent(doorId)}&departmentId=${encodeURIComponent(departmentId)}&keyword=${encodeURIComponent(keyword)}&as=pdf`;
+                return pdfUrl;
+            }
+
+            $('#btnPreviewPdf').on('click', function () {
+                $('#pdfFrame').attr('src', buildPdfUrl());
+            });
+
+            $('#btnPrintPdf').on('click', function () {
+                const frame = document.getElementById('pdfFrame');
+                if (frame && frame.contentWindow) {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                }
+            });
+        });
+    </script>
+}

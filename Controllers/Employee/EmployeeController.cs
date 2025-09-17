@@ -69,16 +69,22 @@ namespace IPS_TH.Controllers.Employee
                 // ดึงข้อมูลแผนก
                 using (var defaultconnection = new SqlConnection(_connectionString))
                 using (var connection = new SqlConnection(_sql944ConnectionString))
+                using (var connectionces = new SqlConnection(_ces941ConnectionString))
                 {
-                    var query = @"SELECT * FROM Dept";
-
                     // เพิ่มข้อมูล Shiftdept
                     var shiftDeptQuery =
-                        @"SELECT * FROM emp_shift WHERE record_status = 'N' ORDER BY shift_group";
-                    var shiftDept = await defaultconnection.QueryAsync<dynamic>(shiftDeptQuery);
+                        @"SELECT DISTINCT WrkPlanID as wrkPlanID
+                        FROM vEmployee
+                        WHERE (WrkPlanID IS NOT NULL)
+                        ORDER BY WrkPlanID";
+                    var shiftDept = await connectionces.QueryAsync<dynamic>(shiftDeptQuery);
                     ViewBag.Shiftdept = shiftDept;
 
-                    var dept = await connection.QueryAsync<dynamic>(query);
+                    var deptQuery = @"SELECT DISTINCT WorkArea as deptID
+                        FROM vEmployee
+                        WHERE (WorkArea IS NOT NULL)
+                        ORDER BY WorkArea";
+                    var dept = await connectionces.QueryAsync<dynamic>(deptQuery);
                     ViewBag.Dept = dept;
 
                     // เพิ่มการดึงข้อมูลประตู
@@ -88,6 +94,14 @@ namespace IPS_TH.Controllers.Employee
                         ORDER BY doorName";
                     var doors = await connection.QueryAsync<dynamic>(doorsSql);
                     ViewBag.Doors = doors;
+
+                    // shift dept
+                    var shiftfromces941Query =
+                        @"SELECT WrkPlanID
+                        FROM MEmpGroup
+                        ORDER BY WrkPlanID";
+                    var shiftfromces941 = await connectionces.QueryAsync<dynamic>(shiftfromces941Query);
+                    ViewBag.Shiftfromces941 = shiftfromces941;
                 }
 
                 await LoadPermissions("Employee", "Employee");
@@ -230,8 +244,8 @@ namespace IPS_TH.Controllers.Employee
                         noteQuery,
                         new { personId = basePersonId + "-1" }
                     );
-                    
-                    isAlreadyMarkedForDeletion = !string.IsNullOrEmpty(noteResult) && 
+
+                    isAlreadyMarkedForDeletion = !string.IsNullOrEmpty(noteResult) &&
                                                noteResult.Trim().Equals("del", StringComparison.OrdinalIgnoreCase);
                 }
 
@@ -401,7 +415,8 @@ namespace IPS_TH.Controllers.Employee
                       FROM PubDoor 
                       LEFT JOIN PubWeekTime ON PubDoor.contolL1 = PubWeekTime.contolL1
                       WHERE doorName LIKE '%Build1 - HR Attendance%' 
-                      OR doorName LIKE '%Comsumables room%'"
+                      OR doorName LIKE '%Comsumables room%' 
+                      AND doorID NOT IN ('0000301', '0000401', '0000501', '0000601', '0000701', '0000801', '0000901','0001501')"
                 );
 
                 foreach (var door in basicDoors)
@@ -1079,7 +1094,7 @@ namespace IPS_TH.Controllers.Employee
         }
 
         // เพิ่มเมธอดใหม่สำหรับดึงข้อมูลพนักงานจาก CES941
-        private async Task<List<dynamic>> GetEmployeesFromCES941()
+        private async Task<List<dynamic>> GetEmployeesFromCES941(string department)
         {
             try
             {
@@ -1088,20 +1103,24 @@ namespace IPS_TH.Controllers.Employee
                     string sql =
                         @"
                         SELECT 
-                            Language, EmpNo, PrefixName, EmpName, EmpLName, Gender, 
-                            EmpStartDate, EmpResignDate, LastDateAtten, AcceptRehired, 
-                            ProbationDay, ProbationPass, ProbationDate, ContractNo, 
-                            ContAdd, ContCity, ContZipCode, ContZipDesc, ContCountry, 
-                            RegAdd, RegCity, RegZipCode, RegZipDesc, RegCountry, 
-                            HomePhone, MobilePhone, Internet, eMailAdd, ADUser, 
-                            R3User, DIHUser, LotusUser, SkyUser, RNewUser, BirthDate, 
-                            BirthCity, BirthCountry, Nation, Nationality, Religion, 
-                            BankID, BankAccount, PersonalID, PassPort, TaxID, SFID, 
-                            Hospital, CarLicense, BikeLicense, Marital, MilitaryPass, 
-                            EmpPicture, DocLink, PreEmpNo, ChangeDate, ChangeBy, 
-                            FlagDel, AdminAction, ResignAlertDate, ResignKeyDate, Ext, ADPath
-                        FROM MEmpBasic
-                        WHERE Language = 'EN'";
+                            EmpNo, PrefixName, EmpName, EmpLName, EmpStartDate, DepCode, 
+                            ProbationDay, ProbationPass, ProbationDate, TitleCode, TitleLong, 
+                            SecCode, SecDsc, SecShortDsc, EmpPicture, FlagDel, ComNo, BossId, 
+                            WorkArea, EmpResignDate, AcceptRehired, LastDateAtten, Language, 
+                            Gender, WrkPlanID, CostCenter, EmpType, BirthDate, PersonalID, 
+                            DLInd, FuncCode, EmpGroup, JGCode, Critical, JGStruc, FullName, 
+                            ShortName, ADUser, PrgnSts, Staff, JGLevel, BankAccount, SubCon, 
+                            PreEmpNo, eMailAdd, AdminAction, ResignAlertDate, ResignKeyDate, 
+                            PayrollProcess, PrefixCode, MobilePhone, HomePhone, ContZipCode, 
+                            ContZipDesc, ContCountry, ContCity, Religion, Ext, SkyUser, 
+                            LotusUser, DIHUser, R3User, Internet, JDCode, ADPath, MRP, 
+                            Hospital, Nationality, Marital, ServiceDate, ProbationEvident, 
+                            InsDown, InsRec, InsEmp, SocialDown, SocialRec, SocialEmp, 
+                            OTCondition, calOT, calCPS, AbnormalAdjust, SFID, THOrg, 
+                            PassPort, TaxID, LeaveCalendarType, MFG, MROOrg, Expr1, 
+                            CBasicDate, CComDate, TitleShort
+                        FROM vEmployee
+                        WHERE Language = 'en'";
 
                     // ย้ายเงื่อนไขการกรองตามสถานะการลาออกไปใช้ในตอนกรองข้อมูลหลังจากเปรียบเทียบแล้ว
                     // ดึงข้อมูลทั้งหมดโดยไม่กรองเพื่อให้การเปรียบเทียบครบถ้วน
@@ -1113,6 +1132,31 @@ namespace IPS_TH.Controllers.Employee
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching employees from CES941: {ex.Message}");
+                return new List<dynamic>();
+            }
+        }
+
+        private async Task<List<dynamic>> GetShiftsDataHR_IPS()
+        {
+            try
+            {
+                using (IDbConnection db = new SqlConnection(_ces941ConnectionString))
+                {
+                    string sql =
+                        @"
+                        SELECT EmpNo, PrefixName, EmpName, EmpLName, EmpStartDate, EmpResignDate, ActionType, ActionReason, PrimaryKey, EffDateFrom, EffDateTo, EffAttProcess, BIWRequire, ActionTypeDesc, TDepCode, TSecCode, 
+                         Gender, BirthDate, TCosCenter, TWorkArea, WrkPlanID, TBossId, BrwType, CreateDate, CreateBy, FlagDel, DepCode, SecCode, CostCenter, WorkArea, BossId, ComNo, TComNo, Language, EmpGroup, ReasonCode, ChangeDate,
+                          ChangeBy
+                        FROM vEmpMovement 
+                        WHERE Language = 'EN' 
+                        ";
+                    var data = await db.QueryAsync(sql);
+                    return data.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching shifts data from HR_IPS: {ex.Message}");
                 return new List<dynamic>();
             }
         }
@@ -1159,21 +1203,32 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
+                _logger.LogInformation("GetEmployeesData: Starting to load employee data");
+
+                // ตรวจสอบการเชื่อมต่อฐานข้อมูล
+                if (!await TestDatabaseConnections())
+                {
+                    return Json(new { error = "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ" });
+                }
+
                 // ตรวจสอบและโหลด permissions
                 await EnsurePermissionsLoaded();
 
-
+                _logger.LogInformation("GetEmployeesData: Permissions loaded, starting data retrieval");
 
                 // ดึงข้อมูลจากแหล่งต่างๆ แบบ parallel
-                var ces941Task = GetEmployeesFromCES941();
-                var sql944Task = GetSQL944Data();
-                var shiftsTask = GetShiftsData();
+                var ces941Task = GetEmployeesFromCES941(department);
+                var sql944Task = GetSQL944Data(department);
+                var shiftsTask = GetShiftsData(); // ดึงขอมูลจาก HRM_IPS
+                // var shiftsTask = GetShiftsDataHR_IPS();
 
                 await Task.WhenAll(ces941Task, sql944Task, shiftsTask);
 
                 var ces941Employees = await ces941Task;
                 var sql944Data = await sql944Task;
                 var shifts = await shiftsTask;
+
+                _logger.LogInformation($"GetEmployeesData: Retrieved {ces941Employees?.Count() ?? 0} employees from CES941, {sql944Data?.sql944Employees?.Count ?? 0} from SQL944");
 
                 // สร้าง Dictionary สำหรับข้อมูล CES941
                 var ces941Dict = new Dictionary<string, object>();
@@ -1215,6 +1270,8 @@ namespace IPS_TH.Controllers.Employee
                     jobGradeDict
                 );
 
+                _logger.LogInformation($"GetEmployeesData: Built employee list with {employeesList?.Count ?? 0} employees");
+
                 // กรองข้อมูลตามเงื่อนไข
                 employeesList = await ApplyFilters(
                     employeesList,
@@ -1233,12 +1290,53 @@ namespace IPS_TH.Controllers.Employee
             catch (ObjectDisposedException ex)
             {
                 _logger.LogWarning($"GetEmployeesData: Context disposed error - {ex.Message}");
-                return Json(new List<dynamic>());
+                return Json(new { error = "เกิดข้อผิดพลาดในการเข้าถึงฐานข้อมูล กรุณาลองใหม่อีกครั้ง" });
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error in GetEmployees: {ex.Message}");
-                return Json(new { error = ex.Message });
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                return Json(new { error = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        private async Task<bool> TestDatabaseConnections()
+        {
+            try
+            {
+                // ตรวจสอบการเชื่อมต่อฐานข้อมูลหลัก
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    _logger.LogInformation("Database connection test: Main DB connection successful");
+                }
+
+                // ตรวจสอบการเชื่อมต่อ SQL944
+                if (!string.IsNullOrEmpty(_sql944ConnectionString))
+                {
+                    using (var connection = new SqlConnection(_sql944ConnectionString))
+                    {
+                        await connection.OpenAsync();
+                        _logger.LogInformation("Database connection test: SQL944 connection successful");
+                    }
+                }
+
+                // ตรวจสอบการเชื่อมต่อ CES941
+                if (!string.IsNullOrEmpty(_ces941ConnectionString))
+                {
+                    using (var connection = new SqlConnection(_ces941ConnectionString))
+                    {
+                        await connection.OpenAsync();
+                        _logger.LogInformation("Database connection test: CES941 connection successful");
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Database connection test failed: {ex.Message}");
+                return false;
             }
         }
 
@@ -1251,7 +1349,7 @@ namespace IPS_TH.Controllers.Employee
             }
         }
 
-        private async Task<SQL944DataResult> GetSQL944Data()
+        private async Task<SQL944DataResult> GetSQL944Data(string department)
         {
             var sql944Employees = new HashSet<string>();
             var cardDict = new Dictionary<string, object>();
@@ -1266,7 +1364,7 @@ namespace IPS_TH.Controllers.Employee
             using var sql944Connection = new SqlConnection(_sql944ConnectionString);
             await sql944Connection.OpenAsync();
 
-            // ดึงข้อมูลบัตร (-1) แต่ไม่รวมที่มี note = 'del'
+            // ดึงข้อมูลบัตร (-1) จาก Person
             var cardSql =
                 @"SELECT personID, Name, DeptName, DeptID, CardNumber, note 
                 FROM Person 
@@ -1289,37 +1387,25 @@ namespace IPS_TH.Controllers.Employee
                     cardNumberDict[baseId] = card.CardNumber;
             }
 
-            // ดึงข้อมูลลายนิ้วมือจาก Person_FP (CardNumber = PersonID ที่ไม่มี -1 หรือ -2)
-            var fingerprintSql =
-                @"SELECT CardNumber, FP1, FP2, DeployDeviceName, DeployDevice_Id, PersonName, PersonID, 
-                         IsDelete, reserve1, reserve2, reserve3, reserve4, modifytime, operator, 
-                         FV1, FV2, FACE_FEA, FA1, FA2, F51, F52, F90 
-                  FROM Person_FP WHERE (IsDelete = 'N' OR IsDelete IS NULL) AND CardNumber IS NOT NULL";
+            // ดึงข้อมูลลายนิ้วมือ (-2) จาก Person (ไม่ใช้ Person_FP เพื่อให้รายชื่ออ้างอิงจาก Person เท่านั้น)
+            var personFpRowsSql =
+                @"SELECT personID, Name, DeptName, DeptID, CardNumber, note 
+                FROM Person 
+                WHERE personID LIKE '%-2'";
+            var personFpRows = await sql944Connection.QueryAsync<dynamic>(personFpRowsSql);
 
-            IEnumerable<dynamic> fingerprintData;
-            try
+            foreach (var row in personFpRows)
             {
-                fingerprintData = await sql944Connection.QueryAsync<dynamic>(fingerprintSql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error querying Person_FP: {ex.Message}");
-                // ถ้าเกิด error ให้ใช้ข้อมูลว่าง
-                fingerprintData = new List<dynamic>();
-            }
-
-            foreach (var fp in fingerprintData) 
-            {
-                string baseId = fp.CardNumber?.ToString() ?? "";
-                if (!string.IsNullOrEmpty(baseId))
-                {
-                    sql944Employees.Add(baseId);
-                    fingerprintDict[baseId] = fp;
-
-                    // ไม่ใช้ชื่อจาก Person_FP - ให้ใช้ชื่อจาก CES941 แทน
-                    // if (!string.IsNullOrEmpty(fp.PersonName) && !nameDict.ContainsKey(baseId))
-                    //     nameDict[baseId] = fp.PersonName;
-                }
+                string baseId = row.personID.Split('-')[0].Trim();
+                sql944Employees.Add(baseId);
+                // เก็บ info ลายนิ้วมือไว้เพื่ออ้างอิงสถานะ (ไม่ใช้กำหนดชื่อ)
+                fingerprintDict[baseId] = row;
+                if (!string.IsNullOrEmpty(row.Name) && !nameDict.ContainsKey(baseId))
+                    nameDict[baseId] = row.Name;
+                if (!string.IsNullOrEmpty(row.DeptName) && !deptNameDict.ContainsKey(baseId))
+                    deptNameDict[baseId] = row.DeptName;
+                if (!string.IsNullOrEmpty(row.DeptID) && !deptIDDict.ContainsKey(baseId))
+                    deptIDDict[baseId] = row.DeptID;
             }
 
             // ดึงข้อมูล result จาก BioDataGetList สำหรับสถานะการดึงข้อมูล
@@ -1361,12 +1447,12 @@ namespace IPS_TH.Controllers.Employee
                 accessCountDict[baseId] = accessCountDict.GetValueOrDefault(baseId, 0) + 1;
             }
 
-            // สร้าง fingerprintDataIds จาก Person_FP
+            // สร้าง fingerprintDataIds จาก Person (-2)
             fingerprintDataIds = new HashSet<string>(
-                fingerprintData
-                    .Where(fp => !string.IsNullOrEmpty(fp.CardNumber?.ToString()))
-                    .Select(fp => fp.CardNumber.ToString())
-                    .Cast<string>()
+                personFpRows
+                    .Select(r => (string)(r.personID?.ToString()))
+                    .Where(pid => !string.IsNullOrEmpty(pid) && pid.EndsWith("-2"))
+                    .Select(pid => pid.Substring(0, pid.Length - 2))
             );
 
             return new SQL944DataResult
@@ -1448,6 +1534,9 @@ namespace IPS_TH.Controllers.Employee
                 var emp = kvp.Value;
                 processedIds.Add(id);
 
+                // ตรวจสอบว่ามีใน SQL944 (Person) หรือไม่
+                bool inSql944 = sql944Employees.Contains(id);
+
                 var employeeData = CreateEmployeeData(
                     id,
                     emp,
@@ -1463,10 +1552,10 @@ namespace IPS_TH.Controllers.Employee
                     shifts,
                     jobGradeDict,
                     true,
-                    true
+                    inSql944
                 );
 
-                if (employeeData != null)
+                if (employeeData != null && !string.IsNullOrWhiteSpace(employeeData.name))
                 {
                     employeesList.Add(employeeData);
                 }
@@ -1477,25 +1566,25 @@ namespace IPS_TH.Controllers.Employee
             {
                 if (!processedIds.Contains(id))
                 {
-                var employeeData = CreateEmployeeData(
-                        id,
-                        null,
-                        sql944Employees,
-                        cardDict,
-                        fingerprintDict,
-                        nameDict,
-                        deptNameDict,
-                        deptIDDict,
-                        cardNumberDict,
-                        accessCountDict,
-                        fingerprintDataIds,
-                        shifts,
-                    jobGradeDict,
-                        false,
-                        true
-                    );
+                    var employeeData = CreateEmployeeData(
+                            id,
+                            null,
+                            sql944Employees,
+                            cardDict,
+                            fingerprintDict,
+                            nameDict,
+                            deptNameDict,
+                            deptIDDict,
+                            cardNumberDict,
+                            accessCountDict,
+                            fingerprintDataIds,
+                            shifts,
+                        jobGradeDict,
+                            false,
+                            true
+                        );
 
-                    if (employeeData != null)
+                    if (employeeData != null && !string.IsNullOrWhiteSpace(employeeData.name))
                     {
                         employeesList.Add(employeeData);
                     }
@@ -1619,7 +1708,9 @@ namespace IPS_TH.Controllers.Employee
                 isActive = (cardDict.ContainsKey(id) || fingerprintDict.ContainsKey(id)) ? 1 : 0,
                 existsInCES941 = existsInCES941,
                 existsInSQL944 = existsInSQL944,
-                noteStatus = noteStatus, // เพิ่มข้อมูลสถานะ note
+                noteStatus = noteStatus, // เพิ่มข้อมูลสถานะ note,
+                WorkArea = emp?.WorkArea ?? "",
+                Wrkplanid = emp?.WrkPlanID ?? "",
             };
         }
 
@@ -1630,38 +1721,44 @@ namespace IPS_TH.Controllers.Employee
             Dictionary<string, dynamic> cardDict
         )
         {
-            // ตรวจสอบว่ามี note = 'del' หรือไม่
-            bool hasDelNote = false;
-            if (cardDict.ContainsKey(id))
-            {
-                dynamic cardData = cardDict[id];
-                if (cardData != null)
-                {
-                    try
-                    {
-                        string noteValue = cardData.note?.ToString()?.Trim() ?? "";
-                        hasDelNote = noteValue.Equals("del", StringComparison.OrdinalIgnoreCase);
-                    }
-                    catch
-                    {
-                        // ถ้าไม่มี property note หรือ error ใดๆ
-                        hasDelNote = false;
-                    }
-                }
-            }
-
-            // ถ้ามี note = 'del' ไม่ใช้ชื่อจาก SQL944 (nameDict) แต่ใช้จาก CES941 แทน
-            if (!hasDelNote && nameDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(nameDict[id]))
+            // ใช้ชื่อจาก SQL944 ก่อน หากไม่เจอให้ใช้ชื่อจาก CES941
+            // 优先使用 SQL944 中的姓名，如果找不到则使用 CES941 中的姓名
+            if (nameDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(nameDict[id]))
             {
                 return nameDict[id];
             }
 
-            if (emp != null)
+            // ตรวจสอบ emp ก่อนเรียกใช้ EmpNo
+            // 检查 emp 后再使用 EmpNo
+            //if (emp.EmpNo.ToString().Contains("10129826"))
+            //{
+            //    Console.WriteLine("just test");
+            //}
+
+            // ใช้ชื่อจาก CES941 เป็น fallback
+            // 使用 CES941 中的姓名作为备选
+            if (emp != null && !string.IsNullOrWhiteSpace(emp.EmpName))
             {
-                return $"{emp.PrefixName} {emp.EmpName} {emp.EmpLName}".Trim();
+                // สร้างชื่อเต็มจากข้อมูล CES941
+                // 从 CES941 数据创建全名
+                string fullName = "";
+                if (!string.IsNullOrWhiteSpace(emp.PrefixName) && !string.IsNullOrWhiteSpace(emp.EmpName) && !string.IsNullOrWhiteSpace(emp.EmpLName))
+                {
+                    fullName = $"{emp.PrefixName} {emp.EmpName} {emp.EmpLName}";
+                }
+                else if (!string.IsNullOrWhiteSpace(emp.EmpName) && !string.IsNullOrWhiteSpace(emp.EmpLName))
+                {
+                    fullName = $"{emp.EmpName} {emp.EmpLName}";
+                }
+                else if (!string.IsNullOrWhiteSpace(emp.FullName))
+                {
+                    fullName = emp.FullName;
+                }
+
+                return fullName;
             }
 
-            return "ไม่ระบุชื่อ";
+            return "ไม่ระบุชื่อพนักงาน";
         }
 
         private string GetEmployeeDepartment(
@@ -1716,7 +1813,9 @@ namespace IPS_TH.Controllers.Employee
                         .Where(e => !((dynamic)e).existsInCES941 || !((dynamic)e).existsInSQL944)
                         .ToList(),
                     "ces941only" => employeesList
-                        .Where(e => ((dynamic)e).existsInCES941 && !((dynamic)e).existsInSQL944)
+                        .Where(e => ((dynamic)e).existsInCES941
+                                    && !((dynamic)e).existsInSQL944
+                                    && ((dynamic)e).resignDate == null)
                         .ToList(),
                     "sql944only" => employeesList
                         .Where(e => !((dynamic)e).existsInCES941 && ((dynamic)e).existsInSQL944)
@@ -1735,7 +1834,7 @@ namespace IPS_TH.Controllers.Employee
                 employeesList = await FilterByDoor(employeesList, door);
             }
 
-            // กรองตามแผนก - ปรับปรุงให้กรองจากชื่อแผนก (department) และรหัสแผนก (deptID)
+            // กรองตามแผนก - ปรับปรุงให้รองรับ WorkArea (CES941)
             if (!string.IsNullOrEmpty(department) && department != "all")
             {
                 employeesList = employeesList
@@ -1743,56 +1842,60 @@ namespace IPS_TH.Controllers.Employee
                     {
                         var emp = (dynamic)e;
 
-                        // ตรวจสอบข้อมูลแผนกจากทั้ง department และ deptID
-                        string empDepartment = "";
+                        string empWorkArea = "";
+                        string empDepartmentName = "";
                         string empDeptID = "";
 
-                        // ดึงข้อมูล department
-                        if (emp.department != null)
+                        if (HasProp(emp, "WorkArea") && emp.WorkArea != null)
                         {
-                            empDepartment = emp.department.ToString().ToLower().Trim();
+                            empWorkArea = emp.WorkArea.ToString().ToLower().Trim();
                         }
-
-                        // ดึงข้อมูล deptID
-                        if (emp.deptID != null)
+                        if (HasProp(emp, "department") && emp.department != null)
+                        {
+                            empDepartmentName = emp.department.ToString().ToLower().Trim();
+                        }
+                        if (HasProp(emp, "deptID") && emp.deptID != null)
                         {
                             empDeptID = emp.deptID.ToString().ToLower().Trim();
                         }
 
-                        // ถ้าไม่มีข้อมูลแผนกเลย ให้ข้าม
-                        if (string.IsNullOrEmpty(empDepartment) && string.IsNullOrEmpty(empDeptID))
-                        {
-                            return false;
-                        }
+                        var filterDepartment = department.ToLower().Trim();
 
-                        string filterDepartment = department.ToLower().Trim();
-
-                        // เปรียบเทียบกับทั้งชื่อแผนกและรหัสแผนก
-                        return empDepartment == filterDepartment
-                            || empDepartment.Contains(filterDepartment)
-                            || empDeptID == filterDepartment
-                            || empDeptID.Contains(filterDepartment);
+                        // เปรียบเทียบกับ WorkArea เป็นหลัก และสำรองด้วยชื่อแผนก/รหัสแผนก
+                        return (!string.IsNullOrEmpty(empWorkArea) &&
+                                (empWorkArea == filterDepartment || empWorkArea.Contains(filterDepartment)))
+                            || (!string.IsNullOrEmpty(empDepartmentName) &&
+                                (empDepartmentName == filterDepartment || empDepartmentName.Contains(filterDepartment)))
+                            || (!string.IsNullOrEmpty(empDeptID) &&
+                                (empDeptID == filterDepartment || empDeptID.Contains(filterDepartment)));
                     })
                     .ToList();
             }
 
-            // กรองตามกะ
+            // กรองตามกะ - รองรับทั้งค่าจาก emp_person_shift (shift) และ WrkPlanID (จาก CES941)
             if (!string.IsNullOrEmpty(shift) && shift != "all")
             {
                 employeesList = employeesList
                     .Where(e =>
                     {
                         var emp = (dynamic)e;
-                        // ตรวจสอบว่ามีข้อมูล shift หรือไม่ และไม่เป็น null
-                        if (emp.shift == null)
-                            return false;
+                        string empShift = HasProp(emp, "shift") && emp.shift != null
+                            ? emp.shift.ToString().ToLower().Trim()
+                            : string.Empty;
+                        string empWrkPlanId = HasProp(emp, "Wrkplanid") && emp.Wrkplanid != null
+                            ? emp.Wrkplanid.ToString().ToLower().Trim()
+                            : (HasProp(emp, "WrkPlanID") && emp.WrkPlanID != null
+                                ? emp.WrkPlanID.ToString().ToLower().Trim()
+                                : string.Empty);
 
-                        // แปลงเป็น string และทำการเปรียบเทียบแบบไม่คำนึงถึงตัวพิมพ์ใหญ่-เล็ก
-                        string empShift = emp.shift.ToString().ToLower().Trim();
                         string filterShift = shift.ToLower().Trim();
 
-                        // เปรียบเทียบแบบ exact match หรือ contains
-                        return empShift == filterShift || empShift.Contains(filterShift);
+                        // ตรงกับ WrkPlanID เป็นหลัก และสำรองด้วย shift (ในกรณีใช้ข้อมูลในระบบภายใน)
+                        bool matchWrkPlan = !string.IsNullOrEmpty(empWrkPlanId) &&
+                                            (empWrkPlanId == filterShift || empWrkPlanId.Contains(filterShift));
+                        bool matchShift = !string.IsNullOrEmpty(empShift) &&
+                                          (empShift == filterShift || empShift.Contains(filterShift));
+                        return matchWrkPlan || matchShift;
                     })
                     .ToList();
             }
@@ -1809,6 +1912,23 @@ namespace IPS_TH.Controllers.Employee
             }
 
             return employeesList;
+        }
+
+        // helper สำหรับตรวจสอบ property บน dynamic แบบปลอดภัย
+        private static bool HasProp(dynamic obj, string name)
+        {
+            if (obj is IDictionary<string, object> dict)
+            {
+                return dict.ContainsKey(name);
+            }
+            try
+            {
+                return obj.GetType().GetProperty(name) != null;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private async Task<List<dynamic>> FilterByDoor(List<dynamic> employeesList, string door)
@@ -2296,7 +2416,7 @@ namespace IPS_TH.Controllers.Employee
             try
             {
                 // ดึงข้อมูลพนักงานจาก CES941
-                var ces941Employees = await GetEmployeesFromCES941();
+                var ces941Employees = await GetEmployeesFromCES941(ViewData["CurrentUserDepartment"]?.ToString() ?? "");
 
                 // ดึงข้อมูลแผนกจาก SQL944
                 var sql944Departments = new Dictionary<string, string>();
@@ -2607,6 +2727,7 @@ namespace IPS_TH.Controllers.Employee
                              PubWeekTime.weekTimeID
                          FROM PubDoor
                          LEFT JOIN PubWeekTime ON PubDoor.contolL1 = PubWeekTime.contolL1
+                         WHERE PubDoor.doorID NOT IN ('0000301', '0000401', '0000501', '0000601', '0000701', '0000801', '0000901','0001501')
                          ORDER BY PubDoor.doorName";
 
                     var doors = await db.QueryAsync(doorSql);
@@ -2810,7 +2931,7 @@ namespace IPS_TH.Controllers.Employee
                     }
 
                     return Json(new { status = "success" });
-                } 
+                }
             }
             catch (Exception ex)
             {
@@ -2853,8 +2974,9 @@ namespace IPS_TH.Controllers.Employee
                         SELECT doorID, weekTimeID 
                         FROM PubDoor 
                         LEFT JOIN PubWeekTime ON PubDoor.contolL1 = PubWeekTime.contolL1
-                        WHERE doorName LIKE '%Build1 - HR Attendance%' 
-                        OR doorName LIKE '%Comsumables room%'"
+                        WHERE (doorName LIKE '%Build1 - HR Attendance%' 
+                        OR doorName LIKE '%Comsumables room%')
+                        AND doorID NOT IN ('0000301', '0000401', '0000501', '0000601', '0000701', '0000801', '0000901','0001501')"
                     );
 
                     foreach (var door in basicDoors)
@@ -3097,15 +3219,19 @@ namespace IPS_TH.Controllers.Employee
         {
             try
             {
-                var personIdValue = personId.Split('-')[0];
-                personIdValue = personIdValue + "-1";
+                // เตรียมข้อมูลพื้นฐาน
+                var personIdBase = personId.Split('-')[0];
+                var personIdForCard = personIdBase + "-1";
                 var cardNumber = "";
+                var resultList = new List<dynamic>();
+
+                // 1) ดึงเลขบัตรจาก SQL944
                 using (var sql944Connection = new SqlConnection(_sql944ConnectionString))
                 {
                     await sql944Connection.OpenAsync();
                     var person = await sql944Connection.QueryFirstOrDefaultAsync<dynamic>(
-                        "SELECT TOP 1 * FROM Person WHERE PersonID = @PersonID",
-                        new { PersonID = personIdValue }
+                        "SELECT TOP 1 CAST(cardNumber AS NVARCHAR(50)) AS cardNumber FROM Person WHERE PersonID = @PersonID",
+                        new { PersonID = personIdForCard }
                     );
                     if (person == null)
                     {
@@ -3114,27 +3240,111 @@ namespace IPS_TH.Controllers.Employee
                     cardNumber = person.cardNumber;
                 }
 
-                // ดึงข้อมูลจาก emp_person_shift โดยไม่ใช้ฟิลด์ที่ยังไม่มีในฐานข้อมูล
-                var history = await _context
-                    .emp_person_shift.Where(h => h.personID == personId && h.isActive == 1)
-                    .OrderByDescending(h => h.date) // เรียงตามวันที่ล่าสุด
-                    .Select(h => new
+                // 2) ดึงประวัติการเปลี่ยนกะจาก vEmpMovement และ map เป็นฟิลด์ที่ child row ต้องใช้
+                using (var ces941Connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await ces941Connection.OpenAsync();
+
+                    var movementHistory = await ces941Connection.QueryAsync<dynamic>(
+                        @"SELECT 
+                              EmpNo, PrefixName, EmpName, EmpLName, EmpStartDate, EmpResignDate, ActionType, ActionReason, PrimaryKey, EffDateFrom, EffDateTo, EffAttProcess, BIWRequire, ActionTypeDesc, TDepCode, TSecCode, 
+                         Gender, BirthDate, TCosCenter, TWorkArea, WrkPlanID, TBossId, BrwType, CreateDate, CreateBy, FlagDel, DepCode, SecCode, CostCenter, WorkArea, BossId, ComNo, TComNo, Language, EmpGroup, ReasonCode, ChangeDate,
+                          ChangeBy, ReasonDesc 
+                          FROM vEmpMovement
+                          WHERE EmpNo = @EmpNo AND ReasonDesc = 'Change shift'
+                          ORDER BY EffDateFrom DESC",
+                        new { EmpNo = personIdBase }
+                    );
+
+                    foreach (var item in movementHistory)
                     {
-                        id = h.Id,
-                        date = h.date,
-                        shiftName = h.shiftMent,
-                        shiftMent = h.shiftMent,
-                        personID = personId,
-                        name = h.name,
-                        deptID = h.deptID,
-                        deptName = h.deptName,
-                        deptCode = h.deptCode,
-                        cardNumber = cardNumber,
-                    })
+                        DateTime? effFrom = (DateTime?)item.EffDateFrom;
+                        string wrkPlanId = item.WrkPlanID?.ToString();
+
+                        string shiftCode = item.WrkPlanID?.ToString();
+
+                        string fullName = ($"{(string?)item.PrefixName} {(string?)item.EmpName} {(string?)item.EmpLName}").Trim();
+
+                        resultList.Add(new
+                        {
+                            id = 0,
+                            date = effFrom,
+                            shiftMent = item.WrkPlanID?.ToString(),
+                            personId = personIdBase,
+                            name = fullName,
+                            deptID = (string)null,
+                            deptName = (string)null,
+                            deptCode = (string)null,
+                            cardNumber = cardNumber,
+                            changeReasonCode = (string?)item.ReasonCode,
+                            changeReasonDesc = (string?)item.ReasonDesc,
+                            wrkPlanId = item.WrkPlanID?.ToString(),
+                            actionType = item.ActionType?.ToString(),
+                            actionReason = item.ActionReason?.ToString(),
+                            primaryKey = item.PrimaryKey?.ToString(),
+                            effDateFrom = item.EffDateFrom?.ToString(),
+                            effDateTo = item.EffDateTo?.ToString(),
+                            effAttProcess = item.EffAttProcess?.ToString(),
+                            WorkArea = item.WorkArea?.ToString(),
+                            TDepCode = item.TDepCode?.ToString(),
+                            TSecCode = item.TSecCode?.ToString(),
+                            Gender = item.Gender?.ToString(),
+                            BirthDate = item.BirthDate?.ToString(),
+                            TCosCenter = item.TCosCenter?.ToString(),
+                            TWorkArea = item.TWorkArea?.ToString(),
+                            source = "CES"
+                        });
+                    }
+
+                }
+
+                // 3) ดึงประวัติการเปลี่ยนกะจากตาราง emp_person_shift ในฐานข้อมูลหลัก และรวมผล
+                var localHistory = await _context.emp_person_shift
+                    .Where(h => (h.personID == personId || h.personID == personIdBase) && h.date != null)
+                    .OrderByDescending(h => h.date)
+                    .Select(h => new { h.date, h.shiftMent })
                     .ToListAsync();
 
-                // ส่งคืนข้อมูลประวัติ
-                return Json(new { success = true, data = history });
+                foreach (var h in localHistory)
+                {
+                    resultList.Add(new
+                    {
+                        id = 0,
+                        date = (DateTime?)h.date,
+                        shiftMent = h.shiftMent,
+                        personId = personIdBase,
+                        name = (string)null,
+                        deptID = (string)null,
+                        deptName = (string)null,
+                        deptCode = (string)null,
+                        cardNumber = cardNumber,
+                        changeReasonCode = (string)null,
+                        changeReasonDesc = (string)null,
+                        wrkPlanId = (string)null,
+                        actionType = (string)null,
+                        actionReason = (string)null,
+                        primaryKey = (string)null,
+                        effDateFrom = h.date != null ? ((DateTime)h.date).ToString() : null,
+                        effDateTo = (string)null,
+                        effAttProcess = (string)null,
+                        WorkArea = (string)null,
+                        TDepCode = (string)null,
+                        TSecCode = (string)null,
+                        Gender = (string)null,
+                        BirthDate = (string)null,
+                        TCosCenter = (string)null,
+                        TWorkArea = (string)null,
+                        source = "LOCAL"
+                    });
+                }
+
+                resultList = resultList
+                    .OrderByDescending(x => (DateTime?)x.date)
+                    .ToList();
+
+                return Json(new { success = true, data = resultList });
+
+
             }
             catch (Exception ex)
             {
@@ -3143,6 +3353,106 @@ namespace IPS_TH.Controllers.Employee
                 return Json(
                     new { success = false, message = "เกิดข้อผิดพลาดในการดึงข้อมูล: " + ex.Message }
                 );
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckLatestShiftCompare(string personId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(personId))
+                {
+                    return Json(new { success = false, message = "personId ว่าง" });
+                }
+
+                var personIdBase = personId.Split('-')[0];
+                var today = DateTime.Today;
+
+                // 1) กะปัจจุบันใน HRM_IPS
+                string localShift = null;
+                var latestLocal = await _context
+                    .emp_person_shift
+                    .Where(h => h.personID == personId && h.isActive == 1 && h.date != null)
+                    .OrderByDescending(h => h.date)
+                    .Select(h => new { h.shiftMent, h.date })
+                    .FirstOrDefaultAsync();
+
+                if (latestLocal != null)
+                {
+                    localShift = latestLocal.shiftMent;
+                }
+                else
+                {
+                    var emp = await _context.emp_person
+                        .Where(e => e.personID == personId)
+                        .Select(e => new { e.shiftMent })
+                        .FirstOrDefaultAsync();
+                    localShift = emp?.shiftMent;
+                }
+
+                // 2) กะล่าสุดฝั่ง HR_IPS (effective วันนี้)
+                string hrShift = null;
+                using (var ces941Connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await ces941Connection.OpenAsync();
+
+                    // หา WrkPlanID ล่าสุดที่มีผลวันนี้จาก vEmpMovement
+                    var empMovement = await ces941Connection.QueryFirstOrDefaultAsync(
+                        @"SELECT TOP 1 
+                              CAST(WrkPlanID AS NVARCHAR(50)) AS WrkPlanID
+                          FROM vEmpMovement
+                          WHERE EmpNo = @EmpNo
+                            AND EffAttProcess = 'y'
+                            AND @WorkDate BETWEEN EffDateFrom AND ISNULL(EffDateTo, '9999-12-31')
+                          ORDER BY EffDateFrom DESC",
+                        new { EmpNo = personIdBase, WorkDate = today }
+                    );
+
+                    string wrkPlanId = empMovement?.WrkPlanID?.ToString();
+                    if (string.IsNullOrEmpty(wrkPlanId))
+                    {
+                        // ถ้าไม่พบใน vEmpMovement ให้ใช้ vEmployee
+                        var vEmp = await ces941Connection.QueryFirstOrDefaultAsync(
+                            @"SELECT TOP 1 CAST(WrkPlanID AS NVARCHAR(50)) AS WrkPlanID FROM vEmployee WHERE EmpNo = @EmpNo",
+                            new { EmpNo = personIdBase }
+                        );
+                        wrkPlanId = vEmp?.WrkPlanID?.ToString();
+                    }
+
+                    if (!string.IsNullOrEmpty(wrkPlanId))
+                    {
+                        var workPlan = await ces941Connection.QueryFirstOrDefaultAsync(
+                            @"SELECT TOP 1 CAST(ShiftCode AS NVARCHAR(50)) AS ShiftCode
+                              FROM MWorkPlan
+                              WHERE WrkPlanID = @WrkPlanID AND CAST(WrkDate AS date) = @WorkDate
+                              ORDER BY WrkDate DESC",
+                            new { WrkPlanID = wrkPlanId, WorkDate = today }
+                        );
+                        hrShift = workPlan?.ShiftCode?.ToString();
+                    }
+                }
+
+                var shouldChange = !string.IsNullOrEmpty(localShift)
+                    && !string.IsNullOrEmpty(hrShift)
+                    && !string.Equals(localShift, hrShift, StringComparison.OrdinalIgnoreCase);
+
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        personId,
+                        localShift,
+                        hrShift,
+                        shouldChange
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CheckLatestShiftCompare: {Message}", ex.Message);
+                return Json(new { success = false, message = "เกิดข้อผิดพลาด: " + ex.Message });
             }
         }
 
@@ -3234,21 +3544,11 @@ namespace IPS_TH.Controllers.Employee
                         || string.IsNullOrEmpty(request.deptName)
                     )
                     {
-                        // หาข้อมูลพนักงาน
-                        var employee = await _context.emp_person.FirstOrDefaultAsync(p =>
-                            p.personID == request.PersonId
-                        );
-
-                        if (employee == null)
-                        {
-                            return Json(new { success = false, message = "ไม่พบข้อมูลพนักงาน" });
-                        }
-
                         // กำหนดค่าข้อมูลที่จำเป็น
-                        request.name = request.name ?? FormatEmployeeName(employee.name); // ใช้ชื่อที่ตัดแล้ว
-                        request.deptID = request.deptID ?? employee.deptID;
-                        request.deptName = request.deptName ?? employee.deptName;
-                        request.deptCode = request.deptCode ?? employee.deptID;
+                        request.name = request.name;
+                        request.deptID = request.deptID;
+                        request.deptName = request.deptName;
+                        request.deptCode = request.deptCode;
                     }
 
                     // สร้างข้อมูลใหม่
@@ -3780,7 +4080,7 @@ namespace IPS_TH.Controllers.Employee
                 }
 
                 // ดึงข้อมูลพนักงานจาก CES941 เพื่อตรวจสอบว่ามีพนักงานอยู่จริง
-                var ces941Employees = await GetEmployeesFromCES941();
+                var ces941Employees = await GetEmployeesFromCES941(ViewData["CurrentUserDepartment"]?.ToString() ?? "");
                 var employee = ces941Employees.FirstOrDefault(e => e.EmpNo?.ToString() == personId);
 
                 if (employee == null)
@@ -3968,7 +4268,7 @@ namespace IPS_TH.Controllers.Employee
                 }
 
                 // ดึงข้อมูลพนักงานจาก CES941 เพื่อตรวจสอบว่ามีพนักงานอยู่จริง
-                var ces941Employees = await GetEmployeesFromCES941();
+                var ces941Employees = await GetEmployeesFromCES941(ViewData["CurrentUserDepartment"]?.ToString() ?? "");
                 var employee = ces941Employees.FirstOrDefault(e => e.EmpNo?.ToString() == personId);
 
                 if (employee == null)
@@ -4470,7 +4770,7 @@ namespace IPS_TH.Controllers.Employee
             try
             {
                 // ดึงข้อมูลพนักงานจาก CES941
-                var ces941Employees = await GetEmployeesFromCES941();
+                var ces941Employees = await GetEmployeesFromCES941(ViewData["CurrentUserDepartment"]?.ToString() ?? "");
 
                 // ดึงข้อมูลสิทธิ์การเข้าประตูจากฐานข้อมูล sql944
                 var doorAccess = await GetDoorAccessFromSQL944();
@@ -4691,7 +4991,7 @@ namespace IPS_TH.Controllers.Employee
                     string employeeName =
                         nameDict.ContainsKey(empNo) && !string.IsNullOrEmpty(nameDict[empNo])
                             ? nameDict[empNo]
-                            : (string.IsNullOrEmpty(ces941Name) ? "ไม่ระบุชื่อ" : ces941Name);
+                            : (string.IsNullOrEmpty(ces941Name) ? "test1" : ces941Name);
 
                     // ใช้ cardNumber จาก personId ที่มี -1 เท่านั้น
                     string employeeCardNumber = "ไม่ระบุ";
@@ -4775,7 +5075,7 @@ namespace IPS_TH.Controllers.Employee
                     shifts.TryGetValue(personId, out shiftMent);
 
                     // ดึงชื่อจาก SQL944
-                    string employeeName = "ไม่ระบุชื่อ";
+                    string employeeName = null;
                     if (nameDict.ContainsKey(personId) && !string.IsNullOrEmpty(nameDict[personId]))
                     {
                         employeeName = nameDict[personId];
@@ -4827,7 +5127,11 @@ namespace IPS_TH.Controllers.Employee
                         isComplete = false,
                     };
 
-                    employees.Add(employee);
+                    // เพิ่มพนักงานเฉพาะที่มีชื่อ
+                    if (!string.IsNullOrWhiteSpace(employeeName))
+                    {
+                        employees.Add(employee);
+                    }
                 }
 
                 Console.WriteLine($"จำนวนพนักงานหลังการประมวลผล: {employees.Count}");
@@ -5192,7 +5496,7 @@ namespace IPS_TH.Controllers.Employee
             try
             {
                 // ดึงข้อมูลพนักงานที่ลาออกแล้วจาก CES941
-                var ces941Employees = await GetEmployeesFromCES941();
+                var ces941Employees = await GetEmployeesFromCES941(ViewData["CurrentUserDepartment"]?.ToString() ?? "");
                 var resignedEmployees = ces941Employees
                     .Where(e => e.EmpResignDate != null)
                     .Select(e => e.EmpNo?.ToString())
@@ -5246,6 +5550,124 @@ namespace IPS_TH.Controllers.Employee
             {
                 return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PermissionDoorReport()
+        {
+            try
+            {
+                string doorId = Convert.ToString(Request.Query["doorId"]);
+                string departmentId = Convert.ToString(Request.Query["departmentId"]);
+                string keyword = Convert.ToString(Request.Query["keyword"]);
+
+                // ดึงรายชื่อประตูสำหรับฟิลเตอร์
+                using (var sql944 = new SqlConnection(_sql944ConnectionString))
+                {
+                    var doors = await sql944.QueryAsync<dynamic>(
+                        @"SELECT DISTINCT doorID, doorName FROM PubDoor ORDER BY doorName"
+                    );
+                    ViewBag.Doors = doors;
+                }
+
+                // ดึงรายชื่อแผนกจากตาราง emp_person (เฉพาะค่าที่มีจริง)
+                var departments = await _context.emp_person
+                    .Where(e => e.deptID != null && e.deptName != null)
+                    .Select(e => new { DepartmentId = e.deptID, DepartmentName = e.deptName })
+                    .Distinct()
+                    .OrderBy(e => e.DepartmentName)
+                    .ToListAsync();
+                ViewBag.Departments = departments;
+
+                // ดึงข้อมูลสิทธิ์ประตูจาก SQL944
+                IEnumerable<dynamic> rows;
+                using (var sql944 = new SqlConnection(_sql944ConnectionString))
+                {
+                    var sql = @"SELECT TOP 1000 a.personID, a.doorID, d.doorName, a.weekTimeID, a.reserve1, a.modifyTime
+                                FROM PubDoorAuth a
+                                INNER JOIN PubDoor d ON a.doorID = d.doorID
+                                WHERE (a.reserve1 IS NULL OR a.reserve1 <> 2)";
+                    if (!string.IsNullOrEmpty(doorId))
+                    {
+                        sql += " AND a.doorID = @doorId";
+                    }
+                    sql += " ORDER BY d.doorName, a.personID";
+
+                    rows = await sql944.QueryAsync<dynamic>(sql, new { doorId });
+                }
+
+                // สร้างแผนที่ข้อมูลพนักงานจาก emp_person แบบ cache
+                var model = new List<dynamic>();
+                var personCache = new Dictionary<string, (string Name, string DeptName, string DeptId)>();
+
+                foreach (var r in rows)
+                {
+                    string personId = (string)r.personID;
+                    if (string.IsNullOrWhiteSpace(personId)) continue;
+                    string baseId = personId.Split('-')[0];
+
+                    if (!personCache.ContainsKey(baseId))
+                    {
+                        var person = await _context.emp_person
+                            .AsNoTracking()
+                            .Where(e => e.personID.StartsWith(baseId))
+                            .OrderBy(e => e.personID)
+                            .Select(e => new { e.name, e.deptName, e.deptID })
+                            .FirstOrDefaultAsync();
+
+                        string name = person?.name ?? baseId;
+                        string deptName = person?.deptName ?? string.Empty;
+                        string deptCode = person?.deptID ?? string.Empty;
+                        personCache[baseId] = (name, deptName, deptCode);
+                    }
+
+                    var info = personCache[baseId];
+
+                    // กรองตาม department และ keyword ถ้ามี
+                    if (!string.IsNullOrEmpty(departmentId))
+                    {
+                        if (!(info.DeptName?.Contains(departmentId, StringComparison.OrdinalIgnoreCase) == true
+                              || info.DeptId?.Contains(departmentId, StringComparison.OrdinalIgnoreCase) == true))
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(keyword))
+                    {
+                        if (!(baseId.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                              || (info.Name?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true)))
+                        {
+                            continue;
+                        }
+                    }
+
+                    model.Add(new
+                    {
+                        EmployeeCode = baseId,
+                        EmployeeName = info.Name,
+                        DepartmentName = info.DeptName,
+                        DoorName = (string)r.doorName,
+                        IsAllowed = true,
+                        ValidFrom = (DateTime?)null,
+                        ValidTo = (DateTime?)r.modifyTime
+                    });
+                }
+
+                await LoadPermissions("Employee", "PermissionDoorReport");
+                return View("permission_door_report", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in PermissionDoorReport: {ex.Message}");
+                return View("permission_door_report", new List<dynamic>());
+            }
+        }
+
+        private async Task<string> GetPermissionDoorReportHtml()
+        {
+            var html = await System.IO.File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(), "Views", "Employee", "permission_door_report.cshtml"));
+            return html;
         }
     }
 }

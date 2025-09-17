@@ -15,7 +15,7 @@
         bool canView = permissions?["CanView"] ?? false;
         bool isAdmin = permissions?["IsAdmin"] ?? false;
     
-        }
+    } 
  
         <div class="container-fluid">
             <!-- div สำหรับเก็บค่า filter -->
@@ -83,6 +83,11 @@
                                             id="filterButton">
                                             <i class="fas fa-filter me-2"></i>กรองข้อมูล
                                         </button>
+                                        <button type="button"
+                                            class="btn btn-success btn-hover-translate rounded-pill shadow-sm"
+                                            id="exportExcelButton">
+                                            <i class="fas fa-file-excel me-2"></i>Export Excel
+                                        </button>
                                         @if (isAdmin)
                                         {
                                             <button type="button"
@@ -97,6 +102,14 @@
                                                 class="btn btn-warning btn-hover-translate rounded-pill shadow-sm"
                                                 id="fingerprintEditButton">
                                                 <i class="fas fa-edit me-2"></i>แก้ไขข้อมูลลายนิ้วมือ
+                                            </button>
+                                        }
+                                        @if (isAdmin)
+                                        {
+                                            <button type="button"
+                                                class="btn btn-warning btn-hover-translate rounded-pill shadow-sm"
+                                                id="checkDepartmentPermissionsButton">
+                                                <i class="fas fa-building me-2"></i>ตรวจสอบสิทธิ์
                                             </button>
                                         }
                                     </div>
@@ -227,7 +240,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Row 4 -->
+                                        <!-- Row 4 --> 
                                         <div class="col-12">
                                             <div class="form-floating">
                                                 <select class="form-select" name="deptName" id="deptName" required>
@@ -242,9 +255,7 @@
                                                      {
                                                         @foreach (var dept in ViewBag.Dept)
                                                         {
-                                                            if (dept.name.ToLower() == ViewData["CurrentUserDepartment"].ToString().ToLower()){
                                                                 <option value="@dept.deptID" data-deptid="@dept.deptID" selected>@dept.name</option>
-                                                            }
                                                         }
                                                      }
                                                     
@@ -388,30 +399,11 @@
                                     <div class="col-md-6">
                                         <div class="form-floating">
                                             <select class="form-select filter-department">
-                                                @if (isAdmin)
-                                                {
-                                                    <option value="" selected>ทั้งหมด</option>
-                                                    <option value="4070">Liteon Thailand IPS</option>
-                                                    <option value="S6211">MFG</option>
-                                                    <option value="S6212">QRA</option>
-                                                    <option value="S6213">CSC</option>
-                                                    <option value="S6214">OFFICE</option>
-                                                    <option value="S6215">WH</option>
-                                                    <option value="S6216">IE</option>
-                                                    <option value="S6217">PMC</option>
-                                                    <option value="S6218">รปภ.</option>
-                                                    <option value="S6219">CH</option>
-                                                    <option value="S6220">แม่บ้าน</option>
-                                                    <option value="S6221">ME</option>
-                                                    <option value="S6224">ITS</option>
-                                                    <option value="S6225">PE</option>
-                                                    <option value="S6226">BOI</option>
-                                                    <option value="S6227">PC</option>
-                                                }
-                                                else
-                                                {
-                                                    <option value="@ViewData["CurrentUserDepartment"]" selected>@ViewData["CurrentUserDepartment"]</option>
-                                                }
+                                               <option value="" selected>ทั้งหมด</option>
+                                               @foreach (var item in ViewBag.Dept)
+                                               {
+                                                   <option value="@item.deptID">@item.deptID</option>
+                                               }
                                             </select>
                                             <label><i class="fas fa-building me-1"></i>แผนก</label>
                                         </div>
@@ -420,14 +412,10 @@
                                         <div class="form-floating">
                                             <select class="form-select filter-shift">
                                                 <option value="" selected>ทั้งหมด</option>
-                                                <option value="D01N01">กะเช้า (รายวัน) (D01N01)</option>
-                                                <option value="DT1NT1">กะเช้า (รายเดือน) (DT1NT1)</option>
-                                                <option value="OFFICE">กะออฟฟิศ (ไม่เข้ากะ) (OFFICE)</option>
-                                                <option value="DAYSHF">กะเช้า (รายวัน) (DAYSHF)</option>
-                                                <option value="DAYTCH">กะเช้า (รายเดือน) (DAYTCH)</option>
-                                                <option value="N01D01">กะดึก (รายวัน) (N01D01)</option>
-                                                <option value="NT1DT1">กะดึก (รายเดือน) (NT1DT1)</option>
-                                                <option value="OFFICE2">กะออฟฟิศ (ไม่เข้ากะ) (OFFICE2)</option>
+                                                @foreach (var item in ViewBag.Shiftfromces941)
+                                                {
+                                                    <option value="@item.wrkPlanID">@item.wrkPlanID</option>
+                                                }
                                             </select>
                                             <label><i class="fas fa-clock me-1"></i>กะการทำงาน</label>
                                         </div>
@@ -455,13 +443,6 @@
                                                 <option value="0001201">Build1 - DQE room</option>
                                                 <option value="0000101">Build1 - HR Attendance 01</option>
                                                 <option value="0000201">Build1 - HR Attendance 02</option>
-                                                <option value="0000301">Build1 - HR Attendance 03</option>
-                                                <option value="0000401">Build1 - HR Attendance 04</option>
-                                                <option value="0000501">Build1 - HR Attendance 05</option>
-                                                <option value="0000601">Build1 - HR Attendance 06</option>
-                                                <option value="0000701">Build1 - HR Attendance 07</option>
-                                                <option value="0000801">Build1 - HR Attendance 08</option>
-                                                <option value="0000901">Build1 - HR Attendance 09</option>
                                                 <option value="0001301">Build1 - IQC room</option>
                                                 <option value="0001701">Build1 - Jig room</option>
                                                 <option value="0001001">Build1 - MIS server room</option>
@@ -502,16 +483,60 @@
         </div>
 
         @section Scripts {
+        <!-- เพิ่ม library XLSX.js สำหรับ Export Excel -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
         <script>
             // ประกาศตัวแปร appBasePath
             var appBasePath = '@Url.Content("~/")';
-             
-            $(document).ready(function() {
 
-                $('#reloadTableButton').on('click', function() {
-                    reloadEmployeeTable();
-                });
-                  // ฟังก์ชันรีโหลดตาราง
+            // สร้าง lookup สำหรับ badge แสดงผลตัวกรอง (ไม่พึ่ง DOM ของแถวฟิลเตอร์)
+            const deptLookup = (function(){
+                const arr = [];
+                @{
+                    // ViewBag.Dept: มี deptID และ name (WorkArea จาก CES941)
+                    foreach (var dept in ViewBag.Dept)
+                    {
+                        <text>
+                            arr.push({ id: '@dept.deptID', name: '@(dept.name ?? dept.deptID)' });
+                        </text>
+                    }
+                }
+                return arr;
+            })();
+            const shiftLookup = (function(){
+                const arr = [];
+                @{
+                    // ViewBag.Shiftdept: มี wrkPlanID เท่านั้น
+                    foreach (var s in ViewBag.Shiftfromces941)
+                    {
+                        <text>
+                            arr.push({ id: '@s.wrkPlanID', name: '@s.wrkPlanID' });
+                        </text>
+                    }
+                }
+                return arr;
+            })();
+            const doorLookup = {
+                '0001601': 'Build1 - Chemical room',
+                '0001801': 'Build1 - Comsumables room',
+                '0001101': 'Build1 - DCC room',
+                '0001201': 'Build1 - DQE room',
+                '0000101': 'Build1 - HR Attendance 01',
+                '0000201': 'Build1 - HR Attendance 02',
+                '0001301': 'Build1 - IQC room',
+                '0001701': 'Build1 - Jig room',
+                '0001001': 'Build1 - MIS server room',
+                '0002001': 'Build1 - Store electonic',
+                '0001401': 'Build1 - Store Finish goods 01',
+                '0001901': 'Build1 - Store raw material'
+            };
+            function findName(lookupArr, id){
+                if(!id) return '';
+                const f = lookupArr.find(x => (x.id||'').toString() === (id||'').toString());
+                return f ? (f.name || f.id) : id;
+            }
+             
+            // ฟังก์ชันรีโหลดตาราง
             function reloadEmployeeTable() {
                 const reloadButton = $('#reloadTableButton');
                 const icon = reloadButton.find('i');
@@ -532,6 +557,358 @@
                     showSuccessToast('โหลดข้อมูลใหม่เรียบร้อยแล้ว');
                 }, false); // false = ไม่รีเซ็ตหน้า
             }
+
+            // ฟังก์ชัน Export ข้อมูลพนักงานเป็น Excel แยกตามแผนก
+            function exportEmployeeDataToExcel() {
+                // แสดง Loading
+                Swal.fire({
+                    title: 'กำลังเตรียมข้อมูล...',
+                    html: '<div class="spinner-border text-primary" role="status"></div><br><small>กรุณารอสักครู่ กำลังดึงข้อมูลสิทธิ์ประตู...</small>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+
+                // ดึงข้อมูลจาก DataTable
+                var table = $('#employeeTable').DataTable();
+                var data = table.data().toArray();
+                
+                if (data.length === 0) {
+                    Swal.close();
+                    showErrorToast('ไม่มีข้อมูลให้ Export');
+                    return;
+                }
+
+                // ดึงข้อมูลสิทธิ์ประตูสำหรับทุกคน
+                var promises = [];
+                var employeeAccessData = {};
+
+                data.forEach(function(row) {
+                    if (row.personID) {
+                        var promise = getEmployeeDoorAccess(row.personID);
+                        promises.push(promise);
+                    }
+                });
+
+                // รอให้ดึงข้อมูลสิทธิ์ประตูเสร็จทั้งหมด
+                Promise.all(promises).then(function() {
+                    // สร้างไฟล์ Excel
+                    var wb = XLSX.utils.book_new();
+
+                    // สร้าง Sheet สรุปภาพรวม
+                    var summaryData = createSummarySheet(data);
+                    var summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+                                    // แยกข้อมูลตามแผนก
+                var departments = {};
+                data.forEach(function(row) {
+                    // ไทย: ใช้ชื่อแผนกจาก CES941 (WorkArea) เป็นหลัก ถ้าไม่มีให้ fallback เป็นค่า department ปัจจุบัน / 简中: 优先使用 CES941 的部门名 (WorkArea)，无则回退到当前 department
+                    var deptName = (row.WorkArea || row.department || 'ไม่ระบุแผนก');
+                    if (typeof deptName === 'string') {
+                        deptName = deptName.trim();
+                    }
+                    if (!departments[deptName]) {
+                        departments[deptName] = [];
+                    }
+                    departments[deptName].push(row);
+                });
+
+                // สร้าง Sheet สำหรับแต่ละแผนก
+                Object.keys(departments).forEach(function(deptName) {
+                    var deptData = createDepartmentSheetWithDoors(departments[deptName], deptName);
+                    var deptWs = XLSX.utils.aoa_to_sheet(deptData);
+                    
+                    // กำหนดความกว้างคอลัมน์ (TH/简中 注释) Column widths
+                    var colWidths = [
+                        { wch: 12 }, // Employee ID
+                        { wch: 15 }, // Card Number
+                        { wch: 25 }, // Full Name
+                        { wch: 20 }, // Department
+                        { wch: 15 }, // Door Access Count
+                        { wch: 25 }, // Door Code
+                        { wch: 30 }, // Door Name
+                        { wch: 15 }, // Access Level
+                        { wch: 12 }, // Access Start Date
+                        { wch: 12 }, // Access End Date
+                        { wch: 20 }, // Approved By
+                        { wch: 25 }  // Remarks
+                    ];
+                    deptWs['!cols'] = colWidths;
+
+                    // เพิ่ม Sheet เข้าไปในไฟล์ (TH/简中 注释)
+                    var sheetName = deptName.length > 31 ? deptName.substring(0, 31) : deptName;
+                    XLSX.utils.book_append_sheet(wb, deptWs, sheetName);
+                });
+
+                    // สร้างชื่อไฟล์ (TH/简中 注释) File name
+                    var currentDate = moment().format('YYYY-MM-DD_HH-mm');
+                    var fileName = 'Employees_By_Department_' + currentDate + '.xlsx';
+
+                    // ปิด Loading และ Export
+                    Swal.close();
+                    
+                    try {
+                        XLSX.writeFile(wb, fileName);
+                        showSuccessToast('Export ข้อมูลสำเร็จ: ' + fileName);
+                    } catch (error) {
+                        console.error('Export error:', error);
+                        showErrorToast('เกิดข้อผิดพลาดในการ Export: ' + error.message);
+                    }
+                }).catch(function(error) {
+                    Swal.close();
+                    showErrorToast('เกิดข้อผิดพลาดในการดึงข้อมูลสิทธิ์ประตู: ' + error.message);
+                });
+            }
+
+            // ฟังก์ชันดึงข้อมูลสิทธิ์ประตูของพนักงานแต่ละคน
+            function getEmployeeDoorAccess(personId) {
+                return new Promise(function(resolve, reject) {
+                    $.ajax({
+                        url: appBasePath + 'Employee/GetAccess',
+                        type: 'POST',
+                        data: {
+                            personId: personId
+                        },
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader("RequestVerificationToken",
+                                $('input:hidden[name="__RequestVerificationToken"]').val());
+                        },
+                        success: function(response) {
+                            if (response.success && response.data) {
+                                // เก็บข้อมูลสิทธิ์ประตู
+                                var doorList = [];
+                                response.data.forEach(function(door) {
+                                    if (door.hasCardAccess || door.hasFingerprintAccess) {
+                                        doorList.push(door.doorName + ' (' + door.doorID + ')');
+                                    }
+                                });
+                                
+                                // เก็บข้อมูลใน global variable
+                                if (!window.employeeAccessData) {
+                                    window.employeeAccessData = {};
+                                }
+                                window.employeeAccessData[personId] = doorList;
+                            }
+                            resolve();
+                        },
+                        error: function(xhr, status, error) {
+                            console.warn('ไม่สามารถดึงข้อมูลสิทธิ์ประตูสำหรับ ' + personId + ': ' + error);
+                            // ถ้าไม่สามารถดึงข้อมูลได้ ให้เก็บเป็น array ว่าง
+                            if (!window.employeeAccessData) {
+                                window.employeeAccessData = {};
+                            }
+                            window.employeeAccessData[personId] = [];
+                            resolve(); // ยังคง resolve เพื่อให้ process ต่อไป
+                        }
+                    });
+                });
+            }
+
+            // ฟังก์ชันสร้าง Sheet สรุปภาพรวม
+            function createSummarySheet(data) {
+                var summaryData = [];
+                var headers = [
+                    'Employees by Department Summary',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
+                ];
+                summaryData.push(headers);
+
+                // สถิติตามแผนก (TH/简中 注释) Department statistics
+                var deptStats = {};
+                data.forEach(function(row) {
+                    var deptName = (row.WorkArea || row.department || 'Unknown');
+                    if (!deptStats[deptName]) {
+                        deptStats[deptName] = {
+                            total: 0,
+                            active: 0,
+                            resigned: 0,
+                            hasAccess: 0,
+                            hasFingerprint: 0
+                        };
+                    }
+                    deptStats[deptName].total++;
+                    
+                    if (row.resignDate) {
+                        deptStats[deptName].resigned++;
+                    } else {
+                        deptStats[deptName].active++;
+                    }
+                    
+                    if (row.accessCount > 0) {
+                        deptStats[deptName].hasAccess++;
+                    }
+                    
+                    if (row.hasFingerprint) {
+                        deptStats[deptName].hasFingerprint++;
+                    }
+                });
+
+                // เพิ่มข้อมูลสถิติ (TH/简中 注释) Add statistics header
+                summaryData.push(['Department', 'Total', 'Active', 'Resigned', 'Has Door Access', 'Has Fingerprint']);
+                Object.keys(deptStats).forEach(function(deptName) {
+                    var stats = deptStats[deptName];
+                    summaryData.push([
+                        deptName,
+                        stats.total,
+                        stats.active,
+                        stats.resigned,
+                        stats.hasAccess,
+                        stats.hasFingerprint
+                    ]);
+                });
+
+                // สรุปรวม
+                var totalEmployees = data.length;
+                var totalActive = data.filter(row => !row.resignDate).length;
+                var totalResigned = data.filter(row => row.resignDate).length;
+                var totalWithAccess = data.filter(row => row.accessCount > 0).length;
+                var totalWithFingerprint = data.filter(row => row.hasFingerprint).length;
+
+                summaryData.push(['']);
+                summaryData.push(['Totals', totalEmployees, totalActive, totalResigned, totalWithAccess, totalWithFingerprint]);
+
+                return summaryData;
+            }
+
+            // ฟังก์ชันสร้าง Sheet สำหรับแต่ละแผนก (แบบแยกประตูเป็นแถว)
+            function createDepartmentSheetWithDoors(data, deptName) {
+                var deptData = [];
+                var headers = [
+                    'Employee ID',
+                    'Card Number',
+                    'Full Name',
+                    'Department',
+                    'Door Access Count',
+                    'Door Code',
+                    'Door Name',
+                    'Access Level',
+                    'Access Start Date',
+                    'Access End Date',
+                    'Approved By',
+                    'Remarks'
+                ];
+
+                deptData.push(headers);
+
+                // แปลงข้อมูลแต่ละแถว
+                data.forEach(function(row) {
+                    // ดึงรายการประตูที่เข้าถึงได้จากข้อมูลที่ดึงมาแล้ว
+                    var doorList = [];
+                    if (window.employeeAccessData && window.employeeAccessData[row.personID]) {
+                        doorList = window.employeeAccessData[row.personID];
+                    }
+                    
+                    // กำหนดระดับสิทธิ์การเข้าถึง (TH/简中 注释) Determine access level
+                    var accessLevel = 'Anytime'; // default
+                    if (row.shiftMent) {
+                        if (row.shiftMent.includes('DAY')) {
+                            accessLevel = 'Day shift only';
+                        } else if (row.shiftMent.includes('N01')) {
+                            accessLevel = 'Night shift only';
+                        } else if (row.shiftMent.includes('OFFICE')) {
+                            accessLevel = 'Office hours only'; 
+                        }
+                    }
+                    
+                    // กำหนดวันที่เริ่มต้นสิทธิ์
+                    var accessStartDate = row.startDate ? 
+                        moment(row.startDate).format('DD/MM/YYYY') : 'ไม่ระบุ';
+                    
+                    // กำหนดวันที่สิ้นสุดสิทธิ์
+                    var accessEndDate = row.resignDate ? 
+                        moment(row.resignDate).format('DD/MM/YYYY') : 'ไม่มีกำหนด';
+                    
+                    // กำหนดผู้อนุมัติสิทธิ์
+                    var approver = 'Supervisor'; // ค่าเริ่มต้น
+                    
+                    // หมายเหตุเพิ่มเติม
+                    var notes = '';
+                    if (row.noteStatus) {
+                        notes = row.noteStatus;
+                    } else if (row.resignDate) {
+                        notes = 'ลาออกแล้ว - ต้องลบสิทธิ์ประตู';
+                    } else if (!row.hasCardData && !row.hasFingerprintData) {
+                        notes = 'ข้อมูลไม่ครบถ้วน - ต้องเพิ่มข้อมูลใน SQL944';
+                    }
+
+                    if (doorList.length === 0) {
+                        // ถ้าไม่มีสิทธิ์ประตู ให้แสดงแถวเดียว
+                        var rowData = [
+                            row.personID || '',
+                            row.cardNumber || '',
+                            row.name || '',
+                            row.department || '',
+                            row.accessCount || 0,
+                            '-',
+                            'ไม่มีสิทธิ์',
+                            accessLevel,
+                            accessStartDate,
+                            accessEndDate,
+                            approver,
+                            notes
+                        ];
+                        deptData.push(rowData);
+                    } else {
+                        // ถ้ามีสิทธิ์ประตู ให้แสดงแต่ละประตูเป็นแถวแยกกัน
+                        doorList.forEach(function(doorInfo, index) {
+                            // แยกรหัสประตูและชื่อประตู
+                            var doorMatch = doorInfo.match(/^(.+?)\s*\(([^)]+)\)$/);
+                            var doorName = doorMatch ? doorMatch[1].trim() : doorInfo;
+                            var doorID = doorMatch ? doorMatch[2].trim() : doorInfo;
+                            
+                            var rowData = [
+                                row.personID || '',
+                                row.cardNumber || '',
+                                row.name || '',
+                                row.department || '',
+                                row.accessCount || 0,
+                                doorID,
+                                doorName,
+                                accessLevel,
+                                accessStartDate,
+                                accessEndDate,
+                                approver,
+                                notes
+                            ];
+                            deptData.push(rowData);
+                        });
+                    }
+                });
+
+                return deptData;
+            }
+
+            $(document).ready(function() {
+
+                $('#checkDepartmentPermissionsButton').on('click', function() {
+                    window.location.href = '@Url.Action("PermissionDoorReport", "Employee")';
+                });
+
+                $('#reloadTableButton').on('click', function() {
+                    reloadEmployeeTable();
+                });
+
+                // Event handler สำหรับปุ่ม Export Excel
+                $('#exportExcelButton').on('click', function() {
+                    exportEmployeeDataToExcel();
+                });
                 // ตั้งค่า filter เริ่มต้นจาก localStorage หรือค่าเริ่มต้นปกติ
                 const storedFilters = loadFiltersFromLocalStorage();
                 $('#filter-storage').data('status', storedFilters.status || 'active');
@@ -539,6 +916,15 @@
                 $('#filter-storage').data('department', storedFilters.department || '');
                 $('#filter-storage').data('shift', storedFilters.shift || '');
                 $('#filter-storage').data('fingerprint', storedFilters.fingerprint || '');
+                // ปิด error popup เริ่มต้นของ DataTables เพื่อไม่ให้แจ้งเตือนกรณี abort
+                if ($.fn && $.fn.dataTable) {
+                    $.fn.dataTable.ext.errMode = function(settings, techNote, message) {
+                        if (message && /abort/i.test(message)) {
+                            return; // เงียบกรณี abort
+                        }
+                        console.error('DataTables:', techNote, message);
+                    };
+                }
                 // เริ่มต้น DataTables
                 var table = $('#employeeTable').DataTable({
                     processing: false,
@@ -546,19 +932,25 @@
                     paging: true,
                     lengthChange: true,
                     orderable: true,
-                    ordering: false,
+                    ordering: true,
                     searching: true,
-                    pageLength: 10,
+                    pageLength: 100,
                     lengthMenu: [10, 100, 200, 500],
                     info: true,
+                    order: [[2, 'desc']], // เรียงตาม jobgrade (column index 2) จากมากไปน้อย
                     ajax: {
                         url: appBasePath + 'Employee/GetEmployeesData',
                         type: 'GET',
                         data: function(d) {
                             d.status = $('#filter-storage').data('status');
                             d.door = $('#filter-storage').data('door');
-                            d.department = $('#filter-storage').data('department') || (userPermissions.isAdmin ? '' : '@ViewData["CurrentUserDepartment"]');
-                            d.shift = $('#filter-storage').data('shift');
+                            // ใช้ WorkArea เป็นตัวกรองแผนกหลัก
+                            d.department = ($('#filter-storage').data('department') || '').toString().trim();
+                            if (!d.department && !userPermissions.isAdmin) {
+                                d.department = '@ViewData["CurrentUserDepartment"]';
+                            }
+                            // ใช้ WrkPlanID เป็นตัวกรองกะหลัก
+                            d.shift = ($('#filter-storage').data('shift') || '').toString().trim();
                             d.fingerprint = $('#filter-storage').data('fingerprint');
                         },
                         dataSrc: function(json) {
@@ -584,6 +976,10 @@
                             return [];
                         },
                         error: function(xhr, error, thrown) {
+                            // ข้าม error ประเภท abort ที่เกิดจากการรีโหลด/ยกเลิกคำขอก่อนหน้า (TH) / 跳过因重新加载导致的 abort 错误 (简中)
+                            if (error === 'abort' || thrown === 'abort' || (xhr && xhr.readyState === 0)) {
+                                return;
+                            }
                             console.error('DataTables error:', error, thrown);
                             showErrorToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (thrown || error));
                         }
@@ -622,7 +1018,7 @@
                                 if (result !== "Fingerprint data archiving:True" && result !== "") {
                                     html +=
                                         '<span class="badge bg-danger ms-1" data-bs-toggle="tooltip" title="ผิดพลาดในการดึงข้อมูล: ' + result + '"><i class="fas fa-exclamation-triangle"></i></span>';
-                                } else if (hasBioDate === "") {
+                                } else if (hasBioDate === "" && row.hasFingerprintData === false) {
                                     html +=
                                         '<span class="badge bg-warning ms-1" data-bs-toggle="tooltip" title="กำลังประมวลผลข้อมูล: ' + result + '"><i class="fas fa-clock"></i></span>';
                                 } 
@@ -654,11 +1050,16 @@
                                 return html;
                             }
                         },
-                        
                         {
                             data: null,
                             title: '<i class="fas fa-user-tag me-1"></i> ชื่อ-นามสกุล',
                             render: function(data, type, row) {
+                                // สำหรับการเรียงลำดับ ให้ return ค่า jobGrade เป็นตัวเลข
+                                if (type === 'sort') {
+                                    var jg = (row.jobGrade || '').toString().trim();
+                                    return parseInt(jg.replace(/[^0-9]/g, ''), 10) || 0;
+                                }
+                                
                                 // กำหนดไอคอนเพศ
                                 var genderIcon = row.gender === 'M' ?
                                     '<i class="fas fa-mars text-primary me-1"></i>' :
@@ -711,18 +1112,22 @@
                             data: null,
                             title: '<i class="fas fa-building me-1"></i> แผนก',
                             render: function(data, type, row) {
-                                var deptName = row.department || 'ไม่ระบุแผนก';
+                                var deptName = row.WorkArea || row.department || 'ไม่ระบุแผนก';
                                 var deptID = row.deptID || '-';
-                                return '<div><span>' + deptName + '</span>' +
-                                    '<div class="small text-muted">' + deptID + '</div></div>';
+                                var wrk = row.Wrkplanid;
+                                var wrkBadge = wrk ? ' <span class="badge bg-secondary ms-1" title="WrkPlanID">WP: ' + wrk + '</span>' : '';
+                                return '<div><span>' + deptName + wrkBadge + '</span>' +
+                                    '</div>';
                             }
                         },
                         {
                             data: null,
                             title: '<i class="fas fa-door-open me-1"></i> จำนวนสิทธิ์',
+                            className: 'text-center text-nowrap',
+                            orderable: false,
                             render: function(data, type, row) {
                                 var accessCount = row.accessCount || 0;
-                                var html = '<div class="d-flex align-items-center">' +
+                                var html = '<div class="d-flex align-items-center justify-content-center">' +
                                     '<small class="badge bg-success me-1">' + accessCount + '</small>';
                                 if (row.hasFingerprint) {
                                     html += '<small class="badge bg-info" data-bs-toggle="tooltip" title="มีข้อมูลลายนิ้วมือ">' +
@@ -746,7 +1151,7 @@
                                         'DD/MM/YYYY');
                                     html += '<small class="text-muted ms-2">• ' + resignDate + '</small>';
                                 }
-                                return html;
+                                return html; 
                             }
                         },
                         {
@@ -936,6 +1341,14 @@
                     let storedDepartment = $('#filter-storage').data('department');
                     if (storedDepartment && storedDepartment !== '') {
                         $('.filter-department').val(storedDepartment);
+                    }
+                    // ถ้าไม่ใช่ admin ล็อกแผนกเป็นของผู้ใช้และ disable การเปลี่ยนค่า
+                    if (!userPermissions.isAdmin) {
+                        const userDept = userPermissions.currentUserDepartment;
+                        if (userDept && userDept !== '') {
+                            $('.filter-department').val(userDept);
+                        }
+                        $('.filter-department').prop('disabled', true);
                     }
                     $('.filter-shift').val($('#filter-storage').data('shift') || '');
                     $('.filter-status').val($('#filter-storage').data('status') || 'active');
@@ -2749,7 +3162,7 @@
                 });
             }
             
-            // เมื่อเลือกแผนก อัพเดทรหัสแผนก
+            // เมื่อเลือกแผนก อัพเดทรหัสแผนก 
             $('#deptName').on('change', function() {
                 $('#deptID').val($(this).val());
             });
@@ -2777,7 +3190,7 @@
                     $.ajax({
                         url: appBasePath + 'Employee/GetEmployeeHistory',
                         type: 'GET',
-                        data: {
+                        data: { 
                             personId: personId
                         },
                         success: function(response) {
@@ -2868,6 +3281,7 @@
                                         '<span class="badge ' + statusClass +
                                         ' ms-1 badge-sm">' +
                                         statusText + '</span>' +
+                                        (item.shouldChange ? ' <span class="badge bg-danger ms-2"><i class="fas fa-exclamation-triangle me-1"></i>ควรเปลี่ยน</span>' : '') +
                                         '</div>' +
                                         '<div class="shift-actions">' +
                                         '<button type="button" class="btn btn-shift-action btn-outline-warning edit-shift-btn" ' +
@@ -2910,17 +3324,18 @@
                                         '</div>' +
                                         '<div class="shift-body">' +
                                         '<div class="shift-info">' +
-                                        '<span class="badge bg-primary shift-badge">' + (
-                                            item
-                                            .shiftMent || '-') + '</span>' +
-                                        '<span class="text-muted small">แผนก: ' + (item
-                                            .deptName ||
-                                            '-') + '</span>';
+                                        '<span class="badge bg-primary shift-badge">' + (item.shiftMent || '-') + '</span>' +
+                                        (item.shouldChange && item.hrShift ? '<span class="ms-2 badge bg-warning text-dark">HR: ' + item.hrShift + '</span>' : '') +
+                                        '<span class="text-muted small">แผนก: ' + ((item.TWorkArea && item.TWorkArea.trim() !== '' ? item.TWorkArea : (item.deptName || '-'))) + '</span>';
                                     // แสดงหมายเหตุถ้ามี
                                     if (item.remark) {
                                         content +=
                                             '<div class="small mt-1"><i class="fas fa-comment-alt text-muted me-1"></i>' +
                                             item.remark + '</div>';
+                                    }
+                                    if (item.shouldChange && (item.changeReasonDesc || item.changeReasonCode)) {
+                                        content += '<div class="small mt-1 text-danger"><i class="fas fa-info-circle me-1"></i>' +
+                                            (item.changeReasonDesc || ('เหตุผล: ' + item.changeReasonCode)) + '</div>';
                                     }
                                     content += '</div>' +
                                         '</div>' +
@@ -3388,19 +3803,6 @@
                 // Debug: แสดงข้อมูลที่จะส่งไป
                 console.log('FormData:', formData);
                 console.log('Mode:', formData.Id === 0 ? 'Create' : 'Edit');
-                
-                // ตรวจสอบข้อมูลที่จำเป็นอีกครั้ง
-                if (!formData.PersonId || !formData.ShiftMent || !formData.Date || !formData.deptID) {
-                    showErrorToast('กรุณากรอกข้อมูลให้ครบถ้วน');
-                    console.log('Missing data:', {
-                        PersonId: formData.PersonId,
-                        ShiftMent: formData.ShiftMent,
-                        Date: formData.Date,
-                        deptID: formData.deptID
-                    });
-                    return;
-                }
-                
                 // แสดง loading
                 Swal.fire({
                     title: 'กำลังบันทึกข้อมูล',
@@ -3878,7 +4280,7 @@
                 let hasFilter = false;
                 if (filters.shift) {
                     hasFilter = true;
-                    let shiftName = $('.filter-shift option[value="' + filters.shift + '"]').text() || filters.shift;
+                    let shiftName = findName(shiftLookup, filters.shift);
                     $('#current-filters').append(`<span class="badge bg-info rounded-pill">
                         <i class="fas fa-clock me-1"></i>กะ: ${shiftName}
                         <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="shift"></button>
@@ -3886,10 +4288,18 @@
                 }
                 if (filters.door) {
                     hasFilter = true;
-                    let doorName = $('.filter-door option[value="' + filters.door + '"]').text() || filters.door;
+                    let doorName = doorLookup[filters.door] || filters.door;
                     $('#current-filters').append(`<span class="badge bg-info rounded-pill">
                         <i class="fas fa-door-open me-1"></i>ประตู: ${doorName}
                         <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="door"></button>
+                    </span>`);
+                }
+                if (filters.department) {
+                    hasFilter = true;
+                    let deptName = findName(deptLookup, filters.department);
+                    $('#current-filters').append(`<span class="badge bg-info rounded-pill">
+                        <i class="fas fa-building me-1"></i>แผนก: ${deptName}
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="department"></button>
                     </span>`);
                 }
                 if (filters.fingerprint) {
@@ -3925,6 +4335,10 @@
                     if (filterType === 'status') {
                         $('#filter-storage').data('status', 'active');
                     }
+                    // ถ้าเป็น department และไม่ใช่ admin ให้รีเซ็ตกลับไปยังแผนกผู้ใช้
+                    if (filterType === 'department' && !userPermissions.isAdmin) {
+                        $('#filter-storage').data('department', userPermissions.currentUserDepartment || '');
+                    }
                     saveFiltersToLocalStorage();
                     $('#employeeTable').DataTable().ajax.reload();
                     updateFilterBadges();
@@ -3940,6 +4354,8 @@
                     $('#employeeTable').DataTable().ajax.reload();
                     updateFilterBadges();
                 });
+
+
             }
         </script>
         }
@@ -3994,10 +4410,10 @@
                                     <div class="form-floating">
                                         <select class="form-select" id="shiftDeptName" name="deptName" required>
                                             <option value="">เลือกแผนก</option>
-                                            @foreach (var dept in ViewBag.Dept)
-                                            {
-                                            <option value="@dept.deptID" data-deptid="@dept.deptID">@dept.name</option>
-                                            }
+                                                @foreach (var item in ViewBag.Dept)
+                                               {
+                                                   <option value="@item.deptID">@item.deptID</option>
+                                               }
                                         </select>
                                         <label for="shiftDeptName">แผนก</label>
                                         <div class="invalid-feedback">กรุณาเลือกแผนก</div>
@@ -4017,13 +4433,9 @@
                                     <div class="form-floating">
                                         <select class="form-select" id="shiftName" name="ShiftMent" required>
                                             <option value="">เลือกกะ</option>
-                                            @foreach (var shift in ViewBag.Shiftdept)
+                                            @foreach (var shift in ViewBag.Shiftfromces941)
                                             {
-                                            <option value="@shift.shift_group" data-start="@shift.start_time"
-                                                data-end="@shift.end_time">
-                                                @shift.shift_name (@shift.shift_group) - @shift.start_time -
-                                                @shift.end_time
-                                            </option>
+                                            <option value="@shift.WrkPlanID">@shift.WrkPlanID</option>
                                             }
                                         </select>
                                         <label for="shiftName">กะการทำงาน</label>

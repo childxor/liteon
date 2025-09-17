@@ -8,16 +8,17 @@ using System.Net.Mail;
 using System.Text;
 using Dapper;
 using IPS_TH.Data;
-using IPS_TH.Models.AssetFactory;
+using IPS_TH.Models.AssetFactory; 
 using IPS_TH.Models.Attendance; // ใช้ namespace ที่ถูกต้อง
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json; // เพิ่มการนำเข้าสำหรับ JsonConvert
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
-
+ 
 namespace IPS_TH.Controllers.Employee
 {
     public class AttendanceController : BaseController
@@ -119,11 +120,15 @@ namespace IPS_TH.Controllers.Employee
                 await LoadPermissions("Attendance", "CheckIn");
                 using (var defaultconnection = new SqlConnection(_connectionString))
                 using (var connection = new SqlConnection(_sql944ConnectionString))
+                using (var ces941 = new SqlConnection(_ces941ConnectionString))
                 {
                     var userDept = HttpContext.Session.GetString("Department");
-                    var query = @"SELECT * FROM Dept";
 
-                    var dept = await connection.QueryAsync<dynamic>(query);
+                    var deptQuery = @"SELECT DISTINCT WorkArea as deptID
+                        FROM vEmployee
+                        WHERE (WorkArea IS NOT NULL)
+                        ORDER BY WorkArea";
+                    var dept = await ces941.QueryAsync<dynamic>(deptQuery);
                     ViewBag.Dept = dept;
 
                     // เพิ่ม debug log
@@ -132,16 +137,28 @@ namespace IPS_TH.Controllers.Employee
                     );
                     _logger.LogInformation($"CheckIn: userDept = {userDept}");
 
+                    // เพิ่มข้อมูล Shiftdept 
                     // เพิ่มข้อมูล Shiftdept
                     var shiftDeptQuery =
-                        @"SELECT * FROM emp_shift WHERE record_status = 'N' ORDER BY shift_group";
-                    var shiftDept = await defaultconnection.QueryAsync<dynamic>(shiftDeptQuery);
+                        @"SELECT DISTINCT WrkPlanID as wrkPlanID
+                        FROM vEmployee
+                        WHERE (WrkPlanID IS NOT NULL)
+                        ORDER BY WrkPlanID";
+                    var shiftDept = await ces941.QueryAsync<dynamic>(shiftDeptQuery);
                     ViewBag.Shiftdept = shiftDept;
-                }
+
+                    // shift dept
+                    var shiftfromces941Query =
+                        @"SELECT WrkPlanID
+                        FROM MEmpGroup
+                        ORDER BY WrkPlanID";
+                    var shiftfromces941 = await ces941.QueryAsync<dynamic>(shiftfromces941Query);
+                    ViewBag.Shiftfromces941 = shiftfromces941;
+                                    }
                 ViewBag.UserName = HttpContext.Session.GetString("UserName");
 
                 // เพิ่มการตั้งค่า ViewData สำหรับเปรียบเทียบ session department
-                ViewData["CurrentUserDepartment"] = HttpContext.Session.GetString("Department");
+                ViewData["CurrentUserDepartment"] = HttpContext.Session.GetString("WorkArea");
                 Console.WriteLine(ViewData["CurrentUserDepartment"]);
 
                 return View();
@@ -289,6 +306,16 @@ namespace IPS_TH.Controllers.Employee
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> GetEmployeesFromCES941()
+        {
+                using (var connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    var data = await connection.QueryAsync<dynamic>("SELECT * FROM MEmpBasic");
+                    return Json(data);
+                }
+        }
+
         // สำหรับโหลด datatable ข้อมูลจาก HQMS_IPS
         [HttpPost]
         public async Task<IActionResult> GetDataHQMS_IPS(
@@ -297,6 +324,7 @@ namespace IPS_TH.Controllers.Employee
             string startDate = null,
             string endDate = null,
             string shiftFilter = "all",
+            string idlFilter = "all",
             bool showResigned = true,
             bool export = false,
             bool hideResigned = false,
@@ -329,6 +357,9 @@ namespace IPS_TH.Controllers.Employee
                     parameters.EndDate
                 );
 
+                // get all data employee from ces941 example : empno = '10129782' don't have -
+                var dataFromVEmployee = await GetEmployeesFromCES941();
+
                 // ดึงข้อมูลตู้เก็บของ
                 var cabinetResult = await GetCabinetData();
 
@@ -343,6 +374,9 @@ namespace IPS_TH.Controllers.Employee
                 var dateRange = GetDateRange(parameters.StartDate, parameters.EndDate);
                 var result = new List<object>();
 
+                // 3.0 ดึงข้อมูลกะปัจจุบันจาก hr_ips sql944
+                var currentShift = await GetCurrentShiftFromHR_IPS();
+
                 // 3.1 โหลดข้อมูลการลาออกทั้งหมดในครั้งเดียว
                 var empNos = new List<string>();
                 foreach (var person in personShifts)
@@ -350,7 +384,7 @@ namespace IPS_TH.Controllers.Employee
                     var personId = person?.personID?.ToString();
                     if (!string.IsNullOrEmpty(personId))
                     {
-                        var empNo = personId.Replace("-1", "")?.Trim();
+                        var empNo = GetBaseEmpNo(personId)?.Trim();
                         if (!string.IsNullOrEmpty(empNo))
                         {
                             empNos.Add(empNo);
@@ -358,6 +392,9 @@ namespace IPS_TH.Controllers.Employee
                     }
                 }
                 await LoadAllResignationInfo(empNos);
+
+                // 3.1.1 ดึง WorkArea จาก CES941 สำหรับ EmpNo ทั้งหมด เพื่อใช้เป็น fallback กรณี currentShift ไม่มีข้อมูล
+                var workAreaDict = await GetWorkAreaDictionary(empNos);
 
                 // ดึงข้อมูลการลาออกทั้งหมดครั้งเดียว
                 Dictionary<string, dynamic> resignationDict = new Dictionary<string, dynamic>(
@@ -403,8 +440,36 @@ namespace IPS_TH.Controllers.Employee
                         hideResigned,
                         hideAbsent,
                         showIncomplete,
-                        computersByOwner
+                        computersByOwner,
+                        currentShift,
+                        workAreaDict
                     );
+                }
+
+                // 5.5 กรองตามแผนกจาก HR-IPS (WorkArea) ด้วยพารามิเตอร์ dept ที่ส่งมา
+                // ไทย: กรองผลลัพธ์โดยใช้ชื่อแผนกที่มาจาก HR-IPS (deptName) ให้ตรงกับค่า dept จากหน้าจอ
+                // 简中: 使用来自 HR-IPS 的部门名称 (deptName) 按请求参数 dept 进行过滤
+                if (!string.IsNullOrWhiteSpace(parameters.Dept)
+                    && !string.Equals(parameters.Dept, "all", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = result
+                        .Where(item =>
+                        {
+                            try
+                            {
+                                var dyn = (dynamic)item;
+                                string deptName = dyn?.deptName;
+                                return !string.IsNullOrWhiteSpace(deptName)
+                                    && string.Equals(deptName.Trim(), parameters.Dept.Trim(), StringComparison.OrdinalIgnoreCase);
+                            }
+                            catch
+                            {
+                                // ไทย: หากอ่านค่า deptName ไม่ได้ ให้ตัดออกจากผลลัพธ์เมื่อมีการกรอง
+                                // 简中: 若无法读取 deptName，在有过滤条件时排除该项
+                                return false;
+                            }
+                        })
+                        .ToList();
                 }
 
                 // 5. ส่งผลลัพธ์กลับ
@@ -717,7 +782,9 @@ namespace IPS_TH.Controllers.Employee
             bool hideResigned = false,
             bool hideAbsent = false,
             bool showIncomplete = false,
-            ILookup<string, dynamic> computersByOwner = null
+            ILookup<string, dynamic> computersByOwner = null,
+            dynamic currentShift = null,
+            Dictionary<string, string> workAreaDict = null
         )
         {
             using (var connection = new SqlConnection(_ces941ConnectionString))
@@ -746,11 +813,20 @@ namespace IPS_TH.Controllers.Employee
                         hideResigned,
                         hideAbsent,
                         showIncomplete,
-                        computersByOwner
+                        computersByOwner,
+                        currentShift,
+                        workAreaDict
                     );
 
                     if (personData != null)
                     {
+                        // กรองประเภทพนักงานตาม idlFilter ถ้าถูกส่งมาใน form (ผ่าน Request.Form)
+                        // idlTrue: "N" = รายเดือน, "Y" = รายวัน
+                        var filter = (Request?.Form?["idlFilter"].ToString() ?? "all").ToLower();
+                        if (filter == "monthly" && (personData as dynamic)?.idlTrue?.ToString() == "Y")
+                            continue;
+                        if (filter == "daily" && (personData as dynamic)?.idlTrue?.ToString() == "N")
+                            continue;
                         result.Add(personData);
                     }
                 }
@@ -1020,10 +1096,8 @@ namespace IPS_TH.Controllers.Employee
                         AND LEN(personID) > 5
                         AND isActive = '1'";
 
-                    if (dept != "all")
-                    {
-                        query += " AND deptName = @dept";
-                    }
+                    // ไทย/简中: ไม่กรองตาม dept ที่ตาราง emp_person_shift (อาจชื่อไม่ตรงกับ HR-IPS WorkArea)
+                    // 将部门过滤移至结果阶段按 HR-IPS 的 WorkArea 过滤，避免因名称不一致导致无数据
                     if (personName != "all")
                     {
                         query += " AND name LIKE @personName";
@@ -1340,6 +1414,76 @@ namespace IPS_TH.Controllers.Employee
             return result;
         }
 
+        private async Task<dynamic> GetCurrentShiftFromHR_IPS()
+        {
+            using (var ces941 = new SqlConnection(_ces941ConnectionString))
+            {
+                await ces941.OpenAsync();
+
+                // เพิ่มการดึงข้อมูลกะการทำงานจาก HR_IPS database
+                // 添加从 HR_IPS 数据库获取轮班信息的功能
+                var query = @"
+                SELECT EmpNo, WrkPlanID,DLInd,WorkArea 
+                FROM vEmployee
+                WHERE (Language = 'EN') AND (WrkPlanID IS NOT NULL) AND (EmpResignDate IS NULL)";
+                
+                var data = await ces941.QueryAsync<dynamic>(query);
+                return data.ToList();
+            }
+        }
+
+        // ไทย: คืนค่า EmpNo โดยตัด suffix -1/-2 ออกจาก personId
+        // 简中: 返回去除 -1/-2 后缀的 EmpNo（从 personId 提取）
+        private static string GetBaseEmpNo(string personId)
+        {
+            if (string.IsNullOrWhiteSpace(personId))
+                return personId;
+            var idx = personId.IndexOf('-');
+            return idx > 0 ? personId.Substring(0, idx) : personId;
+        }
+
+        // ไทย: ดึง WorkArea เป็นพจนานุกรม EmpNo → WorkArea เพื่อใช้เป็นข้อมูลสำรองกรณี currentShift ไม่มีข้อมูล
+        // 简中: 拉取 WorkArea，构建 EmpNo → WorkArea 字典，作为 currentShift 缺失时的后备
+        private async Task<Dictionary<string, string>> GetWorkAreaDictionary(IEnumerable<string> empNos)
+        {
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (empNos == null)
+                return dict;
+
+            var list = empNos.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (list.Count == 0)
+                return dict;
+
+            // สร้างตารางชั่วคราวด้วย Table-Valued Parameter แบบใช้ IN-list แบบแบ่ง batch เพื่อหลีกเลี่ยง query ยาวเกินไป
+            const int batchSize = 200;
+            using (var ces941 = new SqlConnection(_ces941ConnectionString))
+            {
+                await ces941.OpenAsync();
+                for (int i = 0; i < list.Count; i += batchSize)
+                {
+                    var batch = list.Skip(i).Take(batchSize).ToList();
+                    var inClause = string.Join(",", batch.Select((_, idx) => $"@p{idx}"));
+                    var sql = $@"SELECT EmpNo, WorkArea FROM vEmployee WHERE EmpNo IN ({inClause})";
+                    var param = new DynamicParameters();
+                    for (int idx = 0; idx < batch.Count; idx++)
+                    {
+                        param.Add($"@p{idx}", batch[idx]);
+                    }
+                    var rows = await ces941.QueryAsync<dynamic>(sql, param);
+                    foreach (var r in rows)
+                    {
+                        string key = r?.EmpNo?.ToString() ?? string.Empty;
+                        string wa = r?.WorkArea?.ToString() ?? string.Empty;
+                        if (!string.IsNullOrWhiteSpace(key) && !dict.ContainsKey(key))
+                        {
+                            dict[key] = wa;
+                        }
+                    }
+                }
+            }
+            return dict;
+        }
+
         private async Task<object> ProcessPersonData(
             dynamic person,
             List<emp_wrkplan> workPlans,
@@ -1347,7 +1491,7 @@ namespace IPS_TH.Controllers.Employee
             dynamic dayEvents,
             dynamic nightEvents,
             string currentDate,
-            string shiftFilter,
+            string shiftFilter, 
             Dictionary<string, dynamic> resignationDict,
             Dictionary<string, dynamic> overtimeDict,
             bool showResigned = true,
@@ -1355,7 +1499,9 @@ namespace IPS_TH.Controllers.Employee
             bool hideResigned = false,
             bool hideAbsent = false,
             bool showIncomplete = false,
-            ILookup<string, dynamic> computersByOwner = null
+            ILookup<string, dynamic> computersByOwner = null,
+            dynamic currentShift = null,
+            Dictionary<string, string> workAreaDict = null
         )
         {
             try
@@ -1380,7 +1526,7 @@ namespace IPS_TH.Controllers.Employee
                     return null;
                 }
 
-                var empNo = personId.Replace("-1", "")?.Trim();
+                var empNo = GetBaseEmpNo(personId)?.Trim();
                 string empNoStr = empNo ?? "";
                 var computers = computersByOwner[empNoStr] ?? Enumerable.Empty<dynamic>();
                 int computerCount = computers.Count();
@@ -1430,8 +1576,14 @@ namespace IPS_TH.Controllers.Employee
                 }
 
                 // 4. ตรวจสอบฟิลเตอร์กะ
+                // ใช้ค่ากะจาก HR-IPS (WrkPlanID) สำหรับการกรองตามคำขอ
+                // ไทย: ต้องเทียบด้วย empNo ที่ไม่มี suffix (-1/-2) มิฉะนั้นจะหาไม่เจอ
+                // 简中: 需使用去除后缀的 empNo 进行匹配，否则会找不到
+                var shiftFromHrIpsRowForFilter = ((IEnumerable<dynamic>)currentShift)?.FirstOrDefault(s => s.EmpNo?.ToString() == empNo);
+                var wrkPlanIdFromHrIps = shiftFromHrIpsRowForFilter?.WrkPlanID?.ToString() ?? "";
+
                 var shiftCode = resultDataPlan.shift_code ?? "";
-                if (!ValidateShiftFilter(shiftCode, shiftFilter))
+                if (!ValidateShiftFilter(wrkPlanIdFromHrIps, shiftFilter))
                 {
                     return null;
                 }
@@ -1703,22 +1855,46 @@ namespace IPS_TH.Controllers.Employee
 
                 // ถ้า showIncomplete เป็น true ให้แสดงข้อมูลที่สแกนไม่ครบ เช่นมี firsttime แต่ไม่มี lasttime หรือ มี lasttime แต่ไม่มี firsttime
                 if (showIncomplete)
-                {
+                { 
                     if (firstTime != null && lastTime != null)
                     {
                         return null;
                     }
                 }
 
-                // 10. สร้างและส่งคืนข้อมูล
+                // 10. ตรวจสอบกะปัจจุบันจาก db hrips 
+                // ไทย/简中: เทียบด้วย empNo ที่ตัด suffix แล้ว
+                var shiftfromsql944hrips = ((IEnumerable<dynamic>)currentShift)?.FirstOrDefault(s => s.EmpNo?.ToString() == empNo);
+
+                // แปลง WorkArea และตรวจสอบสถานะลาออก (หาก WorkArea เป็น Unknown ให้ถือว่าเป็นลาออก)
+                var workArea = shiftfromsql944hrips?.WorkArea?.ToString();
+                if (string.IsNullOrWhiteSpace(workArea) && workAreaDict != null)
+                {
+                    // ไทย: ใช้ fallback จาก dictionary ที่ดึงโดย EmpNo → WorkArea
+                    // 简中: 使用 EmpNo → WorkArea 的字典作为后备
+                    workArea = workAreaDict.ContainsKey(empNo ?? string.Empty) ? workAreaDict[empNo ?? string.Empty] : workArea;
+                }
+                var deptNameResolved = string.IsNullOrWhiteSpace(workArea) ? "Unknown" : workArea;
+                isResigned = isResigned || string.Equals(deptNameResolved, "Unknown", StringComparison.OrdinalIgnoreCase);
+
+                // กรองออกหากตั้งค่าให้ซ่อนพนักงานลาออก และ WorkArea เป็น Unknown
+                if (hideResigned && isResigned)
+                {
+                    return null;
+                }
+  
+                // 11. สร้างและส่งคืนข้อมูล
                 return new
                 {
                     personID = personId,
                     personName = person?.name ?? "Unknown",
-                    deptName = person?.deptName ?? "Unknown",
+                    deptName = deptNameResolved,
                     rDate = currentDate,
                     shift_group = resultDataPlan?.workplan_id ?? "Unknown",
                     shift = resultDataPlan?.shift_code ?? "Unknown",
+                    shiftfromsql944hrips = shiftfromsql944hrips?.WrkPlanID ?? "Unknown",
+                    idlTrue = shiftfromsql944hrips?.DLInd ?? "Unknown",
+                    isResigned = isResigned,
                     dayType = resultDataPlan?.day_type ?? "Unknown",
                     firstTime = firstTime,
                     lastTime = lastTime,
@@ -1773,7 +1949,6 @@ namespace IPS_TH.Controllers.Employee
                         breakStartTime = resultDataPlan?.break_start_time ?? "",
                         breakEndTime = resultDataPlan?.break_end_time ?? "",
                     },
-                    isResigned = isResigned,
                     resignDate = resignDate,
                     overtimeInfo = overtimeInfo,
                     cabinetInfo = cabinet,
@@ -3333,7 +3508,8 @@ namespace IPS_TH.Controllers.Employee
             string personId,
             string date,
             string shift,
-            string time
+            string time,
+            string timeofwork
         )
         {
             try
@@ -3361,8 +3537,8 @@ namespace IPS_TH.Controllers.Employee
                     return Json(new { success = false, message = "ไม่สามารถคำนวณเวลาได้" });
 
                 // สร้างและบันทึกข้อมูล
-                var data = CreateEventData(template, person, personId, eventTime.Value);
-                await SaveEventData(SQL944, data);
+                var data = CreateEventData(template, person, personId, eventTime.Value, timeofwork);
+                await SaveEventData(SQL944, data);  
 
                 return Json(
                     new
@@ -3404,7 +3580,7 @@ namespace IPS_TH.Controllers.Employee
             const string query =
                 @"
                 SELECT TOP(1) * FROM PubEvent 
-                WHERE personID LIKE @personId + '%' 
+                WHERE personID LIKE @personId + '%' and eventName <> 'Card not Found' 
                 ORDER BY rowAutoID DESC";
 
             return await connection.QueryFirstOrDefaultAsync<dynamic>(query, new { personId });
@@ -3452,7 +3628,8 @@ namespace IPS_TH.Controllers.Employee
             dynamic template,
             dynamic person,
             string personId,
-            DateTime eventTime
+            DateTime eventTime,
+            string timeofwork
         ) =>
             new
             {
@@ -3496,7 +3673,7 @@ namespace IPS_TH.Controllers.Employee
                 Temperature = template.Temperature,
                 DeductAmount = template.DeductAmount,
                 PreviousBalance = template.PreviousBalance,
-                NowBalance = template.NowBalance,
+                NowBalance = template.NowBalance, 
                 DeductType = template.DeductType,
             };
 
@@ -4998,28 +5175,78 @@ namespace IPS_TH.Controllers.Employee
                         return Json(new { success = false, message = "ไม่พบข้อมูลพนักงาน" });
                     }
 
-                    // ตรวจสอบว่ามีกะในวันที่เลือกแล้วหรือไม่
+                    // ตรวจสอบว่ามีกะในวันที่เลือกแล้วหรือไม่ โดยเช็คจาก shiftMent ล่าสุด
                     var checkSql =
-                        @"
+                        @" 
                         SELECT COUNT(1) 
                         FROM emp_person_shift 
                         WHERE personID = @personID 
                         AND date = @date
-                        AND deptID = @department";
+                        AND shiftMent = @shift";
 
                     var exists = await connection2.QueryFirstOrDefaultAsync<int>(
                         checkSql,
                         new
                         {
-                            personID = basePersonId,
+                            personID = basePersonId, 
                             date = date,
-                            department = department,
+                            shift = shift,
                         }
                     );
 
                     if (exists > 0)
                     {
                         return Json(new { success = false, message = "มีกะในวันที่เลือกแล้ว" });
+                    }
+
+                    // ตรวจสอบว่ากะที่เพิ่มเข้ามาเหมือนกับอันล่าสุดหรือไม่
+                    var lastShiftSql =
+                        @"
+                        SELECT TOP 1 shiftMent, date, remark, id
+                        FROM emp_person_shift 
+                        WHERE personID = @personID 
+                        AND deptID = @department
+                        AND date < @date
+                        AND isActive = 1
+                        ORDER BY date DESC, id DESC";
+
+                    var lastShift = await connection2.QueryFirstOrDefaultAsync<dynamic>(
+                        lastShiftSql,
+                        new
+                        {
+                            personID = basePersonId,
+                            department = department,
+                            date = date,
+                        }
+                    );
+
+                    if (lastShift != null && lastShift.shiftMent == shift)
+                    {
+                        string remarkInfo = !string.IsNullOrEmpty(lastShift.remark) ? $" (หมายเหตุ: {lastShift.remark})" : "";
+                        return Json(new { 
+                            success = false, 
+                            message = $"ไม่สามารถเพิ่มกะได้ เนื่องจากกะ {shift} ซ้ำกับกะล่าสุด ({lastShift.shiftMent}) ในวันที่ {lastShift.date:yyyy-MM-dd}{remarkInfo} โปรดเลือกกะที่แตกต่างจากอันล่าสุด" 
+                        });
+                    }
+
+                    // ตรวจสอบว่ากะที่เพิ่มเข้ามาเหมือนกับอันล่าสุดหรือไม่ (สำหรับวันถัดไป)
+                    var lastShiftForCurrentDate = await connection2.QueryFirstOrDefaultAsync<dynamic>(
+                        lastShiftSql,
+                        new
+                        {
+                            personID = basePersonId,
+                            department = department,
+                            date = date,
+                        }
+                    );
+
+                    if (lastShiftForCurrentDate != null && lastShiftForCurrentDate.shiftMent == shift)
+                    {
+                        string remarkInfoForCurrentDate = !string.IsNullOrEmpty(lastShiftForCurrentDate.remark) ? $" (หมายเหตุ: {lastShiftForCurrentDate.remark})" : "";
+                        return Json(new { 
+                            success = false, 
+                            message = $"ไม่สามารถเพิ่มกะได้ เนื่องจากกะ {shift} ซ้ำกับกะล่าสุด ({lastShiftForCurrentDate.shiftMent}) ในวันที่ {lastShiftForCurrentDate.date:yyyy-MM-dd}{remarkInfoForCurrentDate} โปรดเลือกกะที่แตกต่างจากอันล่าสุด" 
+                        });
                     }
 
                     // เพิ่มกะใหม่
@@ -5092,6 +5319,26 @@ namespace IPS_TH.Controllers.Employee
 
                             if (existsOnDate == 0)
                             {
+                                // ตรวจสอบว่ากะที่เพิ่มเข้ามาเหมือนกับอันล่าสุดหรือไม่ (สำหรับวันถัดไป)
+                                var lastShiftForDate = await connection2.QueryFirstOrDefaultAsync<dynamic>(
+                                    lastShiftSql,
+                                    new
+                                    {
+                                        personID = basePersonId,
+                                        department = department,
+                                        date = currentDateStr,
+                                    }
+                                );
+
+                                if (lastShiftForDate != null && lastShiftForDate.shiftMent == shift)
+                                {
+                                    string remarkInfoForDate = !string.IsNullOrEmpty(lastShiftForDate.remark) ? $" (หมายเหตุ: {lastShiftForDate.remark})" : "";
+                                    return Json(new { 
+                                        success = false, 
+                                        message = $"ไม่สามารถเพิ่มกะได้ เนื่องจากกะ {shift} ซ้ำกับกะล่าสุด ({lastShiftForDate.shiftMent}) ในวันที่ {lastShiftForDate.date:yyyy-MM-dd}{remarkInfoForDate} โปรดเลือกกะที่แตกต่างจากอันล่าสุด" 
+                                    });
+                                }
+
                                 await connection2.ExecuteAsync(
                                     insertSql,
                                     new
@@ -5099,7 +5346,7 @@ namespace IPS_TH.Controllers.Employee
                                         personID = basePersonId,
                                         date = currentDateStr,
                                         shiftMent = shift,
-                                        deptID = department,
+                                        deptID = department, 
                                         deptName = employee.deptName,
                                         deptCode = department,
                                         name = namePerson,
@@ -5111,7 +5358,11 @@ namespace IPS_TH.Controllers.Employee
                         }
                     }
 
-                    return Json(new { success = true, message = "เพิ่มกะการทำงานสำเร็จ" });
+                    string successMessage = !string.IsNullOrEmpty(endDate) && endDate != date 
+                        ? $"เพิ่มกะการทำงานสำเร็จ ตั้งแต่ {date} ถึง {endDate}" 
+                        : "เพิ่มกะการทำงานสำเร็จ";
+                    
+                    return Json(new { success = true, message = successMessage });
                 }
             }
             catch (Exception ex)
