@@ -98,7 +98,7 @@ namespace IPS_TH.Controllers
                 }
 
                 // เก็บข้อมูลแผนกของผู้ใช้
-                CurrentUserDepartment = user.Department;
+                CurrentUserDepartment = HttpContext.Session.GetString("WorkArea");
 
                 // ลองดึงจาก Cache ก่อน
                 var cacheKey = $"Permissions_{user.Id}_{controller}_{action}";

@@ -1,0 +1,306 @@
+@using IPS_TH.Models.ESMMS
+@model IEnumerable<esmms_course>
+
+@{
+    ViewData["Title"] = "จัดการคอร์สฝึกอบรม";
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
+    bool canAdd = (permissions.ContainsKey("CanAdd") && permissions["CanAdd"]) || (permissions.ContainsKey("IsAdmin") &&
+    permissions["IsAdmin"]);
+    bool isAdmin = (permissions.ContainsKey("IsAdmin") && permissions["IsAdmin"]);
+    bool canEdit = (permissions.ContainsKey("CanEdit") && permissions["CanEdit"]) || (permissions.ContainsKey("IsAdmin") &&
+    permissions["IsAdmin"]);
+}
+
+<div class="container-fluid py-3 mt-4">
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">จัดการคอร์สฝึกอบรม</h5>
+            <div class="d-flex align-items-center">
+                <div id="dtButtons" class="me-2"></div>
+                @if (canAdd)
+                {
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
+                        <i class="bi bi-plus-lg"></i> เพิ่มคอร์ส
+                    </button>
+                }
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div class="table-responsive">
+                <table id="courseTable" class="table table-hover table-striped table-sm align-middle mb-0"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (canAdd)
+{
+    <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">เพิ่มคอร์ส</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="CreateCourse" asp-controller="ESMMS" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">Course Code</label>
+                                <input name="course_code" class="form-control form-control-sm" maxlength="20" required />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Expire</label>
+                                <input name="expire_period" class="form-control form-control-sm" maxlength="50"
+                                    placeholder="เช่น 1 year" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">คำอธิบาย (TH)</label>
+                                <input name="description_th" class="form-control form-control-sm" maxlength="255" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">คำอธิบาย (EN)</label>
+                                <input name="description_en" class="form-control form-control-sm" maxlength="255" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Trainer</label>
+                                <input name="trainer" class="form-control form-control-sm" maxlength="100" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">จำนวนข้อที่จะสุ่ม</label>
+                                <input type="number" name="random_question_count" class="form-control form-control-sm"
+                                    min="1" step="1" value="10" />
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="true" name="dl" id="dlCheck">
+                                        <label class="form-check-label" for="dlCheck">DL</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="true" name="idl"
+                                            id="idlCheck">
+                                        <label class="form-check-label" for="idlCheck">IDL</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="true" name="wi" id="wiCheck">
+                                        <label class="form-check-label" for="wiCheck">WI</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">แก้ไขคอร์ส</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="EditCourse" asp-controller="ESMMS" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="edit_id" />
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Course Code</label>
+                            <input name="course_code" id="edit_course_code" class="form-control form-control-sm"
+                                maxlength="20" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Expire</label>
+                            <input name="expire_period" id="edit_expire_period" class="form-control form-control-sm"
+                                maxlength="50" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">คำอธิบาย (TH)</label>
+                            <input name="description_th" id="edit_description_th" class="form-control form-control-sm"
+                                maxlength="255" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">คำอธิบาย (EN)</label>
+                            <input name="description_en" id="edit_description_en" class="form-control form-control-sm"
+                                maxlength="255" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Trainer</label>
+                            <input name="trainer" id="edit_trainer" class="form-control form-control-sm"
+                                maxlength="100" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">จำนวนข้อที่จะสุ่ม</label>
+                            <input type="number" name="random_question_count" id="edit_random_question_count"
+                                class="form-control form-control-sm" min="1" step="1" />
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="true" name="dl" id="edit_dl">
+                                    <label class="form-check-label" for="edit_dl">DL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="true" name="idl"
+                                        id="edit_idl">
+                                    <label class="form-check-label" for="edit_idl">IDL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="true" name="wi" id="edit_wi">
+                                    <label class="form-check-label" for="edit_wi">WI</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            var isAdmin = @Json.Serialize(isAdmin);
+            var canEdit = @Json.Serialize(canEdit);
+            try {
+                var table = $('#courseTable').DataTable({
+                    language: { url: '/js/datatables/i18n/th.json' },
+                    responsive: true,
+                    autoWidth: false,
+                    processing: true,
+                    serverSide: false,
+                    ordering: false,
+                    ajax: {
+                        url: '@Url.Action("GetCourses", "ESMMS")',
+                        dataSrc: 'data'
+                    },
+                    columns: [
+                        {
+                            data: null,
+                            title: '<i class="fas fa-list-ol me-1"></i> #',
+                            orderable: false,
+                            render: function (data, type, row, meta) {
+                                return meta.row + 1;
+                            }
+                        },
+                        { data: 'course_code', title: '<i class="fas fa-barcode me-1"></i> Course Code' },
+                        { data: 'description_th', title: '<i class="fas fa-comment-dots me-1"></i> คำอธิบาย (TH)' },
+                        { data: 'description_en', title: '<i class="fas fa-comment-alt me-1"></i> คำอธิบาย (EN)' },
+                        {
+                            data: 'dl', title: '<i class="fas fa-book-open me-1"></i> DL', className: 'text-center',
+                            render: function (val) {
+                                return '<div class="form-check form-switch d-inline-block m-0">'
+                                    + '<input class="form-check-input" type="checkbox" ' + (val ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled') + '>'
+                                    + '<label class="form-check-label ms-2">' + (val ? 'Y' : 'N') + '</label>'
+                                    + '</div>';
+                            }
+                        },
+                        {
+                            data: 'idl', title: '<i class="fas fa-book-reader me-1"></i> IDL', className: 'text-center',
+                            render: function (val) {
+                                return '<div class="form-check form-switch d-inline-block m-0">'
+                                    + '<input class="form-check-input" type="checkbox" ' + (val ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled') + '>'
+                                    + '<label class="form-check-label ms-2">' + (val ? 'Y' : 'N') + '</label>'
+                                    + '</div>';
+                            }
+                        },
+                        {
+                            data: 'wi', title: '<i class="fas fa-file-alt me-1"></i> WI', className: 'text-center',
+                            render: function (val) {
+                                return '<div class="form-check form-switch d-inline-block m-0">'
+                                    + '<input class="form-check-input" type="checkbox" ' + (val ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled') + '>'
+                                    + '<label class="form-check-label ms-2">' + (val ? 'Y' : 'N') + '</label>'
+                                    + '</div>';
+                            }
+                        },
+                        { data: 'random_question_count', title: '<i class="fas fa-random me-1"></i> ข้อสุ่ม', className: 'text-center' },
+                        { data: 'expire_period', title: '<i class="fas fa-hourglass-end me-1"></i> Expire' },
+                        { data: 'trainer', title: '<i class="fas fa-chalkboard-teacher me-1"></i> Trainer' },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-cogs me-1"></i> Action',
+                            orderable: false,
+                            className: 'text-end',
+                            render: function (data, type, row) {
+                                if (canEdit) {
+                                    return '<button type="button" class="btn btn-outline-primary btn-sm me-1 btn-edit" ' +
+                                        'data-id="' + row.id + '" data-code="' + (row.course_code || '') + '" ' +
+                                        'data-th="' + (row.description_th || '') + '" data-en="' + (row.description_en || '') + '" ' +
+                                        'data-dl="' + (row.dl ? 'true' : 'false') + '" data-idl="' + (row.idl ? 'true' : 'false') + '" ' +
+                                        'data-wi="' + (row.wi ? 'true' : 'false') + '" data-rqc="' + (row.random_question_count || 0) + '" data-exp="' + (row.expire_period || '') + '" ' +
+                                        'data-tr="' + (row.trainer || '') + '">แก้ไข</button>';
+                                } else {
+                                    return '<button type="button" class="btn btn-outline-secondary btn-sm me-1 btn-edit" disabled>' +
+                                        'แก้ไข</button>';
+                                }
+                            }
+                        }
+                    ],
+                    // ซ่อนคอลัมน์แรก (index)
+                    columnDefs: [
+                        { targets: 0, visible: false }
+                    ],
+                    order: [[1, 'asc']],
+                    pageLength: 10,
+                    info: false,
+                    lengthChange: false,
+                    paging: false,
+                    searching: false
+                });
+
+                // Move DataTable buttons to header toolbar (if buttons are enabled)
+                if ($.fn.dataTable && $.fn.dataTable.Buttons && table.buttons) {
+                    try { table.buttons().container().appendTo('#dtButtons'); } catch (e) { }
+                }
+            } catch (e) {
+                console.warn('DataTable init failed:', e);
+            }
+        });
+    </script>
+    <script>
+        $(document).on('click', '.btn-edit', function () {
+            var b = $(this);
+            $('#edit_id').val(b.data('id'));
+            $('#edit_course_code').val(b.data('code'));
+            $('#edit_description_th').val(b.data('th'));
+            $('#edit_description_en').val(b.data('en'));
+            $('#edit_expire_period').val(b.data('exp'));
+            $('#edit_trainer').val(b.data('tr'));
+            $('#edit_dl').prop('checked', b.data('dl') === true || b.data('dl') === 'true');
+            $('#edit_idl').prop('checked', b.data('idl') === true || b.data('idl') === 'true');
+            $('#edit_wi').prop('checked', b.data('wi') === true || b.data('wi') === 'true');
+            $('#edit_random_question_count').val(b.data('rqc'));
+            var modal = new bootstrap.Modal(document.getElementById('editModal'));
+            modal.show();
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        /* ปรับปุ่มในส่วนหัวให้แน่นขึ้นเล็กน้อย */
+        #dtButtons .btn {
+            margin-left: .25rem;
+        }
+
+        /* ทำให้หัวตารางอ่านง่ายขึ้น */
+        #courseTable thead th {
+            white-space: nowrap;
+        }
+    </style>
+}

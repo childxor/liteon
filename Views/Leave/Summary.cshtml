@@ -268,140 +268,140 @@
 @section Scripts {
     <!-- เพิ่ม Chart.js -->
     <!-- Chart.js ถูกโหลดใน Layout แล้ว -->
-    
+
     <script>
         // ประกาศตัวแปร appBasePath
         var appBasePath = '@Url.Content("~/")';
-        
+
         $(document).ready(function () {
             const leaveTypes = {
-                'AAL': { 
-                    name: 'ลาพักร้อนล่วงหน้า', 
+                'AAL': {
+                    name: 'ลาพักร้อนล่วงหน้า',
                     color: 'primary',
                     icon: 'fa-umbrella-beach'
                 },
-                'ACL': { 
-                    name: 'ลาเนื่องจากอุบัติเหตุ', 
+                'ACL': {
+                    name: 'ลาเนื่องจากอุบัติเหตุ',
                     color: 'danger',
                     icon: 'fa-first-aid'
                 },
-                'AL': { 
-                    name: 'ลาพักร้อนประจำปี', 
+                'AL': {
+                    name: 'ลาพักร้อนประจำปี',
                     color: 'primary',
                     icon: 'fa-umbrella-beach'
                 },
-                'ATR': { 
-                    name: 'อบรมภายนอก', 
+                'ATR': {
+                    name: 'อบรมภายนอก',
                     color: 'info',
                     icon: 'fa-chalkboard-teacher'
                 },
-                'ATW': { 
-                    name: 'ทำงานนอกสถานที่', 
+                'ATW': {
+                    name: 'ทำงานนอกสถานที่',
                     color: 'info',
                     icon: 'fa-building'
                 },
-                'BL': { 
-                    name: 'ลาเนื่องจากการเสียชีวิตของญาติ', 
+                'BL': {
+                    name: 'ลาเนื่องจากการเสียชีวิตของญาติ',
                     color: 'secondary',
                     icon: 'fa-praying-hands'
                 },
-                'CPS': { 
-                    name: 'แลกวันลา', 
+                'CPS': {
+                    name: 'แลกวันลา',
                     color: 'info',
                     icon: 'fa-exchange-alt'
                 },
-                'ML': { 
-                    name: 'ลารับราชการทหาร', 
+                'ML': {
+                    name: 'ลารับราชการทหาร',
                     color: 'dark',
                     icon: 'fa-shield-alt'
                 },
-                'MO': { 
-                    name: 'ลาอุปสมบท (มีเงินเดือน)', 
+                'MO': {
+                    name: 'ลาอุปสมบท (มีเงินเดือน)',
                     color: 'warning',
                     icon: 'fa-pray'
                 },
-                'MO1': { 
-                    name: 'ลาอุปสมบท (ไม่มีเงินเดือน)', 
+                'MO1': {
+                    name: 'ลาอุปสมบท (ไม่มีเงินเดือน)',
                     color: 'warning',
                     icon: 'fa-pray'
                 },
-                'MT': { 
-                    name: 'ลาคลอดบุตร (มีเงินเดือน)', 
+                'MT': {
+                    name: 'ลาคลอดบุตร (มีเงินเดือน)',
                     color: 'success',
                     icon: 'fa-baby'
                 },
-                'MT0': { 
-                    name: 'ลาคลอดบุตร (ไม่มีเงินเดือน)', 
+                'MT0': {
+                    name: 'ลาคลอดบุตร (ไม่มีเงินเดือน)',
                     color: 'success',
                     icon: 'fa-baby'
                 },
-                'MT1': { 
-                    name: 'ลาคลอดบุตร (ไม่มีเงินเดือน)', 
+                'MT1': {
+                    name: 'ลาคลอดบุตร (ไม่มีเงินเดือน)',
                     color: 'success',
                     icon: 'fa-baby'
                 },
-                'PL': { 
-                    name: 'ลากิจ', 
+                'PL': {
+                    name: 'ลากิจ',
                     color: 'success',
                     icon: 'fa-user-clock'
                 },
-                'PT': { 
-                    name: 'ลาเพื่อการดูแลบุตร', 
+                'PT': {
+                    name: 'ลาเพื่อการดูแลบุตร',
                     color: 'success',
                     icon: 'fa-baby-carriage'
                 },
-                'SD': { 
-                    name: 'ลาปิดโรงงาน (มีเงินเดือน)', 
+                'SD': {
+                    name: 'ลาปิดโรงงาน (มีเงินเดือน)',
                     color: 'warning',
                     icon: 'fa-industry'
                 },
-                'SD1': { 
-                    name: 'ลาปิดโรงงาน (ครึ่งวัน)', 
+                'SD1': {
+                    name: 'ลาปิดโรงงาน (ครึ่งวัน)',
                     color: 'warning',
                     icon: 'fa-industry'
                 },
-                'SL': { 
-                    name: 'ลาป่วย (มีเงินเดือน)', 
+                'SL': {
+                    name: 'ลาป่วย (มีเงินเดือน)',
                     color: 'warning',
                     icon: 'fa-thermometer-half'
                 },
-                'SL1': { 
-                    name: 'ลาป่วย (ไม่มีเงินเดือน)', 
+                'SL1': {
+                    name: 'ลาป่วย (ไม่มีเงินเดือน)',
                     color: 'warning',
                     icon: 'fa-thermometer-half'
                 },
-                'SP': { 
-                    name: 'พักงาน', 
+                'SP': {
+                    name: 'พักงาน',
                     color: 'danger',
                     icon: 'fa-user-slash'
                 },
-                'ST': { 
-                    name: 'ลาทำหมัน', 
+                'ST': {
+                    name: 'ลาทำหมัน',
                     color: 'info',
                     icon: 'fa-user-md'
                 },
-                'UL': { 
-                    name: 'ลากิจพิเศษ (ไม่มีเงินเดือน)', 
+                'UL': {
+                    name: 'ลากิจพิเศษ (ไม่มีเงินเดือน)',
                     color: 'secondary',
                     icon: 'fa-user-clock'
                 },
-                'UL2': { 
-                    name: 'ลากิจพิเศษ (ไม่มีเงินเดือน)', 
+                'UL2': {
+                    name: 'ลากิจพิเศษ (ไม่มีเงินเดือน)',
                     color: 'secondary',
                     icon: 'fa-user-clock'
                 },
-                'VOT': { 
-                    name: 'ลาไปใช้สิทธิ์เลือกตั้ง', 
+                'VOT': {
+                    name: 'ลาไปใช้สิทธิ์เลือกตั้ง',
                     color: 'info',
                     icon: 'fa-vote-yea'
                 },
-                'WL': { 
-                    name: 'ลาแต่งงาน', 
+                'WL': {
+                    name: 'ลาแต่งงาน',
                     color: 'success',
                     icon: 'fa-heart'
                 },
-                'WN': { 
-                    name: 'จดหมายเตือน', 
+                'WN': {
+                    name: 'จดหมายเตือน',
                     color: 'danger',
                     icon: 'fa-exclamation-triangle'
                 }
@@ -416,6 +416,8 @@
                 paging: true,
                 info: true,
                 ordering: false,
+                responsive: true,
+                autoWidth: false,
                 pageLength: 100,
                 language: {
                     search: "",
@@ -430,18 +432,17 @@
                         previous: "ก่อนหน้า"
                     },
                     emptyTable: `<div class="text-center text-muted p-4">
-                        <i class="fas fa-inbox fa-3x mb-3 text-primary opacity-50"></i>
-                        <p class="h5">ไม่พบข้อมูลการลา</p>
-                        <p class="text-muted">เพิ่มข้อมูลการลาโดยคลิกที่ปุ่ม "เพิ่มการลา"</p>
-                    </div>`
+                                <i class="fas fa-inbox fa-3x mb-3 text-primary opacity-50"></i>
+                                <p class="h5">ไม่พบข้อมูลการลา</p> 
+                                <p class="text-muted">เพิ่มข้อมูลการลาโดยคลิกที่ปุ่ม "เพิ่มการลา"</p>
+                            </div>`
                 },
                 ajax: {
                     url: appBasePath + 'Leave/GetLeaveSummary',
                     type: 'GET',
-                    data: function(d) {
+                    data: function (d) {
                         return {
-                            empNo: $('#filterSelect').val(),
-                            empName: empName
+                            empNo: $('#filterSelect').val()
                         };
                     },
                     dataSrc: function (response) {
@@ -468,10 +469,13 @@
                         return response.data.map(item => ({
                             EmpNo: item.EmpNo,
                             EmpName: item.EmpName,
-                            Name: item.CreateBy,
+                            CreateBy: item.CreateBy,
                             LeaveType: item.LeaveType,
-                            StartDate: moment(item.DteTmeIn).format('DD/MM/YYYY HH:mm'),
-                            EndDate: moment(item.DteTmeOut).format('DD/MM/YYYY HH:mm'),
+                            DteTmeIn: item.DteTmeIn,
+                            DteTmeOut: item.DteTmeOut,
+                            LeaveQty: item.LeaveQty,
+                            StartDate: moment(item.DteTmeIn).isValid() ? moment(item.DteTmeIn).format('DD/MM/YYYY HH:mm') : '-',
+                            EndDate: moment(item.DteTmeOut).isValid() ? moment(item.DteTmeOut).format('DD/MM/YYYY HH:mm') : '-',
                             ApprStatus: item.ApprStatus,
                             LeaveReqNo: item.LeaveReqNo,
                             AttenCode: item.AttenCode,
@@ -481,11 +485,11 @@
                     }
                 },
                 columns: [
-                    { 
-                        data: 'EmpNo', 
+                    {
+                        data: 'EmpNo',
                         className: 'text-center py-2',
                         title: '<i class="fas fa-hashtag me-1"></i>ลำดับ',
-                        render: function(data, type, row, meta) {
+                        render: function (data, type, row, meta) {
                             return meta.row + meta.settings._iDisplayStart + 1;
                         }
                     },
@@ -495,14 +499,14 @@
                         title: '<i class="fas fa-user me-1"></i>ชื่อพนักงาน',
                         render: function (data, type, row) {
                             return `<div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-primary bg-opacity-10 p-1 me-2">
-                                    <i class="fas fa-user text-primary"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-medium">${data}</div>
-                                    <div class="small text-muted">${row.EmpNo}</div>
-                                </div>
-                            </div>`;
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-1 me-2">
+                                            <i class="fas fa-user text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">${data}</div>
+                                            <div class="small text-muted">${row.EmpNo}</div>
+                                        </div>
+                                    </div>`;
                         }
                     },
                     {
@@ -512,9 +516,9 @@
                         render: function (data, type, row) {
                             const leaveType = leaveTypes[data] || { color: 'secondary', name: data };
                             return `<div class="d-inline-block bg-${leaveType.color} bg-opacity-10 px-2 py-1 rounded-pill">
-                                <span class="fw-medium text-${leaveType.color}">${leaveType.name}</span>
-                                <span class="ms-1 small text-muted">(${data})</span>
-                            </div>`;
+                                        <span class="fw-medium text-${leaveType.color}">${leaveType.name}</span>
+                                        <span class="ms-1 small text-muted">(${data})</span>
+                                    </div>`;
                         }
                     },
                     {
@@ -522,14 +526,14 @@
                         className: 'py-2',
                         title: '<i class="fas fa-clock me-1"></i>ช่วงเวลา',
                         render: function (data, type, row) {
-                            const startDate = moment(data, 'DD/MM/YYYY HH:mm', true);
-                            const endDate = moment(row.EndDate, 'DD/MM/YYYY HH:mm', true);
+                            const startDate = data && data !== '-' ? moment(data, 'DD/MM/YYYY HH:mm', true) : (row.DteTmeIn ? moment(row.DteTmeIn) : null);
+                            const endDate = row.EndDate && row.EndDate !== '-' ? moment(row.EndDate, 'DD/MM/YYYY HH:mm', true) : (row.DteTmeOut ? moment(row.DteTmeOut) : null);
 
-                            if (!startDate.isValid() || !endDate.isValid()) {
+                            if (!startDate || !startDate.isValid() || !endDate || !endDate.isValid()) {
                                 return `<div class="text-nowrap">
-                                    <i class="far fa-calendar-alt text-primary me-1"></i>
-                                    <span class="text-muted">Invalid date</span>
-                                </div>`;
+                                            <i class="far fa-calendar-alt text-primary me-1"></i>
+                                            <span class="text-muted">-</span>
+                                        </div>`;
                             }
 
                             const formattedStartDate = startDate.format('DD/MM/YYYY HH:mm');
@@ -542,22 +546,22 @@
 
                             const hours = Math.floor(durationInMinutes / 60);
                             const minutes = durationInMinutes % 60;
-                            let duration = hours > 0 ? 
-                                (minutes > 0 ? `${hours} ชม. ${minutes} นาที` : `${hours} ชม.`) : 
+                            let duration = hours > 0 ?
+                                (minutes > 0 ? `${hours} ชม. ${minutes} นาที` : `${hours} ชม.`) :
                                 `${minutes} นาที`;
 
                             return `<div class="text-nowrap">
-                                <div class="d-flex align-items-center">
-                                    <i class="far fa-calendar-alt text-primary me-1"></i>
-                                    <div>
-                                        <div class="small text-muted">${formattedStartDate}</div>
-                                        <div class="small text-muted">${formattedEndDate}</div>
-                                        <div class="small text-primary">
-                                            <i class="fas fa-clock me-1"></i>${duration}
+                                        <div class="d-flex align-items-center">
+                                            <i class="far fa-calendar-alt text-primary me-1"></i>
+                                            <div>
+                                                <div class="small text-muted">${formattedStartDate}</div>
+                                                <div class="small text-muted">${formattedEndDate}</div>
+                                                <div class="small text-primary">
+                                                    <i class="fas fa-clock me-1"></i>${duration}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>`;
+                                    </div>`;
                         }
                     },
                     {
@@ -566,11 +570,11 @@
                         title: '<i class="fas fa-building me-1"></i>แผนก',
                         render: function (data) {
                             return `<div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-info bg-opacity-10 p-1 me-2">
-                                    <i class="fas fa-building text-info"></i>
-                                </div>
-                                <span class="small">${data}</span>
-                            </div>`;
+                                        <div class="rounded-circle bg-info bg-opacity-10 p-1 me-2">
+                                            <i class="fas fa-building text-info"></i>
+                                        </div>
+                                        <span class="small">${data}</span>
+                                    </div>`;
                         }
                     },
                     {
@@ -578,54 +582,24 @@
                         className: 'py-2',
                         title: '<i class="fas fa-user-edit me-1"></i>ผู้สร้างรายการ',
                         render: function (data, type, row) {
-                            const createDate = moment(row.CreateDate).format('DD/MM/YYYY HH:mm');
+                            const createDate = moment(row.CreateDate).isValid() ? moment(row.CreateDate).format('DD/MM/YYYY HH:mm') : '-';
                             return `<div>
-                                <div class="small fw-medium">${data || '-'}</div>
-                                <div class="small text-muted">${createDate || '-'}</div>
-                            </div>`;
-                        }
-                    },
-                    {
-                        data: 'ApprStatus',
-                        className: 'py-2',
-                        title: '<i class="fas fa-check-circle me-1"></i>สถานะ',
-                        render: function (data, type, row) {
-                            let statusConfig = {
-                                'Approve': {
-                                    bg: 'bg-success',
-                                    icon: 'fas fa-check-circle',
-                                    text: 'text-success',
-                                    label: 'อนุมัติแล้ว'
-                                },
-                                'On Approve': {
-                                    bg: 'bg-warning',
-                                    icon: 'fas fa-clock',
-                                    text: 'text-warning',
-                                    label: 'รออนุมัติ'
-                                }
-                            };
-
-                            let config = statusConfig[data] || {
-                                bg: 'bg-secondary',
-                                icon: 'fas fa-question-circle',
-                                text: 'text-secondary',
-                                label: data
-                            };
-
-                            return `<div class="d-inline-block ${config.bg} bg-opacity-10 px-2 py-1 rounded-pill">
-                                <i class="${config.icon} ${config.text} me-1"></i>
-                                <span class="${config.text} fw-medium">${config.label}</span>
-                            </div>`;
+                                        <div class="small fw-medium">${data || '-'}</div>
+                                        <div class="small text-muted">${createDate}</div>
+                                    </div>`;
                         }
                     }
                 ],
                 order: [[0, 'asc']],
-                drawCallback: function() {
-                    // เพิ่ม hover effect ให้กับแถว
+                drawCallback: function () {
                     $('.table tbody tr').hover(
-                        function() { $(this).addClass('bg-light'); },
-                        function() { $(this).removeClass('bg-light'); }
+                        function () { $(this).addClass('bg-light'); },
+                        function () { $(this).removeClass('bg-light'); }
                     );
+                    try {
+                        const currentData = table.rows({ filter: 'applied' }).data().toArray();
+                        createCharts(currentData);
+                    } catch (e) { console.warn('Create charts failed:', e); }
                 }
             });
 
@@ -659,7 +633,7 @@
             // Load leave balance
             loadLeaveBalance();
 
-            $('#filterSelect').on('change', function() {
+            $('#filterSelect').on('change', function () {
                 console.log('Filter changed:', $(this).val()); // เพิ่ม log
                 table.ajax.reload();
                 loadLeaveBalance();
@@ -679,9 +653,9 @@
                                     const leaveType = leaveTypes[item.AttenCode];
                                     const totalEntitled = item.TotalEntitled || 0;
                                     const remainingDays = item.RemainingDays || 0;
-                                    const progressPercent = totalEntitled > 0 ? 
+                                    const progressPercent = totalEntitled > 0 ?
                                         Math.min((remainingDays / totalEntitled) * 100, 100) : 0;
-                                    
+
                                     let html = template
                                         .replace(/{color}/g, leaveType.color)
                                         .replace(/{icon}/g, leaveType.icon)
@@ -716,48 +690,48 @@
             // ลบ CSS ที่ไม่จำเป็นออก
             const style = document.createElement('style');
             style.textContent = `
-                .select2-container {
-                    margin-top: 0 !important;
-                }
+                            .select2-container {
+                                margin-top: 0 !important;
+                            }
 
-                .select2-container--default .select2-selection--single {
-                    height: 40px;
-                    padding: 5px;
-                    border: 1px solid #ced4da;
-                    border-radius: 8px;
-                }
+                            .select2-container--default .select2-selection--single {
+                                height: 40px;
+                                padding: 5px;
+                                border: 1px solid #ced4da;
+                                border-radius: 8px;
+                            }
 
-                .select2-container--default .select2-selection--single .select2-selection__rendered {
-                    line-height: 28px;
-                }
+                            .select2-container--default .select2-selection--single .select2-selection__rendered {
+                                line-height: 28px;
+                            }
 
-                .select2-container--default .select2-selection--single .select2-selection__arrow {
-                    height: 38px;
-                }
+                            .select2-container--default .select2-selection--single .select2-selection__arrow {
+                                height: 38px;
+                            }
 
-                .select2-dropdown {
-                    border: 1px solid #ced4da;
-                    border-radius: 8px;
-                }
+                            .select2-dropdown {
+                                border: 1px solid #ced4da;
+                                border-radius: 8px;
+                            }
 
-                .select2-search--dropdown .select2-search__field {
-                    padding: 8px;
-                    border: 1px solid #ced4da;
-                }
+                            .select2-search--dropdown .select2-search__field {
+                                padding: 8px;
+                                border: 1px solid #ced4da;
+                            }
 
-                .select2-container--default .select2-results__option--highlighted[aria-selected] {
-                    background-color: #e9ecef;
-                    color: #000;
-                }
-            `;
+                            .select2-container--default .select2-results__option--highlighted[aria-selected] {
+                                background-color: #e9ecef;
+                                color: #000;
+                            }
+                        `;
             document.head.appendChild(style);
 
             // จัดการการย่อ/ขยาย Leave Balance
-            $('.toggle-leave-balance').click(function() {
+            $('.toggle-leave-balance').click(function () {
                 const $icon = $(this).find('i');
                 const $wrapper = $('#leaveBalanceWrapper');
-                
-                $wrapper.slideToggle(300, function() {
+
+                $wrapper.slideToggle(300, function () {
                     // สลับ icon หลังจากอนิเมชั่นเสร็จสิ้น
                     $icon.toggleClass('fa-chevron-up fa-chevron-down');
                 });
@@ -795,11 +769,12 @@
                 const leaveDaysData = {};
 
                 data.forEach(item => {
-                    const date = moment(item.DteTmeIn);
+                    const date = item.StartDate && item.StartDate !== '-' ? moment(item.StartDate, 'DD/MM/YYYY HH:mm') : (item.DteTmeIn ? moment(item.DteTmeIn) : null);
+                    if (!date || !date.isValid()) { return; }
                     const monthYear = date.format('MMM YYYY');
                     const leaveType = leaveTypes[item.AttenCode]?.name || item.AttenCode;
                     const status = item.ApprStatus;
-                    const days = parseFloat(item.LeaveQty) || 0;
+                    const days = (item.LeaveQty !== undefined && item.LeaveQty !== null) ? parseFloat(item.LeaveQty) || 0 : 0;
 
                     // ข้อมูลต่อเดือน
                     if (!monthlyData[monthYear]) {
@@ -912,10 +887,10 @@
                                     font: {
                                         size: 10
                                     },
-                                    generateLabels: function(chart) {
+                                    generateLabels: function (chart) {
                                         const data = chart.data;
                                         if (data.labels.length && data.datasets.length) {
-                                            return data.labels.map(function(label, i) {
+                                            return data.labels.map(function (label, i) {
                                                 return {
                                                     text: label,
                                                     fillStyle: data.datasets[0].backgroundColor[i],
@@ -943,7 +918,7 @@
                 new Chart(document.getElementById('leaveStatusChart'), {
                     type: 'pie',
                     data: {
-                        labels: Object.keys(leaveStatusData).map(status => 
+                        labels: Object.keys(leaveStatusData).map(status =>
                             status === 'Approve' ? 'อนุมัติแล้ว' : 'รออนุมัติ'
                         ),
                         datasets: [{
@@ -1024,66 +999,7 @@
                 });
             }
 
-            // อัพเดทการโหลดข้อมูล
-            table.on('xhr.dt', function(e, settings, json, xhr) {
-                if (json && json.data) {
-                    createCharts(json.data);
-                }
-            });
-
-            function displayLeaveTimeSlotChart(data) {
-                if (!data || !Array.isArray(data)) {
-                    console.warn('Invalid leave time slots data:', data);
-                    return;
-                }
-
-                console.log('Leave Time Slots Data:', data); // เพิ่ม logging
-                
-                const ctx = document.getElementById('leaveTimeSlotChart').getContext('2d');
-                
-                // ลบกราฟเก่าถ้ามี
-                if (window.leaveTimeSlotChart) {
-                    window.leaveTimeSlotChart.destroy();
-                }
-                
-                window.leaveTimeSlotChart = new Chart(ctx, {
-                    type: 'pie',
-                    data: {
-                        labels: ['เช้า', 'บ่าย', 'เต็มวัน'],
-                        datasets: [{
-                            data: data,
-                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                align: 'center',
-                                labels: {
-                                    boxWidth: 12,
-                                    padding: 8,
-                                    font: { size: 10 }
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.raw || 0;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                        return `${label}: ${value} ครั้ง (${percentage}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
+            // ใช้ drawCallback เพื่อให้กราฟตรงกับข้อมูลที่กำลังแสดง
         });
     </script>
 }
@@ -1355,7 +1271,7 @@
             cursor: not-allowed;
         }
 
-        .table > :not(caption) > * > * {
+        .table> :not(caption)>*>* {
             padding: 0.5rem 0.75rem;
         }
 

@@ -1,0 +1,990 @@
+@using IPS_TH.Models.ESMMS
+@model IEnumerable<esmms_exam>
+
+@{
+    ViewData["Title"] = "จัดการข้อสอบ (Exams)";
+    var permissions = ViewData["Permissions"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
+    bool canAdd = (permissions.ContainsKey("CanAdd") && permissions["CanAdd"]) || (permissions.ContainsKey("IsAdmin") &&
+    permissions["IsAdmin"]);
+    bool isAdmin = (permissions.ContainsKey("IsAdmin") && permissions["IsAdmin"]);
+    bool canEdit = (permissions.ContainsKey("CanEdit") && permissions["CanEdit"]) || (permissions.ContainsKey("IsAdmin") &&
+    permissions["IsAdmin"]);
+}
+
+<div class="container-fluid py-3 mt-4">
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">จัดการข้อสอบ (Exams)</h5>
+            <div class="d-flex align-items-center">
+                <div id="dtButtons" class="me-2"></div>
+                @if (canAdd)
+                {
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
+                        <i class="bi bi-plus-lg"></i> เพิ่มคอร์ส
+                    </button>
+                }
+            </div>
+        </div>
+        <div class="card-body p-3">
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger py-2 px-3 small" role="alert">@TempData["ErrorMessage"]</div>
+            }
+            <div class="table-responsive">
+                <table id="examTable" class="table table-hover table-striped table-sm align-middle mb-0"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (canAdd)
+{
+    <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form asp-action="CreateExam" asp-controller="Exam" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h6 class="modal-title">สร้างชุดข้อสอบ</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">ชื่อชุดข้อสอบ</label>
+                                <input class="form-control form-control-sm" value="ระบบจะตั้งชื่ออัตโนมัติเมื่อบันทึก"
+                                    disabled />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">คำอธิบาย</label>
+                                <textarea name="description" class="form-control form-control-sm" rows="2"
+                                maxlength="500"></textarea>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">คอร์ส</label>
+                                <select name="course_id" class="form-select form-select-sm" required>
+                                    <option value="">-- เลือกคอร์ส --</option>
+                                    @foreach (var c in (IEnumerable<dynamic>)ViewBag.Courses)
+                                    {
+                                        <option value="@c.id">@c.course_code @c.description_en</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">จำนวนข้อสุ่ม</label>
+                                <input type="number" name="random_question_count" class="form-control form-control-sm"
+                                    required min="5" value="10" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">เวลาทำข้อสอบ (นาที)</label>
+                                <input type="number" name="duration_minutes" class="form-control form-control-sm" min="0"
+                                    value="60" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">จำนวนครั้งที่ทำได้</label>
+                                <input type="number" name="attempts_limit" class="form-control form-control-sm" min="0"
+                                    value="1" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">เริ่มเปิดสอบ</label>
+                                <input type="datetime-local" name="start_at" class="form-control form-control-sm"
+                                    value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">วันหมดอายุ</label>
+                                <input type="datetime-local" name="end_at" class="form-control form-control-sm"
+                                    value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-ddTHH:mm")" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">กลุ่มพนักงาน (เช่น รหัสแผนก/กลุ่ม)</label>
+                                <input name="target_group" class="form-control form-control-sm" maxlength="200"
+                                    value="ALL" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">ลิงก์ Microsoft Forms</label>
+                                <input name="forms_url" class="form-control form-control-sm" maxlength="500"
+                                    value="https://forms.office.com/r/0123456789" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">ไลน์ผลิต</label>
+                                <select id="create_pdline_id" name="pdline_id" class="form-select form-select-sm">
+                                    <option value="">-- ไลน์ผลิต --</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">เลือกพนักงาน (Person ID คั่นด้วย ,)</label>
+                                <div class="input-group input-group-sm">
+                                    <input id="create_selected_employees" name="selected_employees"
+                                        class="form-control form-control-sm" placeholder="เช่น 12345,67890" />
+                                    <button type="button" class="btn btn-outline-secondary"
+                                        id="btnPickEmployeesCreate">เลือก...</button>
+                                </div>
+                                <div class="form-text">สามารถคัดลอกจากหน้า Employee มาใส่ได้</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">ภาพประกอบ/QR</label>
+                                <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif"
+                                    class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active" value="true"
+                                        checked="checked" />
+                                    <label class="form-check-label">เปิดใช้งาน</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">แก้ไขชุดข้อสอบ</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="EditExam" asp-controller="Exam" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="edit_id" />
+                    <input type="hidden" id="hid_edit_factory_id" />
+                    <input type="hidden" id="hid_edit_stage_id" />
+                    <input type="hidden" id="hid_edit_pdline_id" />
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label">ชื่อชุดข้อสอบ</label>
+                            <input id="edit_title" class="form-control form-control-sm" maxlength="200" readonly />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">คำอธิบาย</label>
+                            <textarea name="description" id="edit_description" class="form-control form-control-sm"
+                                rows="2" maxlength="500"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">คอร์ส</label>
+                            <select name="course_id" id="edit_course_id" class="form-select form-select-sm">
+                                <option value="">-- เลือกคอร์ส --</option>
+                                @foreach (var c in (IEnumerable<dynamic>)ViewBag.Courses)
+                                {
+                                    <option value="@c.id">@c.course_code @c.description_en</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">จำนวนข้อสุ่ม</label>
+                            <input type="number" name="random_question_count" id="edit_random_question_count"
+                                class="form-control form-control-sm" min="0" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">เวลาทำข้อสอบ (นาที)</label>
+                            <input type="number" name="duration_minutes" id="edit_duration_minutes"
+                                class="form-control form-control-sm" min="0" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">จำนวนครั้งที่ทำได้</label>
+                            <input type="number" name="attempts_limit" id="edit_attempts_limit" value="1"
+                                class="form-control form-control-sm" min="0" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">เริ่มเปิดสอบ</label>
+                            <input type="datetime-local" name="start_at" id="edit_start_at"
+                                value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                                class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">วันหมดอายุ</label>
+                            <input type="datetime-local" name="end_at" id="edit_end_at"
+                                value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-ddTHH:mm")"
+                                class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">กลุ่มพนักงาน (เช่น รหัสแผนก/กลุ่ม)</label>
+                            <input name="target_group" id="edit_target_group" class="form-control form-control-sm"
+                                value="ALL" maxlength="200" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">ลิงก์ Microsoft Forms</label>
+                            <input name="forms_url" id="edit_forms_url" class="form-control form-control-sm"
+                                value="https://forms.office.com/r/0123456789" maxlength="500" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">ไลน์ผลิต</label>
+                            <select id="edit_pdline_id" name="pdline_id" class="form-select form-select-sm">
+                                <option value="">-- ไลน์ผลิต --</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">เลือกพนักงาน (Person ID คั่นด้วย ,)</label>
+                            <div class="input-group input-group-sm">
+                                <input id="edit_selected_employees" name="selected_employees"
+                                    class="form-control form-control-sm" />
+                                <button type="button" class="btn btn-outline-secondary"
+                                    id="btnPickEmployeesEdit">เลือก...</button>
+                            </div>
+                            <div class="form-text">สามารถคัดลอกจากหน้า Employee มาใส่ได้</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">ภาพประกอบ/QR</label>
+                            <img id="edit_image_preview" class="img-thumbnail mb-2 d-none" style="max-height:160px;" />
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif"
+                                    class="form-control form-control-sm" />
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="true" name="remove_image"
+                                        id="edit_remove_image">
+                                    <label class="form-check-label" for="edit_remove_image">ลบรูปเดิม</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" value="true" name="is_active" checked
+                                    id="edit_is_active">
+                                <label class="form-check-label" for="edit_is_active">เปิดใช้งาน</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Results Modal -->
+<div class="modal fade" id="uploadResultsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="frmUploadResults" method="post" enctype="multipart/form-data"
+                action="@Url.Action("UploadExamResults","Exam")">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h6 class="modal-title">อัปโหลดผลการสอบ (.xlsx)</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" />
+                    <div class="mb-2">
+                        <label class="form-label">เลือกไฟล์ Excel (Sheet1)</label>
+                        <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required />
+                    </div>
+                    <div class="small text-muted">
+                        - ต้องมีรหัสพนักงานของทุกคนที่เลือกไว้ และคอลัมน์คะแนน (score)
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary btn-upload">อัปโหลด</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            var isAdmin = @Json.Serialize(isAdmin);
+            var canEdit = @Json.Serialize(canEdit);
+
+            try {
+                var mapCourse = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CourseDict ?? new Dictionary<int, string>()));
+
+                function initExamTable() {
+                    var table = $('#examTable').DataTable({
+                        language: { url: '/js/datatables/i18n/th.json' },
+                        responsive: true,
+                        autoWidth: false,
+                        processing: true,
+                        serverSide: false,
+                        ordering: false,
+                        ajax: {
+                            url: '@Url.Action("GetExams", "Exam")',
+                            dataSrc: 'data'
+                        },
+                        columns: [
+                            {
+                                data: 'id',
+                                title: '<i class="fas fa-plus"></i>',
+                                orderable: false,
+                                className: 'text-center',
+                                render: function (data) {
+                                    return '<button class="btn btn-sm btn-icon btn-rounded btn-outline-primary toggle-child-row" ' +
+                                        'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
+                                        'data-id="' + data +
+                                        '" data-bs-toggle="tooltip" title="ดูข้อมูลเพิ่มเติม">' +
+                                        '<i class="fas fa-plus" style="font-size:1.55em;"></i></button>';
+                                }
+                            },
+                            {
+                                data: 'title',
+                                title: '<i class="fas fa-file-alt me-1"></i> ชื่อชุดข้อสอบ'
+                            },
+                            {
+                                data: 'course_id',
+                                title: '<i class="fas fa-graduation-cap me-1"></i> คอร์ส',
+                                render: function (data, type, row, meta) {
+                                    return row.course_code + ' ( ' + row.course_name + ' )';
+                                }
+                            },
+
+                            {
+                                data: 'start_at',
+                                title: '<i class="fas fa-play me-1"></i> เริ่ม',
+                                render: function (v) {
+                                    return v ? v.replace('T', ' ').substring(0, 16) : '-';
+                                }
+                            },
+                            {
+                                data: 'end_at',
+                                title: '<i class="fas fa-stop me-1"></i> หมดอายุ',
+                                render: function (v) {
+                                    return v ? v.replace('T', ' ').substring(0, 16) : '-';
+                                }
+                            },
+
+                            {
+                                data: 'target_group',
+                                title: '<i class="fas fa-users me-1"></i> กลุ่มพนักงาน'
+                            },
+                            {
+                                data: 'forms_url',
+                                title: '<i class="fab fa-microsoft me-1"></i> Microsoft Forms',
+                                render: function (v) {
+                                    return v ? '<a href="' + v + '" target="_blank">เปิด</a>' : '-';
+                                }
+                            },
+
+                            {
+                                data: 'excel_url',
+                                title: '<i class="fas fa-file-excel me-1"></i> ไฟล์ผลสอบ',
+                                className: 'text-center',
+                                render: function (v) {
+                                    return v ? '<a href="' + v + '" target="_blank" download>ดาวน์โหลด</a>' : '-';
+                                }
+                            },
+
+                            {
+                                data: 'pdline_id',
+                                title: '<i class="fas fa-network-wired me-1"></i> ไลน์ผลิต',
+                                className: 'text-center',
+                                render: function (v) {
+                                    if (!v) return '-';
+                                    var dict = window.pdlineDict || {};
+                                    return dict[v] || '-';
+                                }
+                            },
+                            {
+                                data: 'selected_employees_count',
+                                title: '<i class="fas fa-users me-1"></i> ผู้เข้าทดสอบ',
+                                className: 'text-center'
+                            },
+                            {
+                                data: 'is_completed',
+                                title: '<i class="fas fa-check-circle me-1"></i> เสร็จสิ้น',
+                                orderable: false,
+                                className: 'text-center',
+                                render: function (val, type, row) {
+                                    var checked = val ? 'checked' : '';
+                                    return '<form class="d-inline frm-completed" method="post" action="' + '@Url.Action("SetExamCompleted","Exam")' + '">' +
+                                        '<input type="hidden" name="id" value="' + row.id + '" />' +
+                                        '<div class="form-check form-switch d-inline-block m-0"><input class="form-check-input switch-completed" type="checkbox" name="is_completed" ' + checked + ' /></div>' +
+                                        '</form>';
+                                }
+                            },
+                            {
+                                data: null,
+                                title: '<i class="fas fa-print me-1"></i> พิมพ์',
+                                orderable: false,
+                                className: 'text-center',
+                                render: function (row) {
+                                    var url = '@Url.Action("PrintExam","Exam")' + '?id=' + row.id;
+                                    return '<a class="btn btn-outline-secondary btn-sm py-0 px-1" target="_blank" href="' + url + '">พิมพ์</a>';
+                                }
+                            },
+                            {
+                                data: null,
+                                title: '<i class="fas fa-cogs me-1"></i> Action',
+                                orderable: false,
+                                className: 'text-end',
+                                render: function (data, type, row) {
+                                    if (canEdit) {
+                                        if (row.is_completed) {
+                                            return '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 me-1" disabled>แก้ไข</button>' +
+                                                '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" disabled>ลบ</button>';
+                                        }
+                                        var editBtn = '<button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 me-1 btn-edit" ' +
+                                            'data-id="' + row.id + '" ' +
+                                            'data-title="' + (row.title || '') + '" ' +
+                                            'data-description="' + (row.description || '') + '" ' +
+                                            'data-course_id="' + (row.course_id || '') + '" ' +
+                                            'data-rq="' + (row.random_question_count || 0) + '" ' +
+                                            'data-duration="' + (row.duration_minutes || '') + '" ' +
+                                            'data-start="' + (row.start_at || '') + '" ' +
+                                            'data-end="' + (row.end_at || '') + '" ' +
+                                            'data-attempts="' + (row.attempts_limit || '') + '" ' +
+                                            'data-target="' + (row.target_group || '') + '" ' +
+                                            'data-forms="' + (row.forms_url || '') + '" ' +
+                                            'data-image="' + (row.image_url || '') + '" ' +
+                                            'data-active="' + (row.is_active ? 'true' : 'false') + '" ' +
+                                            'data-factory="' + (row.factory_id || '') + '" ' +
+                                            'data-stage="' + (row.stage_id || '') + '" ' +
+                                            'data-pdline="' + (row.pdline_id || '') + '" ' +
+                                            'data-employees="' + (row.selected_employees || '') + '">แก้ไข</button>';
+                                        var delBtn = '<form method="post" action="' + '@Url.Action("DeleteExam","Exam")' + '" class="d-inline ms-1 frm-del">' +
+                                            '<input type="hidden" name="id" value="' + row.id + '" />' +
+                                            '<button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete">ลบ</button>' +
+                                            '</form>';
+                                        return editBtn + delBtn;
+                                    } else {
+                                        return '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 me-1 btn-edit" disabled>แก้ไข</button>';
+                                    }
+                                }
+                            }
+                        ],
+                        // ซ่อนคอลัมน์แรก (index)
+                        columnDefs: [
+                            // อย่าซ่อนคอลัมน์ปุ่ม + (index 0)
+                        ],
+                        order: [[1, 'asc']],
+                        pageLength: 10,
+                        info: false,
+                        lengthChange: false,
+                        paging: false,
+                        searching: false
+                    });
+
+                    window.examTable = table;
+
+                    // ย้ายปุ่ม DataTable ไปที่ header toolbar (ถ้ามีปุ่ม)
+                    if ($.fn.dataTable && $.fn.dataTable.Buttons && table.buttons) {
+                        try {
+                            table.buttons().container().appendTo('#dtButtons');
+                        } catch (e) { }
+                    }
+                }
+
+                // โหลด mapping PDLINE id->name ก่อน แล้วค่อย init ตาราง เพื่อให้แสดงชื่อได้เลย
+                window.pdlineDict = window.pdlineDict || {};
+                $.get('/OracleStations/GetPdlines')
+                    .done(function (data) {
+                        var dict = {};
+                        if (Array.isArray(data)) {
+                            data.forEach(function (it) {
+                                var id = (it.Id || it.id);
+                                var name = (it.Name || it.name);
+                                if (id != null) dict[id] = name;
+                            });
+                        }
+                        window.pdlineDict = dict;
+                    })
+                    .always(function () {
+                        initExamTable();
+                    });
+            } catch (e) {
+                console.warn('DataTable init failed:', e);
+            }
+        });
+    </script>
+    <script>
+        // ปุ่มแก้ไข
+        $(document).on('click', '.btn-edit', function () {
+            var b = $(this);
+            $('#edit_id').val(b.data('id'));
+            $('#edit_title').val(b.data('title'));
+            $('#edit_description').val(b.data('description'));
+            $('#edit_course_id').val(b.data('course_id'));
+            $('#edit_random_question_count').val(b.data('rq'));
+            $('#edit_duration_minutes').val(b.data('duration'));
+            $('#edit_start_at').val((b.data('start') || '').replace(' ', 'T').substring(0, 16));
+            $('#edit_end_at').val((b.data('end') || '').replace(' ', 'T').substring(0, 16));
+            $('#edit_attempts_limit').val(b.data('attempts'));
+            $('#edit_target_group').val(b.data('target'));
+            $('#edit_forms_url').val(b.data('forms'));
+            $('#edit_is_active').prop('checked', b.data('active') === true || b.data('active') === 'true');
+            var img = (b.data('image') || '').toString();
+            var $prev = $('#edit_image_preview');
+            $('#edit_remove_image').prop('checked', false);
+            if (img) {
+                $prev.attr('src', img).removeClass('d-none');
+            } else {
+                $prev.attr('src', '').addClass('d-none');
+            }
+            // preset ไลน์ผลิต/พนักงาน
+            $('#hid_edit_factory_id').val(b.data('factory'));
+            $('#hid_edit_stage_id').val(b.data('stage'));
+            $('#hid_edit_pdline_id').val(b.data('pdline'));
+            $('#edit_selected_employees').val(b.data('employees') || '');
+            // preset meta
+            $('#hid_edit_factory_id').val(b.data('factory') || '');
+            $('#hid_edit_stage_id').val(b.data('stage') || '');
+            $('#hid_edit_pdline_id').val(b.data('pdline') || '');
+            $('#edit_selected_employees').val(b.data('employees') || '');
+            // โหลด pdline จากผู้เข้าสอบแบบ distinct แล้วตั้งค่าใน hidden เพื่อ preset ตอนโหลดรายการเสร็จ
+            var examId = b.data('id');
+            $.get('@Url.Action("GetExamEmployeePdlines","Exam")', { id: examId }).done(function (res) {
+                var vals = (res && res.data) || [];
+                if (vals.length > 0) {
+                    $('#hid_edit_pdline_id').val(vals[0]);
+                }
+            }).always(function () {
+                var modal = new bootstrap.Modal(document.getElementById('editModal'));
+                modal.show();
+            });
+        });
+
+        // toggle completed -> when turning ON, require Excel upload
+        var uploadResultsSuccess = false;
+        var pendingCompletedSwitch = null;
+        $(document).on('change', '.switch-completed', function () {
+            var $switch = $(this);
+            var $form = $switch.closest('form');
+            var isChecked = $switch.is(':checked');
+
+            if (isChecked) {
+                // Open upload modal and defer completion to backend after upload
+                pendingCompletedSwitch = $switch;
+                uploadResultsSuccess = false;
+                var examId = $form.find('input[name="id"]').val();
+                var $modal = $('#uploadResultsModal');
+                $modal.find('input[name="id"]').val(examId);
+                $modal.find('input[name="file"]').val('');
+                var m = new bootstrap.Modal($modal[0]);
+                m.show();
+                return; // do not call SetExamCompleted here
+            }
+
+            // Turning OFF -> update completed=false immediately
+            var data = $form.serializeArray();
+            var exists = data.some(function (x) { return x.name === 'is_completed'; });
+            if (!exists) { data.push({ name: 'is_completed', value: false }); }
+            var token = $('input[name="__RequestVerificationToken"]').first().val();
+            if (token) { data.push({ name: '__RequestVerificationToken', value: token }); }
+            $.post($form.attr('action'), $.param(data))
+                .done(function (res) {
+                    if (res && res.success) {
+                        if (window.examTable) window.examTable.ajax.reload(null, false);
+                    } else {
+                        alert((res && res.message) || 'อัปเดตไม่สำเร็จ');
+                        $switch.prop('checked', true);
+                    }
+                })
+                .fail(function () {
+                    alert('เกิดข้อผิดพลาดในการอัปเดต');
+                    $switch.prop('checked', true);
+                });
+        });
+
+        // Upload results form submit
+        $(document).on('submit', '#frmUploadResults', function (e) {
+            e.preventDefault();
+            var $form = $(this);
+            var $btn = $form.find('.btn-upload');
+            var fd = new FormData($form[0]);
+            var token = $('input[name="__RequestVerificationToken"]').first().val();
+            if (token && !fd.has('__RequestVerificationToken')) fd.append('__RequestVerificationToken', token);
+            $btn.prop('disabled', true);
+            $.ajax({
+                url: $form.attr('action') + '?id=' + encodeURIComponent($form.find('input[name=id]').val()),
+                method: 'POST',
+                data: fd,
+                contentType: false,
+                processData: false
+            }).done(function (res) {
+                if (res && res.success) {
+                    uploadResultsSuccess = true;
+                    // Keep switch checked and reload table
+                    if (window.examTable) window.examTable.ajax.reload(null, false);
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('uploadResultsModal'));
+                    if (modal) modal.hide();
+                } else {
+                    alert((res && res.message) || 'อัปโหลดไม่สำเร็จ');
+                    if (pendingCompletedSwitch) pendingCompletedSwitch.prop('checked', false);
+                }
+            }).fail(function () {
+                alert('อัปโหลดไม่สำเร็จ');
+                if (pendingCompletedSwitch) pendingCompletedSwitch.prop('checked', false);
+            }).always(function () {
+                $btn.prop('disabled', false);
+            });
+        });
+
+        // If user closes modal without uploading, revert the switch
+        $('#uploadResultsModal').on('hidden.bs.modal', function () {
+            if (!uploadResultsSuccess && pendingCompletedSwitch) {
+                pendingCompletedSwitch.prop('checked', false);
+            }
+        });
+
+        // ลบชุดข้อสอบ
+        $(document).on('submit', '.frm-del', function (e) {
+            e.preventDefault();
+            if (!confirm('ยืนยันการลบชุดข้อสอบนี้?')) {
+                return;
+            }
+            var $form = $(this);
+            var url = $form.attr('action');
+            var data = $form.serialize();
+            var token = $('input[name="__RequestVerificationToken"]').first().val();
+            if (token) { data += '&__RequestVerificationToken=' + encodeURIComponent(token); }
+            $.post(url, data)
+                .done(function (res) {
+                    if (res && res.success) {
+                        if (window.examTable) {
+                            window.examTable.ajax.reload(null, false);
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        alert((res && res.message) || 'ลบไม่สำเร็จ');
+                    }
+                })
+                .fail(function () {
+                    alert('เกิดข้อผิดพลาดในการลบ');
+                });
+        });
+
+        // toggle child row
+        $(document).on('click', '.toggle-child-row', function () {
+            var tr = $(this).closest('tr');
+            var row = window.examTable.row(tr);
+            var examId = $(this).data('id');
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+                $(this).find('i').removeClass('fa-minus').addClass('fa-plus');
+                return;
+            }
+
+            // โหลดข้อมูลรายละเอียด
+            var $btn = $(this);
+            $btn.prop('disabled', true);
+            $.get('@Url.Action("GetExamDetails","Exam")', { id: examId })
+                .done(function (res) {
+                    var rowData = row.data() || {};
+                    var html = '<div class="p-2">';
+                    if (res && res.data && res.data.length) {
+                        html += '<div class="row g-2">' +
+                            '<div class="col-12"><strong>ชื่อชุดสอบ:</strong> ' + (rowData.title || '-') + '</div>' +
+                            '<div class="col-12"><strong>คอร์ส:</strong> ' +
+                            (res.data[0].course_code || '-') + ' (' + (res.data[0].course_name || '-') + ')</div></div>';
+                        html += '<div class="table-responsive"><table class="table table-sm table-bordered mb-0">';
+                        html += '<thead><tr><th class="text-center" style="width:60px">#</th><th>คำถาม</th><th class="text-center" style="width:120px">คำตอบที่ถูก</th></tr></thead><tbody>';
+                        res.data.forEach(function (it, idx) {
+                            html += '<tr>' +
+                                '<td class="text-center">' + (it.sort_order || (idx + 1)) + '</td>' +
+                                '<td>' + $('<div>').text(it.question_text || '-').html() + '</td>' +
+                                '<td class="text-center">' + (it.correct_choice || '-') + '</td>' +
+                                '</tr>';
+                        });
+                        html += '</tbody></table></div>';
+                    } else {
+                        html += '<div class="row g-2">' +
+                            '<div class="col-12"><strong>ชื่อชุดสอบ:</strong> ' + (rowData.title || '-') + '</div>' +
+                            '</div><em>ไม่มีรายละเอียดคำถาม</em>';
+                    }
+                    html += '</div>';
+
+                    row.child(html).show();
+                    tr.addClass('shown');
+                    $btn.find('i').removeClass('fa-plus').addClass('fa-minus');
+                })
+                .fail(function () {
+                    row.child('<div class="p-2 text-danger">โหลดข้อมูลไม่สำเร็จ</div>').show();
+                    tr.addClass('shown');
+                })
+                .always(function () { $btn.prop('disabled', false); });
+        });
+
+        // ส่งไป Power Automate
+        $(document).on('click', '.btn-send-flow', function () {
+            var examId = $(this).data('id');
+            var flowUrl = prompt('กรุณาใส่ URL ของ Power Automate Flow (When an HTTP request is received):');
+            if (!flowUrl) return;
+            $('#frmSendFlow input[name=id]').val(examId);
+            $('#frmSendFlow input[name=flowUrl]').val(flowUrl);
+            $('#frmSendFlow').trigger('submit');
+        });
+
+        $(document).on('submit', '#frmSendFlow', function (e) {
+            e.preventDefault();
+            var $form = $(this);
+            $.post($form.attr('action'), $form.serialize())
+                .done(function (res) {
+                    alert((res && res.message) || 'ส่งข้อมูลไป Power Automate สำเร็จ');
+                })
+                .fail(function () {
+                    alert('ส่งข้อมูลไป Power Automate ไม่สำเร็จ');
+                });
+        });
+
+        // ========= โหลดข้อมูลไลน์ผลิต =========
+        function loadFactories($sel) {
+            $.get('/OracleStations/GetFactories').done(function (data) {
+                if (Array.isArray(data)) {
+                    $sel.empty().append('<option value="">-- โรงงาน --</option>');
+                    data.forEach(function (it) {
+                        $sel.append('<option value="' + it.Id + '">' + it.Name + '</option>');
+                    });
+                }
+            });
+        }
+
+        function loadStages(factoryId, $sel) {
+            $.get('/OracleStations/GetStages', { factoryId: factoryId || '' }).done(function (data) {
+                if (Array.isArray(data)) {
+                    $sel.empty().append('<option value="">-- สเตจ --</option>');
+                    data.forEach(function (it) {
+                        $sel.append('<option value="' + it.Id + '">' + it.Name + '</option>');
+                    });
+                }
+            });
+        }
+
+        function loadPdlines(factoryId, $sel) {
+            $.get('/OracleStations/GetPdlines', { factoryId: factoryId || '' }).done(function (data) {
+                if (Array.isArray(data)) {
+                    $sel.empty().append('<option value="">-- ไลน์ผลิต --</option>');
+                    data.forEach(function (it) {
+                        $sel.append('<option value="' + it.Id + '">' + it.Name + '</option>');
+                    });
+                }
+            });
+        }
+
+        // create modal
+        $('#createModal').on('shown.bs.modal', function () {
+            loadFactories($('#create_factory_id'));
+        });
+
+        // simplify: โหลด PD Line เดียว
+        function loadOnlyPdlines($sel, presetVal) {
+            $.get('/OracleStations/GetPdlines').done(function (data) {
+                if (Array.isArray(data)) {
+                    $sel.empty().append('<option value="">-- ไลน์ผลิต --</option>');
+                    data.forEach(function (it) {
+                        $sel.append('<option value="' + (it.Id || it.id) + '">' + (it.Name || it.name) + '</option>');
+                    });
+                    if (presetVal) { $sel.val(presetVal); }
+                }
+            });
+        }
+
+        $('#createModal').on('shown.bs.modal', function () {
+            loadOnlyPdlines($('#create_pdline_id'));
+        });
+
+        $('#editModal').on('shown.bs.modal', function () {
+            var preset = $('#hid_edit_pdline_id').val();
+            loadOnlyPdlines($('#edit_pdline_id'), preset);
+            // re-apply preset after a short delay to ensure DOM updated
+            setTimeout(function () {
+                if (preset) { $('#edit_pdline_id').val(preset); }
+            }, 150);
+        });
+
+        // Modal เลือกพนักงาน
+        function openPickEmployees(targetInputSelector) {
+            var $modal = $('#pickEmployeesModal');
+            if ($modal.length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="pickEmployeesModal" tabindex="-1" aria-hidden="true">' +
+                    '  <div class="modal-dialog modal-dialog-centered modal-lg">' +
+                    '    <div class="modal-content">' +
+                    '      <div class="modal-header">' +
+                    '        <h6 class="modal-title">เลือกพนักงาน</h6>' +
+                    '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                    '      </div>' +
+                    '      <div class="modal-body">' +
+
+                    '        <div class="table-responsive" style="max-height:50vh;overflow:auto;">' +
+                    '          <table class="table table-sm table-hover align-middle mb-0" id="empTable">' +
+                    '            <thead><tr><th style="width:36px"></th><th>Person ID</th><th>ชื่อ</th><th>แผนก</th><th>ไลน์ผลิต</th></tr></thead>' +
+                    '            <tbody></tbody>' +
+                    '          </table>' +
+                    '        </div>' +
+                    '      </div>' +
+                    '      <div class="modal-footer">' +
+                    '        <div class="me-auto small text-muted">ติ๊กเลือกหลายคนได้</div>' +
+                    '        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>' +
+                    '        <button type="button" id="btnEmpApply" class="btn btn-primary">เพิ่มที่เลือก</button>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '</div>'
+                );
+                $modal = $('#pickEmployeesModal');
+            }
+
+            $modal.data('targetInput', targetInputSelector);
+            $modal.find('#empTable tbody').empty();
+            $modal.find('#empSearch').val('');
+
+            function getSelectedSet() {
+                var $target = $($modal.data('targetInput'));
+                var current = ($target.val() || '').toString().split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+                var set = {};
+                current.forEach(function (x) { set[x] = true; });
+                return set;
+            }
+            function getWorkingSet() {
+                var set = $modal.data('selectedSet');
+                if (!set) { set = getSelectedSet(); $modal.data('selectedSet', set); }
+                return set;
+            }
+            function setWorkingSet(set) { $modal.data('selectedSet', set || {}); }
+
+            // โหลด mapping emp_no -> pd_line และ mapping pdline id->name
+            var examIdForEmp = ($('#edit_id').val() || '').toString();
+            var empPdlineMap = {};
+            var pdlineDict = window.pdlineDict || {};
+            function ensurePdlineDict(then) {
+                if (Object.keys(pdlineDict).length > 0) { then(); return; }
+                $.get('/OracleStations/GetPdlines').done(function (data) {
+                    var dict = {};
+                    if (Array.isArray(data)) {
+                        data.forEach(function (it) { dict[(it.Id || it.id)] = (it.Name || it.name); });
+                    }
+                    pdlineDict = dict; window.pdlineDict = dict; then();
+                }).fail(function () { then(); });
+            }
+            function loadEmpPdlineMap(done) {
+                if (!examIdForEmp) { done(); return; }
+                $.get('@Url.Action("GetExamEmployeePdlineMap","Exam")', { id: examIdForEmp }).done(function (res) {
+                    (res && res.data || []).forEach(function (x) { empPdlineMap[x.emp_no] = x.pd_line; });
+                    done();
+                }).fail(function () { done(); });
+            }
+
+            var dt = $modal.data('dt');
+            if (!dt) {
+                dt = $modal.find('#empTable').DataTable({
+                    language: { url: '/js/datatables/i18n/th.json' },
+                    responsive: true,
+                    autoWidth: false,
+                    processing: true,
+                    serverSide: false,
+                    ordering: false,
+                    searching: true,
+                    paging: true,
+                    info: false,
+                    lengthChange: false,
+                    pageLength: -1,
+                    ajax: function (request, callback) {
+                        var q = $modal.find('#empSearch').val() || '';
+                        var params = { status: 'active', door: '', department: q, shift: '', fingerprint: '' };
+                        ensurePdlineDict(function () {
+                            loadEmpPdlineMap(function () {
+                                $.get('/Employee/GetEmployeesData', params).done(function (res) {
+                                    var list = Array.isArray(res) ? res : (res && res.data ? res.data : []);
+                                    var rows = list.map(function (e) {
+                                        var pid = e.personID || e.PersonID || e.EmpNo || e.empNo || e.PersonId || e.person_id || '';
+                                        var nm = e.name || e.Name || e.EmpName || e.empName || '';
+                                        var dept = e.deptID || e.DeptID || e.deptId || e.department || e.Department || e.dept_id || '';
+                                        var pd = pdlineDict[empPdlineMap[pid]] || '';
+                                        return { pid: pid, name: nm, dept: dept, pdline: pd };
+                                    });
+                                    callback({ data: rows });
+                                }).fail(function () { callback({ data: [] }); });
+                            });
+                        });
+                    },
+                    columns: [
+                        {
+                            data: null,
+                            orderable: false,
+                            className: 'text-center',
+                            width: 36,
+                            render: function (row) {
+                                var pid = (row.pid || '').toString();
+                                var set = getWorkingSet();
+                                var checked = set[pid] ? ' checked' : '';
+                                return '<input type="checkbox" class="form-check-input pick-emp" data-id="' + pid + '"' + checked + ' />';
+                            }
+                        },
+                        { data: 'pid', title: 'Person ID' },
+                        { data: 'name', title: 'ชื่อ' },
+                        { data: 'dept', title: 'แผนก' },
+                        { data: 'pdline', title: 'ไลน์ผลิต' }
+                    ]
+                });
+                $modal.data('dt', dt);
+
+                // ค้นหาใหม่ด้วยปุ่มค้นหา / Enter
+                $modal.off('click', '#btnEmpSearch').on('click', '#btnEmpSearch', function (e) {
+                    e.preventDefault();
+                    dt.ajax.reload();
+                });
+                $modal.off('keypress', '#empSearch').on('keypress', '#empSearch', function (e) {
+                    if (e.which === 13) { e.preventDefault(); dt.ajax.reload(); }
+                });
+
+                // คลิกแถวเพื่อ toggle checkbox
+                $modal.on('click', '#empTable tbody tr', function (e) {
+                    if ($(e.target).is('input[type=checkbox]')) return;
+                    var $cb = $(this).find('.pick-emp');
+                    $cb.prop('checked', !$cb.prop('checked')).trigger('change');
+                });
+
+                // track selection changes to persist across filter/search
+                $modal.on('change', '.pick-emp', function () {
+                    var pid = ($(this).data('id') || '').toString();
+                    var set = getWorkingSet();
+                    if ($(this).is(':checked')) set[pid] = true; else delete set[pid];
+                    setWorkingSet(set);
+                });
+            } else {
+                dt.ajax.reload();
+            }
+
+            $modal.off('click', '#btnEmpApply').on('click', '#btnEmpApply', function () {
+                var workingSet = getWorkingSet();
+                var merged = Object.keys(workingSet).join(',');
+                var $target = $($modal.data('targetInput'));
+                $target.val(merged);
+                var modalInstance = bootstrap.Modal.getInstance($modal[0]);
+                modalInstance.hide();
+            });
+
+            // initialize working set from current target input once per open
+            setWorkingSet(getSelectedSet());
+            var instance = new bootstrap.Modal($modal[0]);
+            instance.show();
+        }
+
+        $('#btnPickEmployeesCreate').on('click', function () { openPickEmployees('#create_selected_employees'); });
+        $('#btnPickEmployeesEdit').on('click', function () { openPickEmployees('#edit_selected_employees'); });
+    </script>
+    <form id="frmSendFlow" method="post" action="@Url.Action("SendToPowerAutomate","Exam")" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" />
+        <input type="hidden" name="flowUrl" />
+    </form>
+}
+
+@section Styles {
+    <style>
+        /* ปรับปุ่มในส่วนหัวให้แน่นขึ้นเล็กน้อย */
+        #dtButtons .btn {
+            margin-left: .25rem;
+        }
+
+        /* ทำให้หัวตารางอ่านง่ายขึ้น */
+        #courseTable thead th {
+            white-space: nowrap;
+        }
+    </style>
+}

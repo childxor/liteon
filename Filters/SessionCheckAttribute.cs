@@ -16,13 +16,16 @@ namespace IPS_TH.Filters
                 // ยกเว้นหน้า Login และ Register
                 var isAuthController = context.RouteData.Values["controller"]?.ToString()?.ToLower() == "authen";
                 var isLoginAction = context.RouteData.Values["action"]?.ToString()?.ToLower() == "login";
+                var isAutoLoginAction = context.RouteData.Values["action"]?.ToString()?.ToLower() == "autologin";
+                var isLogoutAction = context.RouteData.Values["action"]?.ToString()?.ToLower() == "logout";
+                var isAccessDeniedAction = context.RouteData.Values["action"]?.ToString()?.ToLower() == "accessdenied";
                 var isRegisterAction = context.RouteData.Values["action"]?.ToString()?.ToLower() == "registers";
 
-                if (!isAuthController || (!isLoginAction && !isRegisterAction))
+                if (!isAuthController || (!isLoginAction && !isRegisterAction && !isAutoLoginAction && !isLogoutAction && !isAccessDeniedAction))
                 {
                     if (string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(userData))
                     {
-                        context.Result = new RedirectToActionResult("Login", "Authen", null);
+                        context.Result = new RedirectToActionResult("AutoLogin", "Authen", null);
                         return;
                     }
                 }

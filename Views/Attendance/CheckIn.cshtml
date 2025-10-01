@@ -2998,6 +2998,13 @@
                             showAddOTModal(dataRow);
                         });
 
+                        // Event handler สำหรับปุ่มเปิดระบบ OT ภายนอกในแท็บใหม่
+                        $('#mTable').on('click', '.open-ot-external-btn', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.open('http://icm942/bpm', '_blank');
+                        });
+
                         // โหลดข้อมูลกะการทำงานสำหรับ dropdown
                         loadShifts();
                     });
@@ -3838,6 +3845,19 @@
                                     const firstTime = row.firstTime ? moment(row.firstTime).format('HH:mm') : '<span class="text-danger">ยังไม่สแกนเข้า</span>';
                                     const lastTime = row.lastTime ? moment(row.lastTime).format('HH:mm') : '<span class="text-warning">ยังไม่สแกนออก</span>';
 
+                                    // เวลาเลิกงาน
+                                    const timeOffWork = row.rDate + ' ' + row.shiftInfo.endTime;
+                                    const timeOffWorkMoment = moment(timeOffWork);
+                                    
+                                    // เวลาออกงานจริง (แปลงเป็น moment ให้เปรียบเทียบได้)
+                                    let lastTimeMoment = null;
+                                    if (row.lastTime) {
+                                        lastTimeMoment = moment(row.lastTime);
+                                        if (!lastTimeMoment.isValid() && row.rDate) {
+                                            lastTimeMoment = moment(row.rDate + ' ' + row.lastTime);
+                                        }
+                                    }
+                                    
                                     let lastTimeDisplay = lastTime;
                                     if (row.firstTime && !row.lastTime) {
                                         lastTimeDisplay = '<span class="text-warning">ยังไม่สแกนออก</span>';
@@ -3883,6 +3903,35 @@
                                             '<i class="fas fa-plus"></i></button>';
                                     }
 
+                                    // สร้างปุ่มเปิด new tab ไปที่อีกระบบสำหรับสร้างโอที สำหรับ user ทุกคน 
+
+                                    // ปุ่มเปิดแท็บใหม่ (ใช้เงื่อนไข: ไม่มี OT และเกินเกณฑ์นาทีตามประเภทกะ)
+                                    let otExternalButton = '';
+                                    if (!hasOT) {
+                                        let showExternal = false;
+                                        if (lastTimeMoment && timeOffWorkMoment.isValid()) {
+                                            const shiftType = (row.shiftfromsql944hrips || '').toString().toUpperCase();
+                                            const thresholdMinutes = shiftType === 'OFFICE' ? 30 : 180;
+                                            const diffMinutes = lastTimeMoment.diff(timeOffWorkMoment, 'minutes');
+                                            if (diffMinutes >= thresholdMinutes) {
+                                                showExternal = true;
+                                            }
+                                        }
+                                        if (showExternal) {
+                                            otExternalButton = '<button class="btn btn-sm btn-outline-secondary ms-1 open-ot-external-btn" ' +
+                                                'title="เปิดระบบ OT ภายนอก" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">' +
+                                                '<i class="fas fa-external-link-alt"></i></button>';
+                                        }
+                                    }
+
+                                    // จัดกลุ่มปุ่มให้ติดกัน
+                                    let otButtonsGroup = '';
+                                    if (otButton || otExternalButton) {
+                                        otButtonsGroup = '<span class="d-inline-flex align-items-center ms-2 gap-1">' + otButton + otExternalButton + '</span>';
+                                    }
+
+
+
                                     return '<div class="d-flex justify-content-center gap-3 align-items-center">' +
                                         '<span class="badge ' + firstTimeBadgeClass + '" ' + firstTimeTooltipAttr + '>' +
                                         getScanTypeIcons() + ' ' +
@@ -3894,7 +3943,7 @@
                                         '<i class="fas fa-sign-out-alt me-1"></i>' + lastTimeDisplay +
                                         (scanInfo.hasError ? '<i class="fas fa-exclamation-triangle ms-1" title="มีสถานะผิดปกติ"></i>' : '') +
                                         '</span>' +
-                                        otButton +
+                                        otButtonsGroup +
                                         '</div>';
                                 }
                             },
@@ -5343,7 +5392,7 @@
                             const lastTimeMoment = moment(row.lastTime).format('HH:mm');
                             const endTimeMoment = moment(row.shiftInfo.endTime, 'HH:mm');
                             const diffMinutes = moment(lastTimeMoment, 'HH:mm').diff(endTimeMoment, 'minutes');
-                            if (diffMinutes > 30 && !hasOT) {
+                            if (diffMinutes > 180 && !hasOT && row.shiftfromsql944hrips !== 'OFFICE') {
                                 statuses.push(`<span class="badge bg-warning text-dark" data-bs-toggle="tooltip" data-bs-title="ออกงานเกินเวลา ${diffMinutes} นาที ต้องขอโอที">
                                     <i class="fas fa-clock me-1"></i>ต้องขอโอที
                                 </span>`);

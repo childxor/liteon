@@ -7,6 +7,7 @@
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -64,7 +65,7 @@
             margin-bottom: 20px;
         }
 
-        .form-floating > .form-control {
+        .form-floating>.form-control {
             padding: 1rem 1rem;
             height: calc(3.5rem + 2px);
             line-height: 1.25;
@@ -73,7 +74,7 @@
             transition: all 0.3s ease;
         }
 
-        .form-floating > label {
+        .form-floating>label {
             padding: 1rem;
         }
 
@@ -137,6 +138,7 @@
                 -webkit-transform: translateY(20px);
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 -webkit-transform: translateY(0);
@@ -149,6 +151,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -179,8 +182,13 @@
         }
 
         @@keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .modal-content {
@@ -213,6 +221,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="login-container animated">
         <div class="text-center">
@@ -223,16 +232,13 @@
 
         <form id="loginForm">
             <div class="form-floating mb-4">
-                <input type="text" class="form-control" id="rawUsername" 
-                       @* placeholder="Username" value="@ViewBag.CurrentWindowsUser"> *@
-                       placeholder="Username" value="">
+                <input type="text" class="form-control" id="rawUsername" placeholder="Username" value="">
                 <label for="rawUsername">ชื่อผู้ใช้</label>
                 <input type="hidden" name="username" id="fullUsername" />
             </div>
 
             <div class="form-floating mb-4 position-relative">
-                <input type="password" class="form-control" id="password" 
-                       name="password" placeholder="Password">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Password">
                 <label for="password">รหัสผ่าน</label>
                 <button type="button" class="password-toggle" id="togglePassword">
                     <i class="far fa-eye"></i>
@@ -252,47 +258,10 @@
         </form>
     </div>
 
-    <div class="modal fade" id="profileUpdateModal" tabindex="-1" aria-labelledby="profileUpdateModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="profileUpdateModalLabel">กรุณากรอกข้อมูลเพิ่มเติม</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" disabled></button>
-                </div>
-                <div class="modal-body">
-                    <form id="profileUpdateForm">
-                        <input type="hidden" id="updateUserId" />
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            ระบบตรวจพบว่าไม่มีข้อมูลแผนกของคุณ กรุณากรอกข้อมูลให้ครบถ้วนเพื่อเข้าใช้ระบบ
-                        </div>
-                        <div class="form-group mb-3">
-                            <label for="empNo" class="form-label">รหัสพนักงาน <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="empNo" placeholder="กรุณากรอกรหัสพนักงาน" required>
-                            <div class="form-text">รหัสพนักงานต้องตรงกับข้อมูลใน Active Directory</div>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label for="department" class="form-label">แผนก <span class="text-danger">*</span></label>
-                            <select class="form-select" id="department" required>
-                                <option value="">กรุณาเลือกแผนก</option>
-                            </select>
-                            <div class="form-text">เลือกแผนกที่คุณสังกัด</div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary w-100" onclick="submitProfileUpdate()">
-                        <i class="fas fa-save me-2"></i>บันทึกและเข้าสู่ระบบ
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             // อัพเดท username
             function updateUsername() {
                 const rawUsername = $('#rawUsername').val().trim();
@@ -305,10 +274,10 @@
             updateUsername(); // เซ็ตค่าเริ่มต้น
 
             // Toggle password
-            $('#togglePassword').click(function() {
+            $('#togglePassword').click(function () {
                 const passwordInput = $('#password');
                 const icon = $(this).find('i');
-                
+
                 if (passwordInput.attr('type') === 'password') {
                     passwordInput.attr('type', 'text');
                     icon.removeClass('fa-eye').addClass('fa-eye-slash');
@@ -319,9 +288,9 @@
             });
 
             // Handle form submission
-            $('#loginForm').submit(function(e) {
+            $('#loginForm').submit(function (e) {
                 e.preventDefault();
-                
+
                 const username = $('#fullUsername').val();
                 const password = $('#password').val();
 
@@ -347,10 +316,10 @@
                     url: '@Url.Action("Login", "Authen")',
                     type: 'POST',
                     data: { username, password },
-                    success: function(response) {
+                    success: function (response) {
                         handleLoginResponse(response);
                     },
-                    error: function() {
+                    error: function () {
                         $('.loading-overlay').remove();
                         Swal.fire({
                             icon: 'error',
@@ -367,7 +336,7 @@
         function handleLoginResponse(response) {
             // ลบ loading overlay ก่อน
             $('.loading-overlay').remove();
-            
+
             if (response.success) {
                 if (response.needsProfileUpdate) {
                     $('#updateUserId').val(response.userId);
@@ -405,7 +374,7 @@
                     const departmentSelect = $('#department');
                     departmentSelect.empty();
                     departmentSelect.append('<option value="">กรุณาเลือกแผนก</option>');
-                    
+
                     response.data.forEach(dept => {
                         departmentSelect.append(`<option value="${dept.name}">${dept.name}</option>`);
                     });
@@ -477,7 +446,7 @@
                     empNo: empNo,
                     department: department
                 },
-                success: function(response) {
+                success: function (response) {
                     $('.loading-overlay').remove();
                     if (response.success) {
                         var myModal = bootstrap.Modal.getInstance(document.getElementById('profileUpdateModal'));
@@ -495,7 +464,7 @@
                         });
                     }
                 },
-                error: function() {
+                error: function () {
                     $('.loading-overlay').remove();
                     Swal.fire({
                         icon: 'error',
@@ -510,14 +479,15 @@
 
         // เพิ่มโค้ดเพื่อเคลียร์ localStorage และ sessionStorage
         @if (TempData["ClearClientStorage"] != null && (bool)TempData["ClearClientStorage"] == true)
-        {
-            <text>
-            // เคลียร์ localStorage และ sessionStorage
-            localStorage.clear();
-            sessionStorage.clear();
-            console.log("ล้างข้อมูล localStorage และ sessionStorage เรียบร้อยแล้ว");
-            </text>
+            {
+                <text>
+                        // เคลียร์ localStorage และ sessionStorage
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    console.log("ล้างข้อมูล localStorage และ sessionStorage เรียบร้อยแล้ว");
+                </text>
         }
     </script>
 </body>
+
 </html>

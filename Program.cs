@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.IISIntegration;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -104,7 +105,11 @@ builder.Services.Configure<IISOptions>(options =>
     options.AuthenticationDisplayName = "Windows";
 });
 
-builder.Services.Configure<IISServerOptions>(options => options.AutomaticAuthentication = true);
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.AutomaticAuthentication = true;
+    options.MaxRequestBodySize = 104857600; // 100 MB
+});
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -122,6 +127,12 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
+// เพิ่มเพดาน Multipart สำหรับการอัปโหลดไฟล์ (100 MB)
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600; // 100 MB
+});
+
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.CheckConsentNeeded = context => false;
@@ -131,8 +142,10 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 builder
     .Services.AddAuthentication(options =>
     {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        // ให้ IIS เป็นตัว Authenticate เริ่มต้น เพื่อรับ Windows Identity
+        options.DefaultAuthenticateScheme = IISDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = IISDefaults.AuthenticationScheme;
+        // เก็บ Cookie scheme ไว้สำหรับกรณีที่ต้องการใช้งานเพิ่มเติม (ไม่ได้เป็นค่าเริ่มต้น)
     })
     .AddCookie(
         CookieAuthenticationDefaults.AuthenticationScheme,
@@ -142,10 +155,11 @@ builder
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // เปลี่ยนเป็น SameAsRequest
             options.Cookie.SameSite = SameSiteMode.Strict;
-            options.LoginPath = "/Authen/Login";
+            // options.LoginPath = "/Authen/Login";
+            options.LoginPath = "/Authen/AutoLogin";
             options.LogoutPath = "/Authen/Logout";
             options.AccessDeniedPath = "/Authen/AccessDenied";
-            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.ExpireTimeSpan = TimeSpan.FromHours(-1);
         }
     );
 
@@ -173,6 +187,11 @@ app.UseStatusCodePages();
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+// เปิดเสิร์ฟไฟล์ใน wwwroot/uploads ภายใต้ PathBase ด้วย
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/uploads"
+});
 app.UseCookiePolicy(); 
 app.UseSession();
 app.UseRouting();
@@ -181,6 +200,6 @@ app.UseAuthorization();
 
 app.UsePathBase("/mgrips");
 
-app.MapControllerRoute(name: "default", pattern: "{controller=Authen}/{action=Login}/{id?}");
+app.MapControllerRoute(name: "default", pattern: "{controller=Authen}/{action=AutoLogin}/{id?}");
 
 app.Run();

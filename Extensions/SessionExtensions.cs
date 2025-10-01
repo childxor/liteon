@@ -29,20 +29,8 @@ namespace IPS_TH.Extensions
             return value == null ? default : JsonConvert.DeserializeObject<T>(value);
         }
 
-        public static string? GetString(this ISession session, string key)
-        {
-            byte[]? data = session.Get(key);
-            if (data == null)
-            {
-                return null;
-            }
-            return Encoding.UTF8.GetString(data);
-        }
-
-        public static void SetString(this ISession session, string key, string value)
-        {
-            session.Set(key, Encoding.UTF8.GetBytes(value));
-        }
+        // NOTE: อย่ากำหนด GetString/SetString ซ้ำกับของ Microsoft.AspNetCore.Http
+        // ให้ใช้ของระบบ (Microsoft.AspNetCore.Http.SessionExtensions) แทน
 
         public static string GetTranslation(this ISession session, string keyword)
         {

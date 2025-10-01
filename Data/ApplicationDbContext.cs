@@ -5,6 +5,7 @@ using IPS_TH.Models; // ตรวจสอบให้แน่ใจว่า�
 using IPS_TH.Models.Employee;
 using IPS_TH.Models.AssetFactory;
 using IPS_TH.Models.Attendance;
+using IPS_TH.Models.ESMMS;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPS_TH.Data
@@ -62,6 +63,13 @@ namespace IPS_TH.Data
         public DbSet<sys_user_feedback_comment> sys_user_feedback_comment { get; set; }
 
         public DbSet<sys_user_feedback_like> sys_user_feedback_like { get; set; }
+
+        // E-SMMS
+        public DbSet<esmms_course> esmms_course { get; set; }
+        public DbSet<esmms_exam> esmms_exam { get; set; }
+        public DbSet<esmms_exam_employee> esmms_exam_employee { get; set; }
+        public DbSet<esmms_question> esmms_question { get; set; }
+        public DbSet<esmms_exam_detail> esmms_exam_detail { get; set; }
     }
 
     // Oracle DbContext (สำหรับเชื่อมต่อ Oracle Database)

@@ -558,6 +558,56 @@
                 }, false); // false = ไม่รีเซ็ตหน้า
             }
 
+            // ===== สถานะฝึกอบรมจาก ESMMS =====
+            function loadTrainingStatuses() {
+                var dt = $('#employeeTable').DataTable();
+                var data = dt.rows({ page: 'current' }).data().toArray();
+                if (!data || data.length === 0) return;
+                var ids = [];
+                data.forEach(function (r) {
+                    var pid = r && r.personID;
+                    if (pid) ids.push(String(pid).trim());
+                });
+                if (!ids.length) return;
+                $.get('@Url.Action("GetTrainingStatusForEmployees","Exam")', { personIds: ids.join(',') })
+                    .done(function (res) {
+                        var list = Array.isArray(res) ? res : (res && res.data ? res.data : []);
+                        var map = {};
+                        list.forEach(function (x) { map[String(x.emp_no || '').trim()] = x; });
+                        // ใช้ cache pdline ถ้ามี ไม่งั้นดึงครั้งเดียวแล้ว cache
+                        var useDict = (window.pdlineDict && Object.keys(window.pdlineDict).length > 0) ? window.pdlineDict : null;
+                        var applyAndDraw = function(dict){
+                            dict = dict || {};
+                            dt.rows({ page: 'current' }).every(function () {
+                                var row = this.data();
+                                var key = String(row.personID || '').trim();
+                                var st = map[key] || null;
+                                if (st) {
+                                    var pdId = (st.pd_line||'').toString();
+                                    st.pdline_name = dict[pdId] || (pdId || null);
+                                }
+                                row.__trainingStatus = st;
+                                this.data(row, false);
+                            });
+                            dt.rows({ page: 'current' }).invalidate('data').draw(false);
+                        };
+                        if (useDict) {
+                            applyAndDraw(useDict);
+                        } else {
+                            $.get('/OracleStations/GetPdlines')
+                                .done(function(pdlines){
+                                    var dict = {};
+                                    if (Array.isArray(pdlines)) {
+                                        pdlines.forEach(function(it){ dict[String(it.Id||it.id)] = it.Name||it.name; });
+                                    }
+                                    window.pdlineDict = dict;
+                                    applyAndDraw(dict);
+                                })
+                                .fail(function(){ applyAndDraw({}); });
+                        }
+                    });
+            }
+
             // ฟังก์ชัน Export ข้อมูลพนักงานเป็น Excel แยกตามแผนก
             function exportEmployeeDataToExcel() {
                 // แสดง Loading
@@ -599,6 +649,74 @@
                     var summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
                     XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
+                    // สร้าง Sheet สรุปภาพรวมสิทธิ์ประตู
+                    var overviewData = createDoorAccessOverviewSheet(data);
+                    var overviewWs = XLSX.utils.aoa_to_sheet(overviewData);
+                    // ปรับความกว้างคอลัมน์สำหรับชีตภาพรวมสิทธิ์
+                    overviewWs['!cols'] = [
+                        { wch: 20 }, // Department
+                        { wch: 15 }, // Employee ID
+                        { wch: 15 }, // Card Number
+                        { wch: 25 }  // Full Name
+                    ].concat(new Array(13).fill({ wch: 14 }));
+                    // ใส่เส้นตารางและจัดรูปแบบหัวตาราง
+                    try {
+                        // Merge หัวเรื่องใหญ่ (A1:D1 รวมถึงคอลัมน์ประตูทั้งหมด)
+                        var totalCols = 4 + 13 - 1; // A..R (ปรับตามจำนวน afterNames ถ้ามีเปลี่ยน)
+                        overviewWs['!merges'] = overviewWs['!merges'] || [];
+                        overviewWs['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + 13 } });
+
+                        // กำหนด style พื้นฐาน
+                        function setCell(ws, r, c, v, s) {
+                            var addr = XLSX.utils.encode_cell({ r: r, c: c });
+                            ws[addr] = ws[addr] || { t: 's', v: v };
+                            if (typeof v !== 'undefined') ws[addr].v = v;
+                            ws[addr].s = Object.assign({
+                                font: { name: 'Calibri' },
+                                alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+                                border: {
+                                    top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    right: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    bottom: { style: 'thin', color: { rgb: 'CCCCCC' } }
+                                }
+                            }, s || {});
+                        }
+
+                        // สไตล์หัวเรื่องใหญ่
+                        setCell(overviewWs, 0, 0, overviewData[0][0], { font: { bold: true, sz: 14 }, fill: { fgColor: { rgb: 'E6F4EA' } } });
+
+                        // จัดสไตล์แถว Before/After
+                        for (var c = 3; c < 3 + 13; c++) {
+                            setCell(overviewWs, 1, c, overviewData[1][c], { font: { bold: true }, fill: { fgColor: { rgb: 'F1F3F4' } } });
+                            setCell(overviewWs, 2, c, overviewData[2][c], { font: { bold: true }, fill: { fgColor: { rgb: 'FFF8E1' } } });
+                        }
+                        setCell(overviewWs, 1, 3, 'Before', { font: { bold: true }, fill: { fgColor: { rgb: 'F1F3F4' } } });
+                        setCell(overviewWs, 2, 3, 'After', { font: { bold: true }, fill: { fgColor: { rgb: 'FFF8E1' } } });
+
+                        // หัวคอลัมน์ข้อมูลหลัก
+                        var headers = ['Department', 'Employee ID', 'Card Number', 'Full Name'];
+                        for (var i = 0; i < headers.length; i++) {
+                            setCell(overviewWs, 3, i, headers[i], { font: { bold: true }, fill: { fgColor: { rgb: 'E3F2FD' } } });
+                        }
+
+                        // ใส่เส้นตารางทุก cell ที่มีข้อมูล
+                        var range = XLSX.utils.decode_range(overviewWs['!ref']);
+                        for (var r = range.s.r; r <= range.e.r; r++) {
+                            for (var c2 = range.s.c; c2 <= range.e.c; c2++) {
+                                setCell(overviewWs, r, c2);
+                            }
+                        }
+
+                        // Freeze แถวหัว 4 แถวแรก และคง 4 คอลัมน์ซ้าย
+                        overviewWs['!freeze'] = { xSplit: 4, ySplit: 4 };
+
+                        // เปิด AutoFilter ตั้งแต่หัวคอลัมน์ (แถว 4)
+                        var lastCol = XLSX.utils.encode_col(3 + 13);
+                        overviewWs['!autofilter'] = { ref: 'A4:' + lastCol + (overviewData.length) };
+                    } catch (e) { console.warn('SheetJS style not fully supported in this build:', e); }
+                    XLSX.utils.book_append_sheet(wb, overviewWs, 'Door Access Overview');
+
                                     // แยกข้อมูลตามแผนก
                 var departments = {};
                 data.forEach(function(row) {
@@ -615,7 +733,11 @@
 
                 // สร้าง Sheet สำหรับแต่ละแผนก
                 Object.keys(departments).forEach(function(deptName) {
-                    var deptData = createDepartmentSheetWithDoors(departments[deptName], deptName);
+                    // กำหนดชื่อชีต (ตัดความยาวไม่เกิน 31 ตัวอักษรตามข้อจำกัด Excel)
+                    var sheetName = deptName.length > 31 ? deptName.substring(0, 31) : deptName;
+
+                    // สร้างข้อมูลชีต โดยให้คอลัมน์ Department เท่ากับชื่อชีต
+                    var deptData = createDepartmentSheetWithDoors(departments[deptName], sheetName);
                     var deptWs = XLSX.utils.aoa_to_sheet(deptData);
                     
                     // กำหนดความกว้างคอลัมน์ (TH/简中 注释) Column widths
@@ -636,7 +758,6 @@
                     deptWs['!cols'] = colWidths;
 
                     // เพิ่ม Sheet เข้าไปในไฟล์ (TH/简中 注释)
-                    var sheetName = deptName.length > 31 ? deptName.substring(0, 31) : deptName;
                     XLSX.utils.book_append_sheet(wb, deptWs, sheetName);
                 });
 
@@ -675,19 +796,30 @@
                         },
                         success: function(response) {
                             if (response.success && response.data) {
-                                // เก็บข้อมูลสิทธิ์ประตู
+                                // สร้างรายการประตูทั้งหมดจากการเรียกครั้งแรก
+                                if (!window.allDoors) {
+                                    window.allDoors = (response.data || []).map(function(d) {
+                                        return { doorID: d.doorID, doorName: d.doorName };
+                                    });
+                                }
+
+                                // เก็บข้อมูลสิทธิ์ประตูแบบรายการชื่อ และแบบ Matrix ตาม doorID
                                 var doorList = [];
+                                var accessById = {};
                                 response.data.forEach(function(door) {
-                                    if (door.hasCardAccess || door.hasFingerprintAccess) {
+                                    var hasAccess = !!(door.hasCardAccess || door.hasFingerprintAccess);
+                                    if (hasAccess) {
                                         doorList.push(door.doorName + ' (' + door.doorID + ')');
                                     }
+                                    accessById[door.doorID] = hasAccess;
                                 });
-                                
+
                                 // เก็บข้อมูลใน global variable
-                                if (!window.employeeAccessData) {
-                                    window.employeeAccessData = {};
-                                }
+                                if (!window.employeeAccessData) { window.employeeAccessData = {}; }
+                                if (!window.employeeDoorAccessById) { window.employeeDoorAccessById = {}; }
+
                                 window.employeeAccessData[personId] = doorList;
+                                window.employeeDoorAccessById[personId] = accessById;
                             }
                             resolve();
                         },
@@ -786,6 +918,130 @@
 
                 return summaryData;
             }
+            // ฟังก์ชันสร้าง Sheet สรุปภาพรวมสิทธิ์ประตู (Door Access Overview)
+            function createDoorAccessOverviewSheet(data) {
+                var sheet = [];
+
+                // หัวเรื่องใหญ่ของชีต
+                sheet.push(['Door Access Overview']);
+
+                // รายชื่อห้อง/ประตู ก่อนและหลังปรับชื่อ (เพื่อแสดงบนหัวตาราง)
+                var beforeNames = [
+                    'Chemical room',
+                    'DCC room',
+                    'Comsumables room',
+                    'Jig room',
+                    'MIS server room',
+                    'DQE room',
+                    'IQC room',
+                    'Store raw material',
+                    'Store electonic',
+                    'Store Finish goods 01',
+                    'Store Finish goods 02',
+                    'HR Attendance 01',
+                    'HR Attendance 02'
+                ];
+
+                var afterNames = [
+                    'Chemical room',
+                    'MRO room',
+                    'shoes change',
+                    'Jig room',
+                    'MIS server room',
+                    'DQE room',
+                    'IQC room',
+                    'Store raw material',
+                    'Store electonic',
+                    'Store Finish goods 01',
+                    'Store Finish goods 02',
+                    'HR Attendance 01',
+                    'HR Attendance 02'
+                ];
+
+                var owners = [
+                    'MFG',
+                    'MFG',
+                    'MFG',
+                    'ME',
+                    'IT',
+                    'QRA',
+                    'QRA',
+                    'SCM',
+                    'SCM',
+                    'SCM',
+                    'SCM',
+                    'MD-IDL',
+                    'MD-IDL&DL'
+                ];
+
+                // สร้าง mapping ของชื่อห้อง (หลังปรับ) ไปยัง alias ที่อาจพบในระบบ
+                var aliasMap = {
+                    'Chemical room': ['chemical room'],
+                    'MRO room': ['mro room', 'dcc room'],
+                    'shoes change': ['shoes change', 'shoe change', 'comsumables room', 'consumables room'],
+                    'Jig room': ['jig room'],
+                    'MIS server room': ['mis server room'],
+                    'DQE room': ['dqe room'],
+                    'IQC room': ['iqc room'],
+                    'Store raw material': ['store raw material'],
+                    'Store electonic': ['store electonic', 'store electronic', 'store electronics'],
+                    'Store Finish goods 01': ['store finish goods 01', 'store finish goods1', 'store finish goods01'],
+                    'Store Finish goods 02': ['store finish goods 02', 'store finish goods2', 'store finish goods02'],
+                    'HR Attendance 01': ['hr attendance 01', 'hr attendance1', 'hr attendance01', 'hr attendance 1'],
+                    'HR Attendance 02': ['hr attendance 02', 'hr attendance2', 'hr attendance02', 'hr attendance 2']
+                };
+
+                function normalize(text) {
+                    return (text || '').toString().toLowerCase().replace(/\s+/g, ' ').trim();
+                }
+
+                // แถวหัวเรื่อง Before / After
+                sheet.push(['', '', '', 'Before'].concat(beforeNames)); // row 2 (1-based)
+                sheet.push(['', '', '', 'After'].concat(afterNames));   // row 3
+
+                // แถวหัวคอลัมน์จริง (ไม่ใส่ชื่อประตูซ้ำในบรรทัดนี้)
+                sheet.push(['Department', 'Employee ID', 'Card Number', 'Full Name'].concat(new Array(afterNames.length).fill(''))); // row 4
+
+                // แถวเจ้าของคอลัมน์ (Owner) 
+                sheet.push(['', '', '', 'Owner'].concat(owners));
+
+                // เตรียมรายการประตูทั้งหมดแบบ normalize ไว้ล่วงหน้า
+                var normalizedAllDoors = (window.allDoors || []).map(function(d) {
+                    return { doorID: d.doorID, nameNorm: normalize(d.doorName) };
+                });
+
+                // สร้างข้อมูลพนักงานแบบสรุปสิทธิ์ประตู (อ้างอิงสิทธิ์จริงจาก Employee/GetAccess)
+                data.forEach(function(row) {
+                    var accessById = (window.employeeDoorAccessById && window.employeeDoorAccessById[row.personID]) || {};
+
+                    var flags = afterNames.map(function(targetName) {
+                        var aliases = (aliasMap[targetName] || [targetName]).map(normalize);
+
+                        // หา doorID ที่ชื่อใดชื่อหนึ่งใน alias ตรง/ใกล้เคียงกับชื่อประตูจริง
+                        var matchedIds = [];
+                        normalizedAllDoors.forEach(function(nd) {
+                            var isMatch = aliases.some(function(a) {
+                                return nd.nameNorm === a || nd.nameNorm.indexOf(a) !== -1 || a.indexOf(nd.nameNorm) !== -1;
+                            });
+                            if (isMatch) { matchedIds.push(nd.doorID); }
+                        });
+
+                        if (matchedIds.length === 0) { return ''; }
+                        var hasAny = matchedIds.some(function(id) { return !!accessById[id]; });
+                        return hasAny ? 'V' : '';
+                    });
+
+                    var deptDisplay = (row.WorkArea || row.department || 'ไม่ระบุแผนก');
+                    sheet.push([
+                        deptDisplay,
+                        (row.personID || ''),
+                        (row.cardNumber || ''),
+                        (row.name || '')
+                    ].concat(flags));
+                });
+
+                return sheet;
+            }
 
             // ฟังก์ชันสร้าง Sheet สำหรับแต่ละแผนก (แบบแยกประตูเป็นแถว)
             function createDepartmentSheetWithDoors(data, deptName) {
@@ -854,7 +1110,7 @@
                             row.personID || '',
                             row.cardNumber || '',
                             row.name || '',
-                            row.department || '',
+                            (deptName || ''),
                             row.accessCount || 0,
                             '-',
                             'ไม่มีสิทธิ์',
@@ -877,7 +1133,7 @@
                                 row.personID || '',
                                 row.cardNumber || '',
                                 row.name || '',
-                                row.department || '',
+                                (deptName || ''),
                                 row.accessCount || 0,
                                 doorID,
                                 doorName,
@@ -894,7 +1150,6 @@
 
                 return deptData;
             }
-
             $(document).ready(function() {
 
                 $('#checkDepartmentPermissionsButton').on('click', function() {
@@ -1107,7 +1362,7 @@
                                     (noteStatusHtml || '') +
                                 '</div>';
                             }
-                        },
+                        }, 
                         {
                             data: null,
                             title: '<i class="fas fa-building me-1"></i> แผนก',
@@ -1139,6 +1394,29 @@
                             }
                         },
                         
+                        {
+                            data: null,
+                            title: '<i class="fas fa-certificate me-1"></i> สถานะฝึกอบรม',
+                            orderable: false,
+                            className: 'text-center text-nowrap training-status-col',
+                            render: function(data, type, row) {
+                                var s = row.__trainingStatus;
+                                if (!s) return '<span class="badge bg-secondary">-</span>';
+                                var cls = s.status === 'green' ? 'bg-success' : (s.status === 'yellow' ? 'bg-warning text-dark' : (s.status === 'blue' ? 'bg-info text-dark' : 'bg-danger'));
+                                var text = s.status === 'green' ? 'ปกติ' : (s.status === 'yellow' ? 'ใกล้หมดอายุ' : (s.status === 'blue' ? 'กำลังดำเนินการ' : 'หมดอายุ/ยังไม่สอบ'));
+                                var exp = s.end_at ? moment(s.end_at).format('DD/MM/YYYY') : '';
+                                var pdName = s.pdline_name || '';
+                                var title = s.exam_title || '-';
+                                var course = s.course_code ? (s.course_code + (s.course_name? (' - ' + s.course_name):'')) : (s.course_name||'-');
+                                var tipParts = ['ชุดสอบ: ' + title, 'คอร์ส: ' + course];
+                                if (pdName) tipParts.push('ไลน์ผลิต: ' + pdName);
+                                if (exp) tipParts.push('หมดอายุ: ' + exp);
+                                var tip = tipParts.join('<br/>');
+                                tip = tip.replace(/\"/g, '&quot;');
+                                var expHtml = exp ? (' <small class="text-muted ms-1">' + exp + '</small>') : '';
+                                return '<span class="badge '+cls+'" data-bs-toggle="tooltip" data-bs-html="true" title="'+ tip +'">'+text+'</span>' + expHtml;
+                            }
+                        },
                         {
                             data: null,
                             title: '<i class="fas fa-calendar-alt me-1"></i> วันเริ่มงาน',
@@ -1309,13 +1587,31 @@
                     ],
                     initComplete: function() {
                         // เพิ่ม tooltip ให้กับปุ่มต่างๆ
-                        $('[data-bs-toggle="tooltip"]').tooltip();
+                        $('[data-bs-toggle="tooltip"]').tooltip({ html: true });
                         // ลบโค้ดการสร้าง dropdown filter ที่หัวตาราง
                         // โค้ดส่วนนี้ถูกลบออกไปแล้ว
+                        // หมายเหตุ: ให้ไปโหลดสถานะฝึกอบรมใน xhr.dt เพื่อป้องกันเรียกซ้ำ
+                    },
+                    drawCallback: function() {
+                        $('[data-bs-toggle="tooltip"]').tooltip({ html: true });
                     }
                 });
                 // อัพเดท UI แสดงตัวกรองที่ใช้อยู่
                 updateFilterBadges();
+                // โหลดสถานะเมื่อมีการวาดตาราง (เช่น เปลี่ยนหน้า/ค้นหา/เรียง)
+                var lastTrainingStatusKey = '';
+                table.on('draw.dt', function(){
+                    var dt = $('#employeeTable').DataTable();
+                    var data = dt.rows({ page: 'current' }).data().toArray();
+                    if (!data || data.length === 0) return;
+                    var ids = [];
+                    data.forEach(function(r){ if (r && r.personID) ids.push(String(r.personID).trim()); });
+                    var key = ids.join(',');
+                    if (key && key !== lastTrainingStatusKey) {
+                        lastTrainingStatusKey = key;
+                        loadTrainingStatuses();
+                    }
+                });
             });
             // กำหนดตัวแปรสิทธิ์สำหรับใช้ใน JavaScript
             var userPermissions = {
@@ -2142,7 +2438,6 @@
             function showErrorToast(message) {
                 toastr.error(message);
             }
-            
             // จัดการการ insert ข้อมูลลายนิ้วมือ
             $('body').on('click', '.insert-fingerprint', function() {
                 let personId = $(this).data('person-id');
@@ -2385,7 +2680,6 @@
                     }
                 });
             }
-            
             // จัดการปุ่มจัดการข้อมูลลายนิ้วมือ
             $('#fingerprintManagementButton').on('click', function() {
                 Swal.fire({
@@ -2756,7 +3050,6 @@
                     }
                 });
             });
-            
             // จัดการปุ่มข้อมูลลายนิ้วมือในคอลัมน์เลขบัตร (รวม insert และ update)
             $('body').on('click', '.insert-fingerprint-inline, .update-fingerprint-inline', function() {
                 let personId = $(this).data('person-id');
@@ -3377,7 +3670,7 @@
                     });
                 }
             });
-            // ฟังก์ชันรีโหลดข้อมูลเมื่อมีการอัปเดต
+            // ฟังก์ชันรีโหลดข้อมูลเมื่อมีการอัปเดท
             function refreshOpenedChildRow() {
                 // หา child row ที่เปิดอยู่
                 let openedRow = $('.toggle-child-row.shown');
@@ -3953,7 +4246,6 @@
                 // อัพเดทการแสดงผล
                 $('#shiftCardNoDisplay').text(this.value || '-');
             });
-            
             $('body').on('click', '.view-employee', function() {
                 let personId = $(this).data('person-id');
                 // แสดง Loading
@@ -4359,7 +4651,6 @@
             }
         </script>
         }
-
         <!-- Shift Modal -->
         <div class="modal fade" id="shiftModal" tabindex="-1" aria-labelledby="shiftModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -4571,7 +4862,6 @@
                 </div>
             </div>
         </div>
-
         <style>
             /* Custom Styles */
             .bg-gradient-primary {
@@ -4858,7 +5148,6 @@
             .filter-swal .swal2-html-container {
                 margin: 0;
             }
-
             #filter-row {
                 background-color: rgba(248, 249, 250, 0.6) !important;
             }

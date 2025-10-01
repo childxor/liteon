@@ -107,6 +107,104 @@ namespace IPS_TH.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> AutoLogin()
+        {
+            try
+            {
+                var userData = HttpContext.Session.GetString("UserData");
+                if (!string.IsNullOrEmpty(userData))
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+
+                var identity = HttpContext.User?.Identity;
+                if (identity == null || !identity.IsAuthenticated)
+                {
+                    // หากไม่ใช่ Windows Auth ให้ย้อนกลับไปหน้า Login (fallback เฉพาะกรณีจำเป็น)
+                    return RedirectToAction("Login", "Authen");
+                }
+
+                var identityName = identity.Name ?? string.Empty; // รูปแบบ DOMAIN\\username
+                var parts = identityName.Split('\\');
+                var domain = parts.Length > 1 ? parts[0] : (_configuration["ADDomain"] ?? "");
+                var domainUsername = parts.Length > 1 ? parts[1] : identityName;
+
+                // ดึงข้อมูลผู้ใช้จาก AD (ไม่ใช้รหัสผ่าน)
+                using var adContext = new PrincipalContext(ContextType.Domain, _configuration["ADDomain"]);
+                var adUser = UserPrincipal.FindByIdentity(adContext, IdentityType.SamAccountName, domainUsername);
+
+                if (adUser == null)
+                {
+                    return RedirectToAction("AccessDenied", "Authen");
+                }
+
+                var username = string.IsNullOrWhiteSpace(domain)
+                    ? domainUsername
+                    : $"{domain}\\{domainUsername}";
+
+                // ตรวจสอบหรือสร้างผู้ใช้ในระบบ
+                var userAccount = await _context.sys_user.FirstOrDefaultAsync(u => u.Username == username);
+                if (userAccount == null)
+                {
+                    userAccount = new sys_user
+                    {
+                        Username = username,
+                        FirstName = adUser.GivenName ?? domainUsername,
+                        LastName = adUser.Surname ?? string.Empty,
+                        Email = adUser.EmailAddress ?? string.Empty,
+                        Emp_no = adUser.EmployeeId ?? string.Empty,
+                        IsActive = true,
+                        Roles = "5",
+                        CreatedDate = DateTime.Now,
+                    };
+                    _context.sys_user.Add(userAccount);
+                    await _context.SaveChangesAsync();
+                }
+
+                // ตรวจสอบสถานะการใช้งาน
+                if (!userAccount.IsActive.GetValueOrDefault(true))
+                {
+                    return RedirectToAction("AccessDenied", "Authen");
+                }
+
+                // ดึงสิทธิ์และตั้งค่า Session
+                var rolesSplit = (userAccount.Roles ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries);
+                var roleNames = await _context.sys_role.Where(r => rolesSplit.Contains(r.Id.ToString())).ToListAsync();
+                bool isAdmin = roleNames.Any(r => r.RoleName == "Administrators");
+
+                HttpContext.Session.SetString("UserData", JsonConvert.SerializeObject(userAccount));
+                HttpContext.Session.SetString("Roles", JsonConvert.SerializeObject(roleNames.Select(r => r.RoleName)));
+                HttpContext.Session.SetString("IsAdmin", isAdmin.ToString());
+                HttpContext.Session.SetString("Language", userAccount.Language ?? "th");
+                HttpContext.Session.SetString("AuthMode", "auto");
+
+                var deptInfo = await GetDeptInfoFromCES941ByAdUser(domainUsername);
+                HttpContext.Session.SetString("Department", deptInfo.TitleShort ?? string.Empty);
+                HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? string.Empty);
+                HttpContext.Session.SetString("UserName", domainUsername);
+                HttpContext.Session.SetString("EmployeeID", !string.IsNullOrEmpty(adUser?.EmployeeId) ? adUser.EmployeeId : (userAccount.Emp_no ?? string.Empty));
+                HttpContext.Session.SetString("EmployeeName", adUser?.DisplayName ?? ($"{adUser?.GivenName} {adUser?.Surname}".Trim())) ;
+
+                await LoadLanguageData(userAccount.Language ?? "th", userAccount.Language);
+
+                // อัปเดตเวลาเข้าสู่ระบบ
+                await _context.Database.ExecuteSqlRawAsync("UPDATE sys_user SET LastLogin = GETDATE() WHERE Id = {0}", userAccount.Id);
+
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("Login", "Authen");
+            }
+        }
+
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return Content("Access denied");
+        }
+
         public IActionResult Registers()
         {
             return View();
@@ -233,6 +331,7 @@ namespace IPS_TH.Controllers
                     HttpContext.Session.SetString("EmployeeID", adUser.EmployeeId);
                 if (!string.IsNullOrEmpty(adUser.DisplayName))
                     HttpContext.Session.SetString("EmployeeName", adUser.DisplayName);
+                HttpContext.Session.SetString("AuthMode", "manual");
 
                 // ตรวจสอบหรือสร้างผู้ใช้ในระบบ
                 var userAccount = await _context.sys_user.FirstOrDefaultAsync(u =>
@@ -288,8 +387,8 @@ namespace IPS_TH.Controllers
                 // โหลดข้อมูลภาษาเมื่อ login
                 await LoadLanguageData(userAccount.Language ?? "th", userAccount.Language);
 
-                // เพิ่มการตรวจสอบ department เมื่อไม่มีข้อมูลแผนกให้บังคับใส่รหัสพนักงาน
-                bool needsProfileUpdate = string.IsNullOrEmpty(userAccount.Department);
+                // ไม่บังคับให้กรอก emp_no/department สำหรับพนักงานใหม่อีกต่อไป
+                bool needsProfileUpdate = false;
 
                 // อัปเดตเวลาเข้าสู่ระบบ
                 await _context.Database.ExecuteSqlRawAsync(
@@ -318,37 +417,34 @@ namespace IPS_TH.Controllers
         [HttpGet]
         public IActionResult Logout()
         {
+            // จดจำโหมดการยืนยันตัวตนก่อนล้างข้อมูล
+            var currentAuthMode = HttpContext.Session.GetString("AuthMode") ?? "manual";
+
             // ล้าง session ทั้งหมด
             HttpContext.Session.Clear();
 
             // ล้าง authentication cookies (ถ้ามี)
             if (HttpContext.User.Identity.IsAuthenticated)
             {
-                // ล้าง authentication cookies
                 HttpContext.SignOutAsync();
             }
 
             // ล้าง cookies ทั้งหมด
             foreach (var cookie in Request.Cookies.Keys)
             {
-                // ตั้งค่า cookies ให้หมดอายุทันที
                 Response.Cookies.Delete(cookie);
 
-                // เพิ่มการลบ cookies แบบกำหนดค่าเพิ่มเติม
                 var cookieOptions = new CookieOptions
                 {
                     Expires = DateTime.Now.AddDays(-1),
                     HttpOnly = true,
                     Secure = Request.IsHttps,
                     SameSite = SameSiteMode.Lax,
-                    Path =
-                        "/" // เพิ่ม Path เป็น root เพื่อให้ลบ cookies ทั้งหมด
-                    ,
+                    Path = "/",
                 };
                 Response.Cookies.Append(cookie, "", cookieOptions);
             }
 
-            // ล้าง cookies ที่มีการตั้งค่าพิเศษ
             var expiredCookieOptions = new CookieOptions
             {
                 Expires = DateTime.Now.AddDays(-1),
@@ -371,12 +467,17 @@ namespace IPS_TH.Controllers
             Response.Cookies.Delete("departmentFilter", expiredCookieOptions);
             Response.Cookies.Delete("shiftFilter", expiredCookieOptions);
 
-            // ล้าง TempData
+            // ล้าง TempData และแจ้งให้ฝั่ง client ล้าง storage
             TempData.Clear();
-
-            // เพิ่ม JavaScript เพื่อล้าง localStorage และ sessionStorage
             TempData["ClearClientStorage"] = true;
 
+            // ถ้าเข้าระบบด้วยโหมด auto ให้ย้อนกลับไป AutoLogin เพื่อให้ล็อกอินใหม่ด้วย Windows Auth
+            if (string.Equals(currentAuthMode, "auto", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("AutoLogin", "Authen");
+            }
+
+            // โหมดอื่นให้กลับไปหน้า Login ปกติ
             return RedirectToAction("Login", "Authen");
         }
 

@@ -1,0 +1,124 @@
+@model IEnumerable<IPS_TH.Models.ESMMS.ExamPrintItem>
+
+@{
+    Layout = null;
+    var title = ViewBag.ExamTitle as string ?? "Exam";
+    var description = ViewBag.Description as string ?? string.Empty;
+}
+
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@title - Print</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-size: 12pt;
+            font-family: Arial, sans-serif;
+        }
+
+        .question {
+            margin-bottom: 1rem;
+            page-break-inside: avoid;
+        }
+
+        .choices {
+            margin-left: 1rem;
+            page-break-inside: avoid;
+        }
+
+        .header {
+            margin-bottom: 1.5rem;
+        }
+
+        .q-img {
+            max-width: 100%;
+            height: auto;
+            margin: .5rem 0;
+            page-break-inside: avoid;
+        }
+
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+    <script>
+        window.addEventListener('load', function () {
+            setTimeout(function () { try { window.print(); } catch (e) { /* ignore */ } }, 400);
+        });
+    </script>
+    <!-- ใช้ bootstrap เท่าที่จำเป็น -->
+</head>
+
+<body class="container py-4">
+    <div class="no-print mb-3">
+        <a class="btn btn-sm btn-secondary" href="javascript:window.close()">ปิดหน้าต่าง</a>
+        <button class="btn btn-sm btn-primary" onclick="window.print()">พิมพ์</button>
+    </div>
+    <div class="header">
+        <h4 class="mb-1">@title</h4>
+        @if (!string.IsNullOrWhiteSpace(description))
+        {
+            <div class="text-muted">@description</div>
+        }
+        @{
+            var examImg = ViewBag.ExamImageUrl as string;
+        }
+        @if (!string.IsNullOrWhiteSpace(examImg))
+        {
+            <div class="mt-2">
+                <img src="@examImg" alt="exam image" style="max-height:220px;" />
+            </div>
+        }
+    </div>
+
+    <ol class="ps-3">
+        @foreach (var q in Model)
+        {
+            <li class="question">
+                <div>@q.question_text</div>
+                @if (!string.IsNullOrEmpty(q.image_path))
+                {
+                    var imgPath = q.image_path.Trim();
+                    string resolved;
+                    if (imgPath.StartsWith("http://", System.StringComparison.OrdinalIgnoreCase) ||
+                    imgPath.StartsWith("https://", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        resolved = imgPath;
+                    }
+                    else if (imgPath.StartsWith("~/") || imgPath.StartsWith("/"))
+                    {
+                        resolved = Url.Content(imgPath);
+                    }
+                    else if (imgPath.StartsWith("uploads/", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        resolved = Url.Content("~/" + imgPath);
+                    }
+                    else if (imgPath.StartsWith("wwwroot/", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        resolved = Url.Content("~/" + imgPath.Substring("wwwroot/".Length));
+                    }
+                    else
+                    {
+                        // ดีฟอลต์: ไฟล์ข้อสอบเก็บที่ /uploads/questions/uploads/exam/
+                        resolved = Url.Content("~/uploads/questions/uploads/exam/" + imgPath);
+                    }
+                    <img class="q-img" src="@resolved" alt="image" />
+                }
+                <div class="choices">
+                    <div>A. @q.choice_a</div>
+                    <div>B. @q.choice_b</div>
+                    <div>C. @q.choice_c</div>
+                    <div>D. @q.choice_d</div>
+                </div>
+            </li>
+        }
+    </ol>
+</body>
+
+</html>

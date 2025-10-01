@@ -107,7 +107,7 @@ namespace IPS_TH.Controllers.Employee
                 await LoadPermissions("Employee", "Employee");
 
                 // ส่งข้อมูลแผนกของผู้ใช้ไปยัง View
-                ViewData["CurrentUserDepartment"] = CurrentUserDepartment;
+                ViewData["CurrentUserDepartment"] = HttpContext.Session.GetString("WorkArea");
 
                 return View();
             }
@@ -1447,13 +1447,48 @@ namespace IPS_TH.Controllers.Employee
                 accessCountDict[baseId] = accessCountDict.GetValueOrDefault(baseId, 0) + 1;
             }
 
-            // สร้าง fingerprintDataIds จาก Person (-2)
-            fingerprintDataIds = new HashSet<string>(
-                personFpRows
-                    .Select(r => (string)(r.personID?.ToString()))
-                    .Where(pid => !string.IsNullOrEmpty(pid) && pid.EndsWith("-2"))
-                    .Select(pid => pid.Substring(0, pid.Length - 2))
-            );
+            // สร้างชุด hasFingerprintIds ที่ "มีข้อมูลลายนิ้วมือจริง" จาก 2 แหล่ง: Person_FP และ BioDataGetList(Result)
+            var personFpSql = @"
+                SELECT PersonID, FP1, FP2, FV1, FV2, FACE_FEA, ISNULL(IsDelete,0) AS IsDelete
+                FROM Person_FP
+                WHERE PersonID LIKE '%-2' AND ISNULL(IsDelete,0) = 0";
+            IEnumerable<dynamic> personFpData;
+            try
+            {
+                personFpData = await sql944Connection.QueryAsync<dynamic>(personFpSql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error querying Person_FP: {ex.Message}");
+                personFpData = new List<dynamic>();
+            }
+
+            IEnumerable<string> hasFromPersonFp = personFpData
+                .Where(r =>
+                    r != null && (
+                        (r.FP1 != null && r.FP1.ToString() != string.Empty) ||
+                        (r.FP2 != null && r.FP2.ToString() != string.Empty) ||
+                        (r.FV1 != null && r.FV1.ToString() != string.Empty) ||
+                        (r.FV2 != null && r.FV2.ToString() != string.Empty) ||
+                        (r.FACE_FEA != null && r.FACE_FEA.ToString() != string.Empty)
+                    )
+                )
+                .Select(r => Convert.ToString(r.PersonID) ?? string.Empty)
+                .Where(pid => !string.IsNullOrEmpty(pid) && pid.EndsWith("-2"))
+                .Select(pid => pid.Substring(0, pid.Length - 2))
+                .Cast<string>()
+                .ToList();
+
+            IEnumerable<string> hasFromBio = bioData
+                .Where(b => b != null &&
+                    string.Equals(Convert.ToString(b.Result), "Fingerprint data archiving:True", StringComparison.Ordinal))
+                .Select(b => Convert.ToString(b.PersonID) ?? string.Empty)
+                .Where(pid => !string.IsNullOrEmpty(pid) && pid.EndsWith("-2"))
+                .Select(pid => pid.Substring(0, pid.Length - 2))
+                .Cast<string>()
+                .ToList();
+
+            fingerprintDataIds = new HashSet<string>(hasFromPersonFp.Union(hasFromBio));
 
             return new SQL944DataResult
             {
@@ -1618,7 +1653,7 @@ namespace IPS_TH.Controllers.Employee
             string employeeDeptId =
                 deptIDDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(deptIDDict[id])
                     ? deptIDDict[id]
-                    : emp?.DeptID ?? "";
+                    : emp?.WorkArea ?? "";
 
             // กรองข้อมูลตามสิทธิ์การเข้าถึง
             if (!IsCurrentUserAdmin)
@@ -2917,9 +2952,15 @@ namespace IPS_TH.Controllers.Employee
                     // ดึงข้อมูลประตูทั้งหมด
                     var doors = await db.QueryAsync<dynamic>(
                         @"
-                        SELECT doorID, weekTimeID 
+                        SELECT 
+                            PubDoor.doorID,
+                            PubDoor.doorName, 
+                            PubDoor.contolL1,
+                            PubWeekTime.weekTimeID 
                         FROM PubDoor 
-                        LEFT JOIN PubWeekTime ON PubDoor.contolL1 = PubWeekTime.contolL1"
+                        LEFT JOIN PubWeekTime ON PubDoor.contolL1 = PubWeekTime.contolL1
+                        WHERE PubDoor.doorID NOT IN ('0000301', '0000401', '0000501', '0000601', '0000701', '0000801', '0000901','0001501')
+                        ORDER BY PubDoor.doorName"
                     );
 
                     foreach (var door in doors)
@@ -4985,7 +5026,7 @@ namespace IPS_TH.Controllers.Employee
                         ces941Name += emp.EmpName.ToString() + " ";
                     if (!string.IsNullOrEmpty(emp.EmpLName?.ToString()))
                         ces941Name += emp.EmpLName.ToString();
-                    ces941Name = ces941Name.Trim();
+                    ces941Name = ces941Name.Trim(); 
 
                     // ใช้ชื่อจาก SQL944 ถ้ามี มิฉะนั้นใช้ชื่อจาก CES941
                     string employeeName =

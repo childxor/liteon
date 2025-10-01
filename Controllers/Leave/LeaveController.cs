@@ -18,7 +18,7 @@ namespace IPS_TH.Controllers.Leave
         private class LeaveBalanceModel
         {
             public string EmpNo { get; set; }
-            public string AttenCode { get; set; }
+            public string AttenCode { get; set; } 
             public decimal CarryFrLastYear { get; set; }
             public decimal AvailLastYear { get; set; }
             public decimal ThisYearCurrentQty { get; set; }
@@ -129,17 +129,11 @@ namespace IPS_TH.Controllers.Leave
 
                 // ถ้าไม่มีการเลือกพนักงาน ให้ใช้ข้อมูลตัวเอง
                 var targetEmpNo = string.IsNullOrEmpty(empNo) ? currentEmpNo : empNo;
-                var targetEmpName = empName ?? currentEmpName;
+                var targetEmpName = currentEmpName;
 
-                // ถ้ามีการเลือกพนักงานและมีสิทธิ์ CanApprove
-                if (
-                    !string.IsNullOrEmpty(empNo)
-                    && CurrentPermissions != null
-                    && CurrentPermissions.ContainsKey("CanApprove")
-                    && CurrentPermissions["CanApprove"]
-                )
+                // หากมีการเลือกพนักงาน ให้ดึงชื่อจากฐานข้อมูลบุคลากรเสมอ
+                if (!string.IsNullOrEmpty(empNo))
                 {
-                    // ดึงชื่อพนักงานที่เลือก
                     using (IDbConnection empDb = new SqlConnection(_sql944ConnectionString))
                     {
                         var empSql =
@@ -168,13 +162,10 @@ namespace IPS_TH.Controllers.Leave
                 var currentEmpNo = HttpContext.Session.GetString("EmployeeID");
                 var currentEmpName = HttpContext.Session.GetString("EmployeeName");
                 var targetEmpNo = string.IsNullOrEmpty(empNo) ? currentEmpNo : empNo;
-                var targetEmpName = empName ?? currentEmpName;
+                var targetEmpName = currentEmpName;
 
-                if (
-                    !string.IsNullOrEmpty(empNo)
-                    && CurrentPermissions?.ContainsKey("CanApprove") == true
-                    && CurrentPermissions["CanApprove"]
-                )
+                // หากมีการเลือกพนักงาน ให้ดึงชื่อจากฐานข้อมูลบุคลากรเสมอ
+                if (!string.IsNullOrEmpty(empNo))
                 {
                     using (IDbConnection empDb = new SqlConnection(_sql944ConnectionString))
                     {

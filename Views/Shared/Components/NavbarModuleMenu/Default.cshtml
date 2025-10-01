@@ -25,7 +25,7 @@
                 @foreach (var child in distinctChildren)
                 {
                     <li>
-                        <a class="dropdown-item" href="@Url.Content("~" + child.Url)">
+                        <a class="dropdown-item" href="@Url.Content("~/" + (child.Url?.ToString().TrimStart('/') ?? string.Empty))">
                             <i class="@child.Icon"></i> @child.Name
                         </a>
                     </li>
@@ -36,7 +36,7 @@
     else
     {
         <li class="nav-item">
-            <a class="nav-link" href="@Url.Content("~" + module.Url)">
+            <a class="nav-link" href="@Url.Content("~/" + (module.Url?.ToString().TrimStart('/') ?? string.Empty))">
                 <i class="@module.Icon"></i> @module.Name
             </a>
         </li>
