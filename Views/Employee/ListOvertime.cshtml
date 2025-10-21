@@ -4,7 +4,7 @@
 
 @{
     ViewData["Title"] = "รายการทำงานล่วงเวลา";
-    
+
     var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
     bool canAdd = permissions?["CanAdd"] ?? false;
     bool canEdit = permissions?["CanEdit"] ?? false;
@@ -17,11 +17,12 @@
     <div class="row my-4">
         <div class="col">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                <h2 class="text-primary mb-0"> 
+                <h2 class="text-primary mb-0">
                     <i class="fas fa-clock me-2"></i>รายการทำงานล่วงเวลา
                 </h2>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-success d-flex align-items-center shadow-sm" onclick="showStatistics()">
+                    <button class="btn btn-outline-success d-flex align-items-center shadow-sm"
+                        onclick="showStatistics()">
                         <i class="fas fa-chart-bar me-2"></i>สถิติ
                     </button>
                     <button class="btn btn-outline-info d-flex align-items-center shadow-sm" onclick="exportToExcel()">
@@ -204,7 +205,7 @@
                             </div>
                         }
                     </div>
-                    
+
                     <!-- Quick Filter Buttons -->
                     <div class="row mt-3">
                         <div class="col-12">
@@ -271,7 +272,7 @@
                                     <th><i class="fas fa-check-circle"></i> สถานะ</th>
                                     @if (canEdit || canDelete)
                                     {
-                                    <th><i class="fas fa-cogs"></i> จัดการ</th>
+                                        <th><i class="fas fa-cogs"></i> จัดการ</th>
                                     }
                                 </tr>
                             </thead>
@@ -359,31 +360,31 @@
         var refreshInterval;
         var statisticsChart;
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             // ตั้งค่าเริ่มต้นให้เป็นเดือนปัจจุบัน
             var currentDate = new Date();
             $('#yearFilter').val(currentDate.getFullYear());
             $('#monthFilter').val(currentDate.getMonth() + 1);
-            
+
             // Initialize DataTable
             initializeDataTable();
 
             // Event listeners with debounce for text inputs
-            $('#yearFilter, #monthFilter, #statusFilter').on('change', function() {
+            $('#yearFilter, #monthFilter, #statusFilter').on('change', function () {
                 applyFilter();
             });
 
             // Debounced search for text inputs
             let searchTimeout;
-            $('#empNoFilter, #empNameFilter, #jgCodeFilter').on('keyup', function(e) {
+            $('#empNoFilter, #empNameFilter, #jgCodeFilter').on('keyup', function (e) {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(function() {
+                searchTimeout = setTimeout(function () {
                     applyFilter();
                 }, 800); // รอ 800ms หลังจากพิมพ์หยุด
             });
 
             // Immediate search on Enter
-            $('#empNoFilter, #empNameFilter, #jgCodeFilter').on('keypress', function(e) {
+            $('#empNoFilter, #empNameFilter, #jgCodeFilter').on('keypress', function (e) {
                 if (e.which === 13) {
                     clearTimeout(searchTimeout);
                     applyFilter();
@@ -391,9 +392,9 @@
             });
 
             // Auto refresh toggle
-            $('#autoRefresh').change(function() {
+            $('#autoRefresh').change(function () {
                 if (this.checked) {
-                    refreshInterval = setInterval(function() {
+                    refreshInterval = setInterval(function () {
                         table.ajax.reload(null, false);
                     }, 30000); // 30 seconds
                 } else {
@@ -402,7 +403,7 @@
             });
 
             // Statistics modal event
-            $('#statsYear, #statsMonth').change(function() {
+            $('#statsYear, #statsMonth').change(function () {
                 loadStatistics();
             });
         });
@@ -414,25 +415,25 @@
                 "ajax": {
                     "url": "@Url.Action("GetOvertimeList", "ListOvertime")",
                     "type": "POST",
-                    "data": function(d) {
+                    "data": function (d) {
                         @if (canEdit)
-                        {
-                            <text>d.empNo = $('#empNoFilter').val();
-                            d.empName = $('#empNameFilter').val();
-                            d.jgCode = $('#jgCodeFilter').val();</text>
+                            {
+                                <text>d.empNo = $('#empNoFilter').val();
+                                    d.empName = $('#empNameFilter').val();
+                                    d.jgCode = $('#jgCodeFilter').val();</text>
                         }
-                        else
-                        {
-                            <text>d.empNo = null;
-                            d.empName = null;
-                            d.jgCode = null;</text>
+                            else
+                            {
+                                <text>d.empNo = null;
+                                    d.empName = null;
+                                    d.jgCode = null;</text>
                         }
-                        d.year = $('#yearFilter').val();
+                            d.year = $('#yearFilter').val();
                         d.month = $('#monthFilter').val();
                         d.status = $('#statusFilter').val();
                     },
                     "datatype": "json",
-                    "dataSrc": function(response) {
+                    "dataSrc": function (response) {
                         if (response.summary) {
                             updateSummaryCards(response.summary);
                         }
@@ -440,71 +441,71 @@
                     }
                 },
                 "columns": [
-                    { 
+                    {
                         "data": "OTReqNo",
-                        "render": function(data, type, row) {
+                        "render": function (data, type, row) {
                             return `<span class="badge bg-info text-truncate" style="max-width: 100px;" title="${data}">${data}</span>`;
                         }
                     },
-                    { 
+                    {
                         "data": "EmpNo",
-                        "render": function(data, type, row) {
+                        "render": function (data, type, row) {
                             return `<span class="fw-bold">${data}</span>`;
                         }
                     },
-                    { 
+                    {
                         "data": "FullName",
-                        "render": function(data, type, row) {
+                        "render": function (data, type, row) {
                             return data ? `<span class="text-primary">${data.trim()}</span>` : '<span class="text-muted">-</span>';
                         }
                     },
-                    { 
+                    {
                         "data": "JGCode",
-                        "render": function(data, type, row) {
+                        "render": function (data, type, row) {
                             return data ? `<span class="badge bg-primary">${data}</span>` : '<span class="text-muted">-</span>';
                         }
                     },
-                    { 
+                    {
                         "data": "WrkDate",
-                        "render": function(data) {
+                        "render": function (data) {
                             return moment(data).format('DD/MM/YYYY');
                         }
                     },
-                    { 
+                    {
                         "data": null,
-                        "render": function(data) {
+                        "render": function (data) {
                             const start = moment(data.DteTmeStr).format('HH:mm');
                             const end = moment(data.DteTmeEnd).format('HH:mm');
                             return `<span class="text-nowrap">${start} - ${end}</span>`;
                         }
                     },
-                    { 
+                    {
                         "data": "TotalOTHrs",
-                        "render": function(data) {
+                        "render": function (data) {
                             return `<span class="badge bg-secondary">${(parseFloat(data) || 0).toFixed(2)} ชม.</span>`;
                         }
                     },
                     {
                         "data": "SecCode",
-                        "render": function(data) {
+                        "render": function (data) {
                             return data || '-';
                         }
                     },
                     {
                         "data": "Remark",
-                        "render": function(data) {
+                        "render": function (data) {
                             if (!data) return '-';
-                            return data.length > 30 ? 
-                                `<span title="${data}">${data.substring(0, 30)}...</span>` : 
+                            return data.length > 30 ?
+                                `<span title="${data}">${data.substring(0, 30)}...</span>` :
                                 data;
                         }
                     },
-                    { 
+                    {
                         "data": "ApprStatus",
-                        "render": function(data) {
+                        "render": function (data) {
                             let badgeClass = 'bg-secondary';
                             let statusText = data;
-                            switch(data) {
+                            switch (data) {
                                 case 'Approved':
                                     badgeClass = 'bg-success';
                                     statusText = 'อนุมัติแล้ว';
@@ -524,49 +525,49 @@
                     @if (canEdit || canDelete)
                     {
                         <text>
-                    {
-                        "data": null,
-                        "render": function(data, type, row) {
-                            let buttons = '';
-                            
+                            {
+                                "data": null,
+                            "render": function(data, type, row) {
+                                let buttons = '';
+
                             // View button
                             buttons += `<button class="btn btn-info btn-sm me-1" onclick="viewDetails('${row.OTReqNo}', ${row.OTSeqNo})" title="ดูรายละเอียด">
                                 <i class="fas fa-eye"></i>
                             </button>`;
-                            
+
                             // Edit status buttons (only for pending)
                             @if (canEdit)
                             {
                                 <text>
-                            if (row.ApprStatus === 'Pending') {
-                                buttons += `<button class="btn btn-success btn-sm me-1" onclick="updateStatus('${row.OTReqNo}', ${row.OTSeqNo}, 'Approved')" title="อนุมัติ">
-                                    <i class="fas fa-check"></i>
-                                </button>`;
-                                buttons += `<button class="btn btn-warning btn-sm me-1" onclick="updateStatus('${row.OTReqNo}', ${row.OTSeqNo}, 'Rejected')" title="ไม่อนุมัติ">
-                                    <i class="fas fa-times"></i>
-                                </button>`;
-                            }
+                                    if (row.ApprStatus === 'Pending') {
+                                        buttons += `<button class="btn btn-success btn-sm me-1" onclick="updateStatus('${row.OTReqNo}', ${row.OTSeqNo}, 'Approved')" title="อนุมัติ">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>`;
+                                    buttons += `<button class="btn btn-warning btn-sm me-1" onclick="updateStatus('${row.OTReqNo}', ${row.OTSeqNo}, 'Rejected')" title="ไม่อนุมัติ">
+                                        <i class="fas fa-times"></i>
+                                    </button>`;
+                                                    }
                                 </text>
                             }
-                            
+
                             // Delete button (only for pending)
                             @if (canDelete)
                             {
                                 <text>
-                            if (row.ApprStatus === 'Pending') {
-                                buttons += `<button class="btn btn-danger btn-sm" onclick="deleteOvertime('${row.OTReqNo}', ${row.OTSeqNo})" title="ลบ">
-                                    <i class="fas fa-trash"></i>
-                                </button>`;
-                            }
+                                    if (row.ApprStatus === 'Pending') {
+                                        buttons += `<button class="btn btn-danger btn-sm" onclick="deleteOvertime('${row.OTReqNo}', ${row.OTSeqNo})" title="ลบ">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>`;
+                                                    }
                                 </text>
                             }
-                            
+
                             return `<div class="btn-group" role="group">${buttons}</div>`;
-                        }
-                    }
+                                        }
+                                    }
                         </text>
-                    }
-                ],
+                            }
+                        ],
                 "order": [[2, 'desc']],
                 "pageLength": 10,
                 "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
@@ -584,50 +585,49 @@
                         "previous": "ก่อนหน้า"
                     }
                 },
-                "responsive": true,
-                "scrollX": true
+                "responsive": true
             });
         }
 
-                 function updateSummaryCards(summary) {
-             $('#totalOT').text(summary.total || 0);
-             $('#approvedOT').text(summary.approved || 0);
-             $('#pendingOT').text(summary.pending || 0);
-             $('#rejectedOT').text(summary.rejected || 0);
-             $('#totalHours').text((summary.totalHours || 0).toFixed(2) + ' ชั่วโมง');
-             $('#approvedHours').text((summary.approvedHours || 0).toFixed(2) + ' ชั่วโมง');
-             
-             // แสดงผลการค้นหา
-             const currentFilters = getActiveFilters();
-             const filterText = currentFilters.length > 0 ? ` (กรองด้วย: ${currentFilters.join(', ')})` : '';
-             $('#searchResults').text(`พบ ${summary.total || 0} รายการ${filterText}`);
-         }
+        function updateSummaryCards(summary) {
+            $('#totalOT').text(summary.total || 0);
+            $('#approvedOT').text(summary.approved || 0);
+            $('#pendingOT').text(summary.pending || 0);
+            $('#rejectedOT').text(summary.rejected || 0);
+            $('#totalHours').text((summary.totalHours || 0).toFixed(2) + ' ชั่วโมง');
+            $('#approvedHours').text((summary.approvedHours || 0).toFixed(2) + ' ชั่วโมง');
 
-         function getActiveFilters() {
-             const filters = [];
-             
-             const year = $('#yearFilter').val();
-             const month = $('#monthFilter').val();
-             const status = $('#statusFilter').val();
-             const empNo = $('#empNoFilter').val();
-             const empName = $('#empNameFilter').val();
-             const jgCode = $('#jgCodeFilter').val();
-             
-             if (year) filters.push(`ปี ${year}`);
-             if (month) {
-                 const monthNames = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-                 filters.push(`เดือน ${monthNames[parseInt(month)]}`);
-             }
-             if (status) {
-                 const statusNames = { 'Pending': 'รออนุมัติ', 'Approved': 'อนุมัติแล้ว', 'Rejected': 'ไม่อนุมัติ' };
-                 filters.push(`สถานะ ${statusNames[status]}`);
-             }
-             if (empNo) filters.push(`รหัส ${empNo}`);
-             if (empName) filters.push(`ชื่อ ${empName}`);
-             if (jgCode) filters.push(`JG ${jgCode}`);
-             
-             return filters;
-         }
+            // แสดงผลการค้นหา
+            const currentFilters = getActiveFilters();
+            const filterText = currentFilters.length > 0 ? ` (กรองด้วย: ${currentFilters.join(', ')})` : '';
+            $('#searchResults').text(`พบ ${summary.total || 0} รายการ${filterText}`);
+        }
+
+        function getActiveFilters() {
+            const filters = [];
+
+            const year = $('#yearFilter').val();
+            const month = $('#monthFilter').val();
+            const status = $('#statusFilter').val();
+            const empNo = $('#empNoFilter').val();
+            const empName = $('#empNameFilter').val();
+            const jgCode = $('#jgCodeFilter').val();
+
+            if (year) filters.push(`ปี ${year}`);
+            if (month) {
+                const monthNames = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                filters.push(`เดือน ${monthNames[parseInt(month)]}`);
+            }
+            if (status) {
+                const statusNames = { 'Pending': 'รออนุมัติ', 'Approved': 'อนุมัติแล้ว', 'Rejected': 'ไม่อนุมัติ' };
+                filters.push(`สถานะ ${statusNames[status]}`);
+            }
+            if (empNo) filters.push(`รหัส ${empNo}`);
+            if (empName) filters.push(`ชื่อ ${empName}`);
+            if (jgCode) filters.push(`JG ${jgCode}`);
+
+            return filters;
+        }
 
         function openAddModal() {
             // เปิด tab ใหม่สำหรับเพิ่ม OT
@@ -635,43 +635,43 @@
         }
 
         function viewDetails(otReqNo, otSeqNo) {
-            $.get(`@Url.Action("GetOvertimeById", "ListOvertime")?otReqNo=${otReqNo}&otSeqNo=${otSeqNo}`, function(data) {
+            $.get(`@Url.Action("GetOvertimeById", "ListOvertime")?otReqNo=${otReqNo}&otSeqNo=${otSeqNo}`, function (data) {
                 const modalBody = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-primary">ข้อมูลทั่วไป</h6>
-                            <table class="table table-sm">
-                                <tr><td><strong>เลขที่ OT:</strong></td><td>${data.OTReqNo}</td></tr>
-                                <tr><td><strong>รหัสพนักงาน:</strong></td><td>${data.EmpNo}</td></tr>
-                                <tr><td><strong>ชื่อ-นามสกุล:</strong></td><td class="text-primary">${data.FullName ? data.FullName.trim() : '-'}</td></tr>
-                                <tr><td><strong>ระดับ JG:</strong></td><td><span class="badge bg-primary">${data.JGCode || '-'}</span></td></tr>
-                                <tr><td><strong>วันที่ทำงาน:</strong></td><td>${moment(data.WrkDate).format('DD/MM/YYYY')}</td></tr>
-                                <tr><td><strong>แผนก:</strong></td><td>${data.SecCode || '-'}</td></tr>
-                                <tr><td><strong>กะงาน:</strong></td><td>${data.ShiftCode || '-'}</td></tr>
-                                <tr><td><strong>ตำแหน่ง:</strong></td><td>${data.TitleCode || '-'}</td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-primary">เวลาและชั่วโมงงาน</h6>
-                            <table class="table table-sm">
-                                <tr><td><strong>เวลาเริ่ม:</strong></td><td>${moment(data.DteTmeStr).format('HH:mm')}</td></tr>
-                                <tr><td><strong>เวลาสิ้นสุด:</strong></td><td>${moment(data.DteTmeEnd).format('HH:mm')}</td></tr>
-                                <tr><td><strong>ชั่วโมง OT:</strong></td><td>${data.TotalOTHrs} ชม.</td></tr>
-                                <tr><td><strong>สถานะ:</strong></td><td>
-                                    <span class="badge ${data.ApprStatus === 'Approved' ? 'bg-success' : data.ApprStatus === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'}">
-                                        ${data.ApprStatus === 'Approved' ? 'อนุมัติแล้ว' : data.ApprStatus === 'Pending' ? 'รออนุมัติ' : 'ไม่อนุมัติ'}
-                                    </span>
-                                </td></tr>
-                                ${data.ApprDate ? `<tr><td><strong>วันที่อนุมัติ:</strong></td><td>${moment(data.ApprDate).format('DD/MM/YYYY HH:mm')}</td></tr>` : ''}
-                            </table>
-                        </div>
-                    </div>
-                    ${data.Remark ? `<div class="row mt-3"><div class="col-12"><h6 class="text-primary">หมายเหตุ</h6><p class="border p-2 rounded">${data.Remark}</p></div></div>` : ''}
-                `;
-                
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">ข้อมูลทั่วไป</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>เลขที่ OT:</strong></td><td>${data.OTReqNo}</td></tr>
+                                        <tr><td><strong>รหัสพนักงาน:</strong></td><td>${data.EmpNo}</td></tr>
+                                        <tr><td><strong>ชื่อ-นามสกุล:</strong></td><td class="text-primary">${data.FullName ? data.FullName.trim() : '-'}</td></tr>
+                                        <tr><td><strong>ระดับ JG:</strong></td><td><span class="badge bg-primary">${data.JGCode || '-'}</span></td></tr>
+                                        <tr><td><strong>วันที่ทำงาน:</strong></td><td>${moment(data.WrkDate).format('DD/MM/YYYY')}</td></tr>
+                                        <tr><td><strong>แผนก:</strong></td><td>${data.SecCode || '-'}</td></tr>
+                                        <tr><td><strong>กะงาน:</strong></td><td>${data.ShiftCode || '-'}</td></tr>
+                                        <tr><td><strong>ตำแหน่ง:</strong></td><td>${data.TitleCode || '-'}</td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">เวลาและชั่วโมงงาน</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>เวลาเริ่ม:</strong></td><td>${moment(data.DteTmeStr).format('HH:mm')}</td></tr>
+                                        <tr><td><strong>เวลาสิ้นสุด:</strong></td><td>${moment(data.DteTmeEnd).format('HH:mm')}</td></tr>
+                                        <tr><td><strong>ชั่วโมง OT:</strong></td><td>${data.TotalOTHrs} ชม.</td></tr>
+                                        <tr><td><strong>สถานะ:</strong></td><td>
+                                            <span class="badge ${data.ApprStatus === 'Approved' ? 'bg-success' : data.ApprStatus === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'}">
+                                                ${data.ApprStatus === 'Approved' ? 'อนุมัติแล้ว' : data.ApprStatus === 'Pending' ? 'รออนุมัติ' : 'ไม่อนุมัติ'}
+                                            </span>
+                                        </td></tr>
+                                        ${data.ApprDate ? `<tr><td><strong>วันที่อนุมัติ:</strong></td><td>${moment(data.ApprDate).format('DD/MM/YYYY HH:mm')}</td></tr>` : ''}
+                                    </table>
+                                </div>
+                            </div>
+                            ${data.Remark ? `<div class="row mt-3"><div class="col-12"><h6 class="text-primary">หมายเหตุ</h6><p class="border p-2 rounded">${data.Remark}</p></div></div>` : ''}
+                        `;
+
                 $('#detailModalBody').html(modalBody);
                 new bootstrap.Modal(document.getElementById('detailModal')).show();
-            }).fail(function() {
+            }).fail(function () {
                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลได้', 'error');
             });
         }
@@ -693,14 +693,14 @@
                         otSeqNo: otSeqNo,
                         status: status,
                         remark: result.value || null
-                    }).done(function(response) {
+                    }).done(function (response) {
                         if (response.success) {
                             Swal.fire('สำเร็จ', response.message, 'success');
                             table.ajax.reload();
                         } else {
                             Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
                         }
-                    }).fail(function() {
+                    }).fail(function () {
                         Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถอัพเดทสถานะได้', 'error');
                     });
                 }
@@ -721,92 +721,92 @@
                     $.post('@Url.Action("DeleteOvertime", "ListOvertime")', {
                         otReqNo: otReqNo,
                         otSeqNo: otSeqNo
-                    }).done(function(response) {
+                    }).done(function (response) {
                         if (response.success) {
                             Swal.fire('สำเร็จ', response.message, 'success');
                             table.ajax.reload();
                         } else {
                             Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
                         }
-                    }).fail(function() {
+                    }).fail(function () {
                         Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบข้อมูลได้', 'error');
                     });
                 }
             });
         }
 
-                 function applyFilter() {
-             // แสดงสถานะกำลังค้นหา
-             $('#overtimeTable').addClass('searching');
-             
-             table.ajax.reload(function() {
-                 // ซ่อนสถานะกำลังค้นหาเมื่อเสร็จ
-                 $('#overtimeTable').removeClass('searching');
-             });
-         }
+        function applyFilter() {
+            // แสดงสถานะกำลังค้นหา
+            $('#overtimeTable').addClass('searching');
 
-         function quickFilter(type) {
-             switch(type) {
-                 case 'Pending':
-                 case 'Approved':
-                 case 'Rejected':
-                     $('#statusFilter').val(type);
-                     break;
-                 case 'today':
-                     const today = new Date();
-                     $('#yearFilter').val(today.getFullYear());
-                     $('#monthFilter').val(today.getMonth() + 1);
-                     break;
-                 case 'thisweek':
-                     const thisWeek = new Date();
-                     $('#yearFilter').val(thisWeek.getFullYear());
-                     $('#monthFilter').val(thisWeek.getMonth() + 1);
-                     break;
-                 case 'thismonth':
-                     const thisMonth = new Date();
-                     $('#yearFilter').val(thisMonth.getFullYear());
-                     $('#monthFilter').val(thisMonth.getMonth() + 1);
-                     break;
-             }
-             applyFilter();
-             
-             // แสดงการแจ้งเตือนแบบสั้น
-             showQuickToast(`กรองข้อมูล: ${getFilterDisplayName(type)}`);
-         }
+            table.ajax.reload(function () {
+                // ซ่อนสถานะกำลังค้นหาเมื่อเสร็จ
+                $('#overtimeTable').removeClass('searching');
+            });
+        }
 
-         function getFilterDisplayName(type) {
-             const names = {
-                 'Pending': 'รออนุมัติ',
-                 'Approved': 'อนุมัติแล้ว', 
-                 'Rejected': 'ไม่อนุมัติ',
-                 'today': 'วันนี้',
-                 'thisweek': 'สัปดาห์นี้',
-                 'thismonth': 'เดือนนี้'
-             };
-             return names[type] || type;
-         }
+        function quickFilter(type) {
+            switch (type) {
+                case 'Pending':
+                case 'Approved':
+                case 'Rejected':
+                    $('#statusFilter').val(type);
+                    break;
+                case 'today':
+                    const today = new Date();
+                    $('#yearFilter').val(today.getFullYear());
+                    $('#monthFilter').val(today.getMonth() + 1);
+                    break;
+                case 'thisweek':
+                    const thisWeek = new Date();
+                    $('#yearFilter').val(thisWeek.getFullYear());
+                    $('#monthFilter').val(thisWeek.getMonth() + 1);
+                    break;
+                case 'thismonth':
+                    const thisMonth = new Date();
+                    $('#yearFilter').val(thisMonth.getFullYear());
+                    $('#monthFilter').val(thisMonth.getMonth() + 1);
+                    break;
+            }
+            applyFilter();
 
-         function showQuickToast(message) {
-             Swal.fire({
-                 toast: true,
-                 position: 'top-end',
-                 icon: 'info',
-                 title: message,
-                 showConfirmButton: false,
-                 timer: 1500,
-                 timerProgressBar: true
-             });
-         }
+            // แสดงการแจ้งเตือนแบบสั้น
+            showQuickToast(`กรองข้อมูล: ${getFilterDisplayName(type)}`);
+        }
 
-                 function clearFilter() {
-             $('#yearFilter').val(new Date().getFullYear());
-             $('#monthFilter').val(new Date().getMonth() + 1);
-             $('#statusFilter').val('');
-             $('#empNoFilter').val('');
-             $('#empNameFilter').val('');
-             $('#jgCodeFilter').val('');
-             table.ajax.reload();
-         }
+        function getFilterDisplayName(type) {
+            const names = {
+                'Pending': 'รออนุมัติ',
+                'Approved': 'อนุมัติแล้ว',
+                'Rejected': 'ไม่อนุมัติ',
+                'today': 'วันนี้',
+                'thisweek': 'สัปดาห์นี้',
+                'thismonth': 'เดือนนี้'
+            };
+            return names[type] || type;
+        }
+
+        function showQuickToast(message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: message,
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true
+            });
+        }
+
+        function clearFilter() {
+            $('#yearFilter').val(new Date().getFullYear());
+            $('#monthFilter').val(new Date().getMonth() + 1);
+            $('#statusFilter').val('');
+            $('#empNoFilter').val('');
+            $('#empNameFilter').val('');
+            $('#jgCodeFilter').val('');
+            table.ajax.reload();
+        }
 
         function refreshData() {
             table.ajax.reload();
@@ -819,28 +819,28 @@
             });
         }
 
-                 function exportToExcel() {
-             var empNoValue = '';
-             var empNameValue = '';
-             var jgCodeValue = '';
-             @if (canEdit)
-             {
-                 <text>empNoValue = $('#empNoFilter').val() || '';
-                 empNameValue = $('#empNameFilter').val() || '';
-                 jgCodeValue = $('#jgCodeFilter').val() || '';</text>
-             }
+        function exportToExcel() {
+            var empNoValue = '';
+            var empNameValue = '';
+            var jgCodeValue = '';
+            @if (canEdit)
+                {
+                    <text>empNoValue = $('#empNoFilter').val() || '';
+                        empNameValue = $('#empNameFilter').val() || '';
+                        jgCodeValue = $('#jgCodeFilter').val() || '';</text>
+            }
              
-             const params = new URLSearchParams({
-                 empNo: empNoValue,
-                 empName: empNameValue,
-                 jgCode: jgCodeValue,
-                 year: $('#yearFilter').val() || '',
-                 month: $('#monthFilter').val() || '',
-                 status: $('#statusFilter').val() || ''
-             });
+                     const params = new URLSearchParams({
+                empNo: empNoValue,
+                empName: empNameValue,
+                jgCode: jgCodeValue,
+                year: $('#yearFilter').val() || '',
+                month: $('#monthFilter').val() || '',
+                status: $('#statusFilter').val() || ''
+            });
 
-             window.open('@Url.Action("ExportToExcel", "ListOvertime")?' + params.toString(), '_blank');
-         }
+            window.open('@Url.Action("ExportToExcel", "ListOvertime")?' + params.toString(), '_blank');
+        }
 
         function showStatistics() {
             $('#statisticsModal').modal('show');
@@ -854,7 +854,7 @@
             $.get('@Url.Action("GetOvertimeStatistics", "ListOvertime")', {
                 year: year,
                 month: month
-            }).done(function(response) {
+            }).done(function (response) {
                 if (response.success) {
                     updateStatisticsChart(response.data, month ? 'day' : 'month');
                 }
@@ -863,7 +863,7 @@
 
         function updateStatisticsChart(data, type) {
             const ctx = document.getElementById('statisticsChart').getContext('2d');
-            
+
             if (statisticsChart) {
                 statisticsChart.destroy();
             }
@@ -947,26 +947,26 @@
 }
 
 <style>
-    .table > :not(caption) > * > * {
+    .table> :not(caption)>*>* {
         padding: 0.75rem;
         vertical-align: middle;
     }
-    
+
     .table tbody tr:hover {
-        background-color: rgba(0,0,0,.075);
+        background-color: rgba(0, 0, 0, .075);
         transform: translateY(-1px);
         transition: all 0.2s ease;
     }
-    
+
     .btn-group .btn {
         padding: 0.375rem 0.75rem;
         margin: 0 1px;
     }
-    
+
     .offcanvas {
         width: 350px !important;
     }
-    
+
     .avatar {
         width: 48px;
         height: 48px;
@@ -974,31 +974,31 @@
         align-items: center;
         justify-content: center;
     }
-    
+
     .bg-primary-subtle {
         background-color: rgba(13, 110, 253, 0.1) !important;
     }
-    
+
     .bg-success-subtle {
         background-color: rgba(25, 135, 84, 0.1) !important;
     }
-    
+
     .bg-warning-subtle {
         background-color: rgba(255, 193, 7, 0.1) !important;
     }
-    
+
     .bg-danger-subtle {
         background-color: rgba(220, 53, 69, 0.1) !important;
     }
-    
+
     .summary-card {
         transition: all 0.3s ease;
         cursor: pointer;
     }
-    
+
     .summary-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,.15) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, .15) !important;
     }
 
     .card {
@@ -1041,107 +1041,116 @@
         filter: invert(1);
     }
 
-              @@media (max-width: 768px) {
-         .d-sm-flex {
-             flex-direction: column;
-         }
-         
-         .d-flex.gap-2 {
-             margin-top: 1rem;
-         }
-         
-         .btn-group {
-             flex-wrap: wrap;
-         }
-         
-         .btn-group .btn {
-             margin-bottom: 2px;
-         }
-     }
+    @@media (max-width: 768px) {
+        .d-sm-flex {
+            flex-direction: column;
+        }
+
+        .d-flex.gap-2 {
+            margin-top: 1rem;
+        }
+
+        .btn-group {
+            flex-wrap: wrap;
+        }
+
+        .btn-group .btn {
+            margin-bottom: 2px;
+        }
+    }
 
     .loading {
         opacity: 0.6;
         pointer-events: none;
     }
 
-         .form-check-input:checked {
-         background-color: #667eea;
-         border-color: #667eea;
-     }
+    .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
 
-     /* Search & Filter Card Styles */
-     .bg-gradient-primary {
-         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-     }
+    /* Search & Filter Card Styles */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
 
-     .form-floating label {
-         font-size: 0.875rem;
-         color: #6c757d;
-     }
+    .form-floating label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
 
-     .form-floating > .form-control:focus ~ label,
-     .form-floating > .form-control:not(:placeholder-shown) ~ label,
-     .form-floating > .form-select ~ label {
-         color: #667eea;
-         font-weight: 500;
-     }
+    .form-floating>.form-control:focus~label,
+    .form-floating>.form-control:not(:placeholder-shown)~label,
+    .form-floating>.form-select~label {
+        color: #667eea;
+        font-weight: 500;
+    }
 
-     .btn-outline-warning:hover, .btn-outline-success:hover, 
-     .btn-outline-danger:hover, .btn-outline-primary:hover,
-     .btn-outline-info:hover, .btn-outline-secondary:hover {
-         transform: translateY(-1px);
-         transition: all 0.2s ease;
-     }
+    .btn-outline-warning:hover,
+    .btn-outline-success:hover,
+    .btn-outline-danger:hover,
+    .btn-outline-primary:hover,
+    .btn-outline-info:hover,
+    .btn-outline-secondary:hover {
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
 
-     .form-control:focus, .form-select:focus {
-         border-color: #667eea;
-         box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-     }
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
 
-     /* Quick filter buttons animation */
-     .btn-sm {
-         transition: all 0.2s ease;
-     }
+    /* Quick filter buttons animation */
+    .btn-sm {
+        transition: all 0.2s ease;
+    }
 
-     .btn-sm:hover {
-         transform: scale(1.05);
-     }
+    .btn-sm:hover {
+        transform: scale(1.05);
+    }
 
-     /* Search card responsive */
-     @@media (max-width: 768px) {
-         .row.g-3 {
-             row-gap: 1rem !important;
-         }
-         
-         .d-flex.flex-wrap.gap-2 {
-             gap: 0.5rem !important;
-         }
-         
-         .btn-sm {
-             font-size: 0.75rem;
-             padding: 0.25rem 0.5rem;
-         }
-     }
+    /* Search card responsive */
+    @@media (max-width: 768px) {
+        .row.g-3 {
+            row-gap: 1rem !important;
+        }
 
-     /* Loading indicator for search */
-     .searching {
-         position: relative;
-         overflow: hidden;
-     }
+        .d-flex.flex-wrap.gap-2 {
+            gap: 0.5rem !important;
+        }
 
-     .searching::after {
-         content: '';
-         position: absolute;
-         top: 0;
-         left: -100%;
-         width: 100%;
-         height: 2px;
-         background: linear-gradient(90deg, transparent, #667eea, transparent);
-         animation: searching 1.5s infinite;
-     }
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+    }
 
-     @@keyframes searching {
-         0% { left: -100%; }
-         100% { left: 100%; }
-     }
+    /* Loading indicator for search */
+    .searching {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .searching::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #667eea, transparent);
+        animation: searching 1.5s infinite;
+    }
+
+    @@keyframes searching {
+        0% {
+            left: -100%;
+        }
+
+        100% {
+            left: 100%;
+        }
+    }
 </style>

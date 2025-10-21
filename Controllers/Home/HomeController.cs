@@ -111,11 +111,24 @@ namespace IPS_TH.Controllers.Home
                     "เกิดข้อผิดพลาดในการเปลี่ยนภาษา / Error changing language";
             }
 
-            // Redirect กลับไปหน้าที่เรียกมา หรือไปหน้าหลักถ้าไม่ทราบที่มา
+            // ตรวจสอบว่าเป็น AJAX request หรือไม่
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new { success = true, language = lang.ToLower() });
+            }
+
+            // ถ้าไม่ใช่ AJAX request ให้ redirect กลับไปหน้าที่เรียกมา
             string returnUrl = Request.Headers["Referer"].ToString();
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
+            }
+
+            // ถ้าไม่มี Referer ให้ redirect กลับไปหน้าเดิมที่เรียกมา
+            // หรือถ้าเป็น AJAX request ให้ return JSON
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new { success = true, language = lang.ToLower() });
             }
 
             return RedirectToAction("Index");

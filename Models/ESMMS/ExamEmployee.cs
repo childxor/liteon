@@ -44,6 +44,10 @@ namespace IPS_TH.Models.ESMMS
 
         [StringLength(50)]
         public string? updated_by { get; set; }
+
+        public bool? is_passed { get; set; }
+        public int? pass_score { get; set; }
+
     }
 }
 

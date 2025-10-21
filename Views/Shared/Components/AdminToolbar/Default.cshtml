@@ -1,0 +1,381 @@
+@{
+    var isAdmin = Context.Session.GetString("IsAdmin") == "True";
+    var moduleId = ViewBag.ModuleId as string ?? "MQ==";
+    var displayModuleId = moduleId;
+
+    // ถ้า moduleId เป็น Base64 ให้ decode
+    try
+    {
+        var bytes = Convert.FromBase64String(moduleId);
+        displayModuleId = System.Text.Encoding.UTF8.GetString(bytes);
+    }
+    catch
+    {
+        // ถ้า decode ไม่ได้ ให้ใช้ค่าเดิม
+    }
+}
+
+@if (isAdmin)
+{
+    <!-- Admin Toggle Button - ด้านขวา -->
+    <div class="admin-toggle-btn" onclick="toggleAdminToolbar()" data-bs-toggle="tooltip"
+        title="เปิด/ปิดแถบเครื่องมือ Admin">
+        <i class="fas fa-crown"></i>
+    </div>
+
+    <!-- Admin Toolbar - ด้านขวา (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+    <div class="admin-toolbar" id="adminToolbar" style="display: none;">
+        <div class="admin-toolbar-content">
+            <div class="admin-badge">
+                <i class="fas fa-crown me-1"></i>
+                Admin
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-sm btn-outline-light me-2" onclick="window.loadLanguageData()"
+                    data-bs-toggle="tooltip" title="จัดการข้อมูลภาษา">
+                    <i class="fas fa-language"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-light" onclick="window.translatePage()" data-bs-toggle="tooltip"
+                    title="รีเฟรชภาษา">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="admin-module-info">
+                <small class="text-muted">Module: @displayModuleId</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Language Management Modal -->
+    <div class="modal fade" id="languageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="fas fa-language me-2"></i>
+                        จัดการข้อมูลภาษา - Module: @displayModuleId
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped" id="languageTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Keyword</th>
+                                    <th>Module ID</th>
+                                    <th>ไทย</th>
+                                    <th>English</th>
+                                    <th>中文</th>
+                                    <th>Created By</th>
+                                    <th>Created Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    /* Admin Toggle Button Styles */
+    .admin-toggle-btn {
+        position: fixed;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+        color: #10b981;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1001;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .admin-toggle-btn:hover {
+        background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+        color: #34d399;
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .admin-toggle-btn i {
+        font-size: 1.2rem;
+    }
+
+    /* Admin Toolbar Styles - ด้านขวา */
+    .admin-toolbar {
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+        color: white;
+        padding: 1rem 0.5rem;
+        box-shadow: -4px 0 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        border-radius: 10px 0 0 10px;
+        min-width: 200px;
+        transition: all 0.3s ease;
+    }
+
+    .admin-toolbar:hover {
+        right: 0;
+        box-shadow: -6px 0 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .admin-toolbar-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .admin-badge {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .admin-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .admin-actions .btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .admin-module-info {
+        text-align: center;
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .admin-toggle-btn {
+            top: auto;
+            bottom: 20px;
+            right: 20px;
+            transform: none;
+            width: 45px;
+            height: 45px;
+        }
+
+        .admin-toolbar {
+            top: auto;
+            bottom: 20px;
+            right: 20px;
+            transform: none;
+            border-radius: 10px;
+            min-width: auto;
+            padding: 0.5rem;
+        }
+
+        .admin-toolbar-content {
+            flex-direction: row;
+            gap: 0.5rem;
+        }
+
+        .admin-actions {
+            flex-direction: row;
+        }
+
+        .admin-module-info {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    // รอให้ jQuery โหลดเสร็จก่อน
+    if (typeof $ !== 'undefined') {
+        $(document).ready(function () {
+            // ฟังก์ชันโหลดข้อมูลภาษา
+            window.loadLanguageData = function () {
+                var moduleId = '@moduleId';
+                console.log('Loading language data for module:', moduleId);
+
+                $.ajax({
+                    url: '/Authen/GetLanguageDataByModule',
+                    type: 'GET',
+                    data: { moduleId: moduleId },
+                    success: function (response) {
+                        if (response && response.success) {
+                            window.renderLanguageTable(response.data);
+                            $('#languageModal').modal('show');
+                        } else {
+                            alert('ไม่สามารถโหลดข้อมูลภาษาได้: ' + (response.message || 'Unknown error'));
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error loading language data:', error);
+                        alert('เกิดข้อผิดพลาดในการโหลดข้อมูลภาษา');
+                    }
+                });
+            };
+
+            // ฟังก์ชันแสดงตารางข้อมูลภาษา
+            window.renderLanguageTable = function (data) {
+                var tbody = $('#languageTable tbody');
+                tbody.empty();
+
+                if (data && data.length > 0) {
+                    data.forEach(function (item) {
+                        var row = '<tr>' +
+                            '<td>' + (item.id || '-') + '</td>' +
+                            '<td>' + (item.keyword || '-') + '</td>' +
+                            '<td>' + (item.moduleId || '-') + '</td>' +
+                            '<td>' + (item.th || '-') + '</td>' +
+                            '<td>' + (item.en || '-') + '</td>' +
+                            '<td>' + (item.cn || '-') + '</td>' +
+                            '<td>' + (item.createdBy || '-') + '</td>' +
+                            '<td>' + window.formatDate(item.createdDate) + '</td>' +
+                            '<td>' + (item.recordStatus || '-') + '</td>' +
+                            '<td>' +
+                            '<button class="btn btn-sm btn-outline-primary me-1" onclick="window.editLanguage(' + item.id + ')">แก้ไข</button>' +
+                            '<button class="btn btn-sm btn-outline-danger" onclick="window.deleteLanguage(' + item.id + ')">ลบ</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tbody.append(row);
+                    });
+                } else {
+                    tbody.append('<tr><td colspan="10" class="text-center">ไม่มีข้อมูล</td></tr>');
+                }
+            };
+
+            // ฟังก์ชันจัดรูปแบบวันที่
+            window.formatDate = function (dateString) {
+                if (!dateString) return '-';
+                try {
+                    var date = new Date(dateString);
+                    return date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH');
+                } catch (e) {
+                    return dateString;
+                }
+            };
+
+            // ฟังก์ชันรีเฟรชข้อมูลภาษา
+            window.refreshLanguageData = function () {
+                window.loadLanguageData();
+            };
+
+            // ฟังก์ชันแก้ไขภาษา
+            window.editLanguage = function (id) {
+                alert('ฟังก์ชันแก้ไขจะเปิดใช้งานในอนาคต (ID: ' + id + ')');
+            };
+
+            // ฟังก์ชันลบภาษา
+            window.deleteLanguage = function (id) {
+                if (confirm('คุณต้องการลบข้อมูลภาษานี้หรือไม่?')) {
+                    alert('ฟังก์ชันลบจะเปิดใช้งานในอนาคต (ID: ' + id + ')');
+                }
+            };
+
+            // ฟังก์ชันเปิด/ปิดแถบเครื่องมือ Admin
+            window.toggleAdminToolbar = function () {
+                var toolbar = document.getElementById('adminToolbar');
+                if (toolbar) {
+                    if (toolbar.style.display === 'none' || toolbar.style.display === '') {
+                        toolbar.style.display = 'block';
+                    } else {
+                        toolbar.style.display = 'none';
+                    }
+                }
+            };
+
+            // ฟังก์ชันแปลหน้า
+            window.translatePage = function () {
+                var moduleId = '@moduleId';
+                console.log('Translating page for module:', moduleId);
+
+                $.ajax({
+                    url: '/Authen/GetLanguageDataByModule',
+                    type: 'GET',
+                    data: { moduleId: moduleId },
+                    success: function (response) {
+                        if (response && response.success) {
+                            // ใช้ข้อมูลแปลหน้า
+                            if (response.data && response.data.length > 0) {
+                                response.data.forEach(function (item) {
+                                    if (item.keyword && item.th) {
+                                        $('[data-translate="' + item.keyword + '"]').text(item.th);
+                                    }
+                                });
+                            }
+                            console.log('แปลหน้าเสร็จสิ้น');
+                        } else {
+                            console.error('ไม่สามารถแปลหน้าได้: ' + (response.message || 'Unknown error'));
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error translating page:', error);
+                    }
+                });
+            };
+
+            // เปิด modal เมื่อคลิกปุ่ม
+            $('#languageModal').on('show.bs.modal', function () {
+                window.loadLanguageData();
+            });
+        });
+    } else {
+        // ถ้า jQuery ยังไม่โหลด ให้รอ
+        setTimeout(function () {
+            if (typeof $ !== 'undefined') {
+                $(document).ready(function () {
+                    // เรียกใช้ฟังก์ชันที่จำเป็น
+                    window.loadLanguageData = function () {
+                        console.log('jQuery loaded, but loadLanguageData not implemented yet');
+                    };
+                    window.translatePage = function () {
+                        console.log('jQuery loaded, but translatePage not implemented yet');
+                    };
+                    window.toggleAdminToolbar = function () {
+                        var toolbar = document.getElementById('adminToolbar');
+                        if (toolbar) {
+                            if (toolbar.style.display === 'none' || toolbar.style.display === '') {
+                                toolbar.style.display = 'block';
+                            } else {
+                                toolbar.style.display = 'none';
+                            }
+                        }
+                    };
+
+                    // เปิด modal เมื่อคลิกปุ่ม
+                    $('#languageModal').on('show.bs.modal', function () {
+                        window.loadLanguageData();
+                    });
+                });
+            }
+        }, 1000);
+    }
+</script>

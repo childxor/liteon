@@ -129,6 +129,45 @@ namespace IPS_TH.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetLanguageDataByModule(string moduleId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(moduleId))
+                {
+                    return Json(new { success = false, message = "ไม่พบ Module ID" });
+                }
+
+                var languageData = await _context.sys_language
+                    .Where(x => x.ModuleId == moduleId && x.RecordStatus != "D")
+                    .OrderByDescending(x => x.Id)
+                    .Take(200)
+                    .Select(x => new 
+                    {
+                        id = x.Id,
+                        keyword = x.Keyword,
+                        moduleId = x.ModuleId,
+                        th = x.Th,
+                        en = x.En,
+                        jp = x.Jp,
+                        cn = x.Cn,
+                        createdBy = x.CreatedBy,
+                        createdDate = x.CreatedDate,
+                        updatedBy = x.UpdatedBy,
+                        updatedDate = x.UpdatedDate,
+                        recordStatus = x.RecordStatus
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = languageData });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> TranslateText([FromBody] TranslateRequest request)
         {

@@ -70,6 +70,7 @@ namespace IPS_TH.Data
         public DbSet<esmms_exam_employee> esmms_exam_employee { get; set; }
         public DbSet<esmms_question> esmms_question { get; set; }
         public DbSet<esmms_exam_detail> esmms_exam_detail { get; set; }
+        public DbSet<esmms_employees_receive_mail> esmms_employees_receive_mail { get; set; }
     }
 
     // Oracle DbContext (สำหรับเชื่อมต่อ Oracle Database)

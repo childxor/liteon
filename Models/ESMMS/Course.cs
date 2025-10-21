@@ -14,7 +14,7 @@ namespace IPS_TH.Models.ESMMS
         [StringLength(255)]
         public string? description_th { get; set; }
 
-        [StringLength(255)] 
+        [StringLength(255)]
         public string? description_en { get; set; }
 
         public bool dl { get; set; } = false;
@@ -42,6 +42,9 @@ namespace IPS_TH.Models.ESMMS
 
         [StringLength(50)]
         public string? updated_by { get; set; }
+
+        // สอบผ่านกี่คะแนนค่าเริ่มต้น 8 คะแนน
+        public int pass_score { get; set; } = 8;
     }
 }
 

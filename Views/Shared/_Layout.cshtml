@@ -131,6 +131,18 @@
             background: var(--accent-dark);
         }
 
+        /* ตรวจสอบให้แน่ใจว่า body มี scrollbar */
+        body {
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* ตรวจสอบให้แน่ใจว่า main content มี scrollbar */
+        .main-content {
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
         /* Card Styles with Modern Design */
         .card {
             background: white;
@@ -475,6 +487,36 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             border: none;
         }
+
+        /* DataTable Styles */
+        .dataTables_wrapper {
+            position: relative;
+        }
+
+
+        /* ปรับปรุงการแสดงผลของตาราง */
+        .datatable {
+            width: 100% !important;
+        }
+
+
+        .datatable thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            white-space: nowrap;
+            padding: 12px 8px;
+        }
+
+        .datatable tbody td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+
+        .datatable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 
@@ -534,8 +576,8 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <a class="dropdown-item language-option @(Context.Session.GetCurrentLanguage() == "th" ? "active" : "")"
-                                    href="@Url.Action("ChangeLanguage", "Home", new { lang = "th" })">
+                                <a class="dropdown-item language-option language-switcher @(Context.Session.GetCurrentLanguage() == "th" ? "active" : "")"
+                                    href="#" data-language="th">
                                     <span class="me-2">🇹🇭</span> ไทย
                                     @if (Context.Session.GetCurrentLanguage() == "th")
                                     {
@@ -544,8 +586,8 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item language-option @(Context.Session.GetCurrentLanguage() == "en" ? "active" : "")"
-                                    href="@Url.Action("ChangeLanguage", "Home", new { lang = "en" })">
+                                <a class="dropdown-item language-option language-switcher @(Context.Session.GetCurrentLanguage() == "en" ? "active" : "")"
+                                    href="#" data-language="en">
                                     <span class="me-2">🇺🇸</span> English
                                     @if (Context.Session.GetCurrentLanguage() == "en")
                                     {
@@ -554,8 +596,8 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item language-option @(Context.Session.GetCurrentLanguage() == "zh" ? "active" : "")"
-                                    href="@Url.Action("ChangeLanguage", "Home", new { lang = "zh" })">
+                                <a class="dropdown-item language-option language-switcher @(Context.Session.GetCurrentLanguage() == "zh" ? "active" : "")"
+                                    href="#" data-language="zh">
                                     <span class="me-2">zh</span> 中文
                                     @if (Context.Session.GetCurrentLanguage() == "zh")
                                     {
@@ -638,6 +680,40 @@
         </div>
     </main>
 
+    <!-- Admin Footer Component -->
+    @{
+        // ดึง ModuleId จาก ViewBag หรือจาก URL segment
+        var currentModuleId = ViewBag.ModuleId?.ToString();
+        if (string.IsNullOrEmpty(currentModuleId))
+        {
+            var segment = Context.Request.Path.Value.Split('/').LastOrDefault();
+            if (string.IsNullOrEmpty(segment) || segment == "Index")
+            {
+                currentModuleId = "MQ=="; // Base64 ของ "1"
+            }
+            else
+            {
+                try
+                {
+                    // ถ้าเป็นตัวเลข ให้แปลงเป็น Base64
+                    if (int.TryParse(segment, out int moduleIdInt))
+                    {
+                        currentModuleId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(moduleIdInt.ToString()));
+                    }
+                    else
+                    {
+                        currentModuleId = segment;
+                    }
+                }
+                catch
+                {
+                    currentModuleId = "MQ==";
+                }
+            }
+        }
+    }
+    @await Component.InvokeAsync("AdminToolbar", new { moduleId = currentModuleId })
+
     <!-- Core Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -685,175 +761,317 @@
 
     <!-- XLSX -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    @section Scripts {
+        <script>
+            $(document).ready(function () {
+                // Hide loader when page is loaded
+                setTimeout(function () {
+                    $('.page-loader').fadeOut('fast');
+                }, 500);
 
-    <script>
-        $(document).ready(function () {
-            // Hide loader when page is loaded
-            setTimeout(function () {
-                $('.page-loader').fadeOut('fast');
-            }, 500);
+                window.appBasePath = '@Url.Content("~/")';
 
-            window.appBasePath = '@Url.Content("~/")';
-
-            // Initialize Select2
-            if ($('.select2').length > 0) {
-                try {
-                    $('.select2').select2({
-                        theme: 'bootstrap-5',
-                        width: '100%',
-                        dropdownCssClass: 'select2-dropdown-animated'
-                    });
-                } catch (e) {
-                    console.warn('Select2 initialization failed:', e);
-                }
-            }
-
-            // Initialize DataTables with improved styling
-            if ($('.datatable').length > 0) {
-                try {
-                    $('.datatable').DataTable({
-                        language: {
-                            url: '/js/datatables/i18n/th.json'
-                        },
-                        responsive: true,
-                        autoWidth: false,
-                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6"f>>' +
-                            '<"row"<"col-md-12"tr>>' +
-                            '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
-                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
-                        pageLength: 10
-                    });
-                } catch (e) {
-                    console.warn('DataTables initialization failed:', e);
-                }
-            }
-
-            // Initialize Tempus Dominus
-            if ($('.datetimepicker').length > 0) {
-                try {
-                    $('.datetimepicker').each(function () {
-                        new tempusDominus.TempusDominus(this, {
-                            locale: 'th',
-                            display: {
-                                icons: {
-                                    time: 'fas fa-clock',
-                                    date: 'fas fa-calendar',
-                                    up: 'fas fa-arrow-up',
-                                    down: 'fas fa-arrow-down',
-                                    previous: 'fas fa-chevron-left',
-                                    next: 'fas fa-chevron-right',
-                                    today: 'fas fa-calendar-check',
-                                    clear: 'fas fa-trash',
-                                    close: 'fas fa-times'
-                                },
-                                buttons: {
-                                    today: true,
-                                    clear: true,
-                                    close: true
-                                }
-                            }
+                // Initialize Select2
+                if ($('.select2').length > 0) {
+                    try {
+                        $('.select2').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            dropdownCssClass: 'select2-dropdown-animated'
                         });
-                    });
-                } catch (e) {
-                    console.warn('Tempus Dominus initialization failed:', e);
-                }
-            }
-
-            // Initialize Bootstrap 5 Toggle
-            if ($('[data-toggle="toggle"]').length > 0) {
-                try {
-                    $('[data-toggle="toggle"]').bootstrapToggle();
-                } catch (e) {
-                    console.warn('Bootstrap Toggle initialization failed:', e);
-                }
-            }
-
-            // Initialize Tooltips
-            try {
-                const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-                if (tooltipTriggerList.length > 0) {
-                    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, {
-                        animation: true,
-                        delay: { show: 100, hide: 100 }
-                    }));
-                }
-            } catch (e) {
-                console.warn('Tooltip initialization failed:', e);
-            }
-
-            // Initialize Popovers
-            try {
-                const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
-                if (popoverTriggerList.length > 0) {
-                    [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
-                        animation: true,
-                        trigger: 'hover focus'
-                    }));
-                }
-            } catch (e) {
-                console.warn('Popover initialization failed:', e);
-            }
-
-            // Mobile Menu Handling
-            $('.navbar-toggler').on('click', function () {
-                $('#userInfoMobile').collapse('toggle');
-            });
-
-            // Set active state based on current URL
-            const currentPath = window.location.pathname;
-            $('.nav-link').each(function () {
-                const href = $(this).attr('href');
-                if (href && currentPath === href) {
-                    $(this).addClass('active');
-
-                    // If in dropdown, add active to parent
-                    const dropdownParent = $(this).closest('.dropdown');
-                    if (dropdownParent.length) {
-                        dropdownParent.find('.dropdown-toggle').addClass('active');
+                    } catch (e) {
+                        console.warn('Select2 initialization failed:', e);
                     }
                 }
-            });
 
-            // Initialize Toastr
-            toastr.options = {
-                closeButton: true,
-                progressBar: true,
-                positionClass: "toast-top-right",
-                timeOut: 5000,
-                extendedTimeOut: 1000,
-                showEasing: "swing",
-                hideEasing: "linear",
-                showMethod: "fadeIn",
-                hideMethod: "fadeOut"
-            };
+                // Initialize DataTables with improved styling
+                if ($('.datatable').length > 0) {
+                    try {
+                        $('.datatable').DataTable({
+                            language: {
+                                url: '/js/datatables/i18n/th.json'
+                            },
+                            responsive: true,
+                            autoWidth: false,
+                            paging: true, // เปิดการแบ่งหน้า
+                            dom: '<"row mb-3"<"col-md-6"l><"col-md-6"f>>' +
+                                '<"row"<"col-md-12"tr>>' +
+                                '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
+                            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+                            pageLength: 25, // เพิ่มจำนวนแถวต่อหน้า
+                            columnDefs: [
+                                { targets: '_all', className: 'text-center' } // จัดกึ่งกลางทุกคอลัมน์
+                            ],
+                            initComplete: function () {
+                                // บังคับให้ DataTable ไม่มี scrollbar หลังจากโหลดเสร็จ
+                                setTimeout(function () {
+                                    $('.dataTables_scrollBody, .dataTables_scrollBody *').css({
+                                        'overflow': 'hidden',
+                                        'overflow-x': 'hidden',
+                                        'overflow-y': 'hidden',
+                                        'height': 'auto',
+                                        'max-height': 'none'
+                                    });
+                                    $('.dataTables_scrollHead, .dataTables_scrollHead *').css({
+                                        'overflow': 'hidden',
+                                        'overflow-x': 'hidden',
+                                        'overflow-y': 'hidden'
+                                    });
+                                    $('.dataTables_scroll, .dataTables_scroll *').css({
+                                        'overflow': 'visible',
+                                        'overflow-x': 'visible',
+                                        'overflow-y': 'visible'
+                                    });
+                                    $('.datatable, .datatable table').css({
+                                        'overflow': 'visible',
+                                        'overflow-x': 'visible',
+                                        'overflow-y': 'visible',
+                                        'height': 'auto',
+                                        'max-height': 'none'
+                                    });
+                                }, 100);
+                            }
+                        });
 
-            // Add smooth scrolling
-            $('a[href^="#"]:not([data-bs-toggle])').on('click', function (e) {
-                e.preventDefault();
-                const target = $(this.hash);
-                if (target.length) {
-                    $('html, body').animate({
-                        scrollTop: target.offset().top - 70
-                    }, 500);
+                        // บังคับให้ DataTable ไม่มี scrollbar หลังจากโหลดเสร็จ
+                        setTimeout(function () {
+                            // บังคับให้ทุก element ของ DataTable ไม่มี scrollbar
+                            $('.dataTables_wrapper, .dataTables_wrapper *').css({
+                                'overflow': 'visible',
+                                'overflow-x': 'visible',
+                                'overflow-y': 'visible',
+                                'height': 'auto',
+                                'max-height': 'none'
+                            });
+
+                            $('.dataTables_scroll, .dataTables_scroll *').css({
+                                'overflow': 'visible',
+                                'overflow-x': 'visible',
+                                'overflow-y': 'visible',
+                                'height': 'auto',
+                                'max-height': 'none'
+                            });
+
+                            $('.dataTables_scrollBody, .dataTables_scrollBody *').css({
+                                'overflow': 'visible',
+                                'overflow-x': 'visible',
+                                'overflow-y': 'visible',
+                                'height': 'auto',
+                                'max-height': 'none'
+                            });
+
+                            $('.dataTables_scrollHead, .dataTables_scrollHead *').css({
+                                'overflow': 'visible',
+                                'overflow-x': 'visible',
+                                'overflow-y': 'visible',
+                                'height': 'auto',
+                                'max-height': 'none'
+                            });
+
+                            $('.datatable, .datatable *').css({
+                                'overflow': 'visible',
+                                'overflow-x': 'visible',
+                                'overflow-y': 'visible',
+                                'height': 'auto',
+                                'max-height': 'none'
+                            });
+                        }, 500);
+                    } catch (e) {
+                        console.warn('DataTables initialization failed:', e);
+                    }
                 }
+
+                // Initialize Tempus Dominus
+                if ($('.datetimepicker').length > 0) {
+                    try {
+                        $('.datetimepicker').each(function () {
+                            new tempusDominus.TempusDominus(this, {
+                                locale: 'th',
+                                display: {
+                                    icons: {
+                                        time: 'fas fa-clock',
+                                        date: 'fas fa-calendar',
+                                        up: 'fas fa-arrow-up',
+                                        down: 'fas fa-arrow-down',
+                                        previous: 'fas fa-chevron-left',
+                                        next: 'fas fa-chevron-right',
+                                        today: 'fas fa-calendar-check',
+                                        clear: 'fas fa-trash',
+                                        close: 'fas fa-times'
+                                    },
+                                    buttons: {
+                                        today: true,
+                                        clear: true,
+                                        close: true
+                                    }
+                                }
+                            });
+                        });
+                    } catch (e) {
+                        console.warn('Tempus Dominus initialization failed:', e);
+                    }
+                }
+
+                // Initialize Bootstrap 5 Toggle
+                if ($('[data-toggle="toggle"]').length > 0) {
+                    try {
+                        $('[data-toggle="toggle"]').bootstrapToggle();
+                    } catch (e) {
+                        console.warn('Bootstrap Toggle initialization failed:', e);
+                    }
+                }
+
+                // Initialize Tooltips
+                try {
+                    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                    if (tooltipTriggerList.length > 0) {
+                        [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, {
+                            animation: true,
+                            delay: { show: 100, hide: 100 }
+                        }));
+                    }
+                } catch (e) {
+                    console.warn('Tooltip initialization failed:', e);
+                }
+
+                // Initialize Popovers
+                try {
+                    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+                    if (popoverTriggerList.length > 0) {
+                        [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
+                            animation: true,
+                            trigger: 'hover focus'
+                        }));
+                    }
+                } catch (e) {
+                    console.warn('Popover initialization failed:', e);
+                }
+
+                // Mobile Menu Handling
+                $('.navbar-toggler').on('click', function () {
+                    $('#userInfoMobile').collapse('toggle');
+                });
+
+                // Set active state based on current URL
+                const currentPath = window.location.pathname;
+                $('.nav-link').each(function () {
+                    const href = $(this).attr('href');
+                    if (href && currentPath === href) {
+                        $(this).addClass('active');
+
+                        // If in dropdown, add active to parent
+                        const dropdownParent = $(this).closest('.dropdown');
+                        if (dropdownParent.length) {
+                            dropdownParent.find('.dropdown-toggle').addClass('active');
+                        }
+                    }
+                });
+
+                // Initialize Toastr
+                toastr.options = {
+                    closeButton: true,
+                    progressBar: true,
+                    positionClass: "toast-top-right",
+                    timeOut: 5000,
+                    extendedTimeOut: 1000,
+                    showEasing: "swing",
+                    hideEasing: "linear",
+                    showMethod: "fadeIn",
+                    hideMethod: "fadeOut"
+                };
+
+                // Add smooth scrolling
+                $('a[href^="#"]:not([data-bs-toggle])').on('click', function (e) {
+                    e.preventDefault();
+                    const target = $(this.hash);
+                    if (target.length) {
+                        $('html, body').animate({
+                            scrollTop: target.offset().top - 70
+                        }, 500);
+                    }
+                });
+
+                // Add animation to cards
+                $('.card').addClass('fade-in');
+
             });
 
-            // Add animation to cards
-            $('.card').addClass('fade-in');
-        });
+            // Page transition effect
+            $(window).on('beforeunload', function () {
+                $('.page-loader').fadeIn('fast');
+            });
 
-        // Page transition effect
-        $(window).on('beforeunload', function () {
-            $('.page-loader').fadeIn('fast');
-        });
+            // Handle AJAX loading indicator
+            $(document).ajaxStart(function () {
+                $('.page-loader').fadeIn('fast');
+            }).ajaxStop(function () {
+                $('.page-loader').fadeOut('fast');
+            });
 
-        // Handle AJAX loading indicator
-        $(document).ajaxStart(function () {
-            $('.page-loader').fadeIn('fast');
-        }).ajaxStop(function () {
-            $('.page-loader').fadeOut('fast');
-        });
-    </script>
+            // ฟังก์ชันสำหรับแปลงรหัสภาษาเป็นชื่อภาษา
+            function getLanguageName(langCode) {
+                const languageNames = {
+                    'th': 'ไทย',
+                    'en': 'English',
+                    'zh': '中文'
+                };
+                return languageNames[langCode] || langCode;
+            }
+
+            // Handle language switching
+            $('.language-switcher').on('click', function (e) {
+                e.preventDefault();
+                const language = $(this).data('language');
+
+                if (!language) {
+                    console.error('ไม่ได้ระบุภาษาที่ต้องการเปลี่ยน');
+                    return;
+                }
+
+                // แสดง loading indicator
+                $(this).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                // ส่ง AJAX request
+                $.ajax({
+                    url: '/Authen/UpdateLanguage',
+                    type: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    data: {
+                        language: language,
+                        moduleId: 'MQ==' // Default module ID
+                    },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response && response.success) {
+                            // อัปเดต language selector
+                            if ($('#languageSelector').length) {
+                                $('#languageSelector').val(language);
+                            }
+
+                            // แสดงข้อความแจ้งเตือน
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('เปลี่ยนภาษาเป็น ' + getLanguageName(language) + ' เรียบร้อยแล้ว');
+                            }
+
+                            // Reload หน้าเว็บเพื่อให้การแปลภาษาใหม่มีผล
+                            location.reload();
+                        } else {
+                            console.error('ไม่สามารถเปลี่ยนภาษาได้:', response.message);
+                            // Restore original text
+                            location.reload();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('เกิดข้อผิดพลาดในการเปลี่ยนภาษา:', error);
+                        // Restore original text
+                        location.reload();
+                    }
+                });
+            });
+        </script>
+    }
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

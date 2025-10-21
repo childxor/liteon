@@ -1,26 +1,27 @@
 @using IPS_TH.Models.ESMMS
+@using IPS_TH.Extensions
 @model IEnumerable<esmms_exam>
 
 @{
-    ViewData["Title"] = "จัดการข้อสอบ (Exams)";
+    ViewData["Title"] = Context.Session.GetTranslation("exam_management_title");
     var permissions = ViewData["Permissions"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
-    bool canAdd = (permissions.ContainsKey("CanAdd") && permissions["CanAdd"]) || (permissions.ContainsKey("IsAdmin") &&
-    permissions["IsAdmin"]);
-    bool isAdmin = (permissions.ContainsKey("IsAdmin") && permissions["IsAdmin"]);
-    bool canEdit = (permissions.ContainsKey("CanEdit") && permissions["CanEdit"]) || (permissions.ContainsKey("IsAdmin") &&
-    permissions["IsAdmin"]);
+    bool canAdd = permissions?["CanAdd"] ?? false;
+    bool canEdit = permissions?["CanEdit"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canView = permissions?["CanView"] ?? false;
+    bool isAdmin = permissions?["IsAdmin"] ?? false;
 }
 
 <div class="container-fluid py-3 mt-4">
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0">จัดการข้อสอบ (Exams)</h5>
+            <h5 class="mb-0">@Context.Session.GetTranslation("exam_management_title")</h5>
             <div class="d-flex align-items-center">
                 <div id="dtButtons" class="me-2"></div>
                 @if (canAdd)
                 {
                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
-                        <i class="bi bi-plus-lg"></i> เพิ่มคอร์ส
+                        <i class="bi bi-plus-lg"></i> @Context.Session.GetTranslation("add_exam")
                     </button>
                 }
             </div>
@@ -32,6 +33,11 @@
             }
             <div class="table-responsive">
                 <table id="examTable" class="table table-hover table-striped table-sm align-middle mb-0"></table>
+            </div>
+            <div class="mt-3 d-flex justify-content-end">
+                <button class="btn btn-outline-primary btn-sm" id="btnOpenRecipients">
+                    <i class="fas fa-envelope me-1"></i> @Context.Session.GetTranslation("setup_email_recipients")
+                </button>
             </div>
         </div>
     </div>
@@ -45,25 +51,25 @@
                 <form asp-action="CreateExam" asp-controller="Exam" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <div class="modal-header">
-                        <h6 class="modal-title">สร้างชุดข้อสอบ</h6>
+                        <h6 class="modal-title">@Context.Session.GetTranslation("create_exam")</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row g-2">
                             <div class="col-12">
-                                <label class="form-label">ชื่อชุดข้อสอบ</label>
-                                <input class="form-control form-control-sm" value="ระบบจะตั้งชื่ออัตโนมัติเมื่อบันทึก"
-                                    disabled />
+                                <label class="form-label">@Context.Session.GetTranslation("exam_title")</label>
+                                <input class="form-control form-control-sm"
+                                    value="@Context.Session.GetTranslation("auto_title_when_save")" disabled />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">คำอธิบาย</label>
+                                <label class="form-label">@Context.Session.GetTranslation("description")</label>
                                 <textarea name="description" class="form-control form-control-sm" rows="2"
                                 maxlength="500"></textarea>
                             </div>
                             <div class="col-6">
-                                <label class="form-label">คอร์ส</label>
+                                <label class="form-label">@Context.Session.GetTranslation("course")</label>
                                 <select name="course_id" class="form-select form-select-sm" required>
-                                    <option value="">-- เลือกคอร์ส --</option>
+                                    <option value="">-- @Context.Session.GetTranslation("select_course") --</option>
                                     @foreach (var c in (IEnumerable<dynamic>)ViewBag.Courses)
                                     {
                                         <option value="@c.id">@c.course_code @c.description_en</option>
@@ -71,58 +77,59 @@
                                 </select>
                             </div>
                             <div class="col-6">
-                                <label class="form-label">จำนวนข้อสุ่ม</label>
+                                <label class="form-label">@Context.Session.GetTranslation("random_questions")</label>
                                 <input type="number" name="random_question_count" class="form-control form-control-sm"
                                     required min="5" value="10" />
                             </div>
                             <div class="col-6">
-                                <label class="form-label">เวลาทำข้อสอบ (นาที)</label>
+                                <label class="form-label">@Context.Session.GetTranslation("exam_duration_minutes")</label>
                                 <input type="number" name="duration_minutes" class="form-control form-control-sm" min="0"
                                     value="60" />
                             </div>
                             <div class="col-6">
-                                <label class="form-label">จำนวนครั้งที่ทำได้</label>
+                                <label class="form-label">@Context.Session.GetTranslation("attempts_limit")</label>
                                 <input type="number" name="attempts_limit" class="form-control form-control-sm" min="0"
                                     value="1" />
                             </div>
                             <div class="col-6">
-                                <label class="form-label">เริ่มเปิดสอบ</label>
+                                <label class="form-label">@Context.Session.GetTranslation("exam_start_date")</label>
                                 <input type="datetime-local" name="start_at" class="form-control form-control-sm"
                                     value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
                             </div>
                             <div class="col-6">
-                                <label class="form-label">วันหมดอายุ</label>
+                                <label class="form-label">@Context.Session.GetTranslation("exam_end_date")</label>
                                 <input type="datetime-local" name="end_at" class="form-control form-control-sm"
                                     value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-ddTHH:mm")" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">กลุ่มพนักงาน (เช่น รหัสแผนก/กลุ่ม)</label>
+                                <label class="form-label">@Context.Session.GetTranslation("target_group")</label>
                                 <input name="target_group" class="form-control form-control-sm" maxlength="200"
                                     value="ALL" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">ลิงก์ Microsoft Forms</label>
+                                <label class="form-label">@Context.Session.GetTranslation("forms_url")</label>
                                 <input name="forms_url" class="form-control form-control-sm" maxlength="500"
                                     value="https://forms.office.com/r/0123456789" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">ไลน์ผลิต</label>
+                                <label class="form-label">@Context.Session.GetTranslation("production_line")</label>
                                 <select id="create_pdline_id" name="pdline_id" class="form-select form-select-sm">
-                                    <option value="">-- ไลน์ผลิต --</option>
+                                    <option value="">-- @Context.Session.GetTranslation("production_line") --</option>
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">เลือกพนักงาน (Person ID คั่นด้วย ,)</label>
+                                <label class="form-label">@Context.Session.GetTranslation("select_employees")</label>
                                 <div class="input-group input-group-sm">
                                     <input id="create_selected_employees" name="selected_employees"
-                                        class="form-control form-control-sm" placeholder="เช่น 12345,67890" />
+                                        class="form-control form-control-sm"
+                                        placeholder="@Context.Session.GetTranslation("employee_id_placeholder")" />
                                     <button type="button" class="btn btn-outline-secondary"
-                                        id="btnPickEmployeesCreate">เลือก...</button>
+                                        id="btnPickEmployeesCreate">@Context.Session.GetTranslation("select")...</button>
                                 </div>
-                                <div class="form-text">สามารถคัดลอกจากหน้า Employee มาใส่ได้</div>
+                                <div class="form-text">@Context.Session.GetTranslation("can_copy_from_employee_page")</div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">ภาพประกอบ/QR</label>
+                                <label class="form-label">@Context.Session.GetTranslation("image_qr")</label>
                                 <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif"
                                     class="form-control form-control-sm" />
                             </div>
@@ -130,14 +137,15 @@
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" name="is_active" value="true"
                                         checked="checked" />
-                                    <label class="form-check-label">เปิดใช้งาน</label>
+                                    <label class="form-check-label">@Context.Session.GetTranslation("enable")</label>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                        <button type="button" class="btn btn-light"
+                            data-bs-dismiss="modal">@Context.Session.GetTranslation("cancel")</button>
+                        <button type="submit" class="btn btn-primary">@Context.Session.GetTranslation("save")</button>
                     </div>
                 </form>
             </div>
@@ -149,7 +157,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">แก้ไขชุดข้อสอบ</h6>
+                <h6 class="modal-title">@Context.Session.GetTranslation("edit_exam")</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form asp-action="EditExam" asp-controller="Exam" method="post" enctype="multipart/form-data">
@@ -161,18 +169,18 @@
                     <input type="hidden" id="hid_edit_pdline_id" />
                     <div class="row g-2">
                         <div class="col-12">
-                            <label class="form-label">ชื่อชุดข้อสอบ</label>
+                            <label class="form-label">@Context.Session.GetTranslation("exam_title")</label>
                             <input id="edit_title" class="form-control form-control-sm" maxlength="200" readonly />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">คำอธิบาย</label>
+                            <label class="form-label">@Context.Session.GetTranslation("description")</label>
                             <textarea name="description" id="edit_description" class="form-control form-control-sm"
                                 rows="2" maxlength="500"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">คอร์ส</label>
+                            <label class="form-label">@Context.Session.GetTranslation("course")</label>
                             <select name="course_id" id="edit_course_id" class="form-select form-select-sm">
-                                <option value="">-- เลือกคอร์ส --</option>
+                                <option value="">-- @Context.Session.GetTranslation("select_course") --</option>
                                 @foreach (var c in (IEnumerable<dynamic>)ViewBag.Courses)
                                 {
                                     <option value="@c.id">@c.course_code @c.description_en</option>
@@ -180,60 +188,60 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">จำนวนข้อสุ่ม</label>
+                            <label class="form-label">@Context.Session.GetTranslation("random_questions")</label>
                             <input type="number" name="random_question_count" id="edit_random_question_count"
                                 class="form-control form-control-sm" min="0" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">เวลาทำข้อสอบ (นาที)</label>
+                            <label class="form-label">@Context.Session.GetTranslation("exam_duration_minutes")</label>
                             <input type="number" name="duration_minutes" id="edit_duration_minutes"
                                 class="form-control form-control-sm" min="0" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">จำนวนครั้งที่ทำได้</label>
+                            <label class="form-label">@Context.Session.GetTranslation("attempts_limit")</label>
                             <input type="number" name="attempts_limit" id="edit_attempts_limit" value="1"
                                 class="form-control form-control-sm" min="0" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">เริ่มเปิดสอบ</label>
+                            <label class="form-label">@Context.Session.GetTranslation("exam_start_date")</label>
                             <input type="datetime-local" name="start_at" id="edit_start_at"
                                 value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
                                 class="form-control form-control-sm" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">วันหมดอายุ</label>
+                            <label class="form-label">@Context.Session.GetTranslation("exam_end_date")</label>
                             <input type="datetime-local" name="end_at" id="edit_end_at"
                                 value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-ddTHH:mm")"
                                 class="form-control form-control-sm" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">กลุ่มพนักงาน (เช่น รหัสแผนก/กลุ่ม)</label>
+                            <label class="form-label">@Context.Session.GetTranslation("target_group")</label>
                             <input name="target_group" id="edit_target_group" class="form-control form-control-sm"
                                 value="ALL" maxlength="200" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">ลิงก์ Microsoft Forms</label>
+                            <label class="form-label">@Context.Session.GetTranslation("forms_url")</label>
                             <input name="forms_url" id="edit_forms_url" class="form-control form-control-sm"
                                 value="https://forms.office.com/r/0123456789" maxlength="500" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">ไลน์ผลิต</label>
+                            <label class="form-label">@Context.Session.GetTranslation("production_line")</label>
                             <select id="edit_pdline_id" name="pdline_id" class="form-select form-select-sm">
-                                <option value="">-- ไลน์ผลิต --</option>
+                                <option value="">-- @Context.Session.GetTranslation("production_line") --</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">เลือกพนักงาน (Person ID คั่นด้วย ,)</label>
+                            <label class="form-label">@Context.Session.GetTranslation("select_employees")</label>
                             <div class="input-group input-group-sm">
                                 <input id="edit_selected_employees" name="selected_employees"
                                     class="form-control form-control-sm" />
                                 <button type="button" class="btn btn-outline-secondary"
-                                    id="btnPickEmployeesEdit">เลือก...</button>
+                                    id="btnPickEmployeesEdit">@Context.Session.GetTranslation("select")...</button>
                             </div>
-                            <div class="form-text">สามารถคัดลอกจากหน้า Employee มาใส่ได้</div>
+                            <div class="form-text">@Context.Session.GetTranslation("can_copy_from_employee_page")</div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">ภาพประกอบ/QR</label>
+                            <label class="form-label">@Context.Session.GetTranslation("image_qr")</label>
                             <img id="edit_image_preview" class="img-thumbnail mb-2 d-none" style="max-height:160px;" />
                             <div class="d-flex align-items-center gap-3">
                                 <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif"
@@ -241,7 +249,8 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" value="true" name="remove_image"
                                         id="edit_remove_image">
-                                    <label class="form-check-label" for="edit_remove_image">ลบรูปเดิม</label>
+                                    <label class="form-check-label"
+                                        for="edit_remove_image">@Context.Session.GetTranslation("remove_old_image")</label>
                                 </div>
                             </div>
                         </div>
@@ -249,14 +258,16 @@
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" value="true" name="is_active" checked
                                     id="edit_is_active">
-                                <label class="form-check-label" for="edit_is_active">เปิดใช้งาน</label>
+                                <label class="form-check-label"
+                                    for="edit_is_active">@Context.Session.GetTranslation("enable")</label>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-light"
+                        data-bs-dismiss="modal">@Context.Session.GetTranslation("cancel")</button>
+                    <button type="submit" class="btn btn-primary">@Context.Session.GetTranslation("save")</button>
                 </div>
             </form>
         </div>
@@ -271,22 +282,24 @@
                 action="@Url.Action("UploadExamResults","Exam")">
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
-                    <h6 class="modal-title">อัปโหลดผลการสอบ (.xlsx)</h6>
+                    <h6 class="modal-title">@Context.Session.GetTranslation("upload_exam_results")</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="id" />
                     <div class="mb-2">
-                        <label class="form-label">เลือกไฟล์ Excel (Sheet1)</label>
+                        <label class="form-label">@Context.Session.GetTranslation("select_excel_file")</label>
                         <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required />
                     </div>
                     <div class="small text-muted">
-                        - ต้องมีรหัสพนักงานของทุกคนที่เลือกไว้ และคอลัมน์คะแนน (score)
+                        - @Context.Session.GetTranslation("must_have_employee_id_and_score")
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary btn-upload">อัปโหลด</button>
+                    <button type="button" class="btn btn-light"
+                        data-bs-dismiss="modal">@Context.Session.GetTranslation("cancel")</button>
+                    <button type="submit"
+                        class="btn btn-primary btn-upload">@Context.Session.GetTranslation("upload")</button>
                 </div>
             </form>
         </div>
@@ -304,7 +317,19 @@
 
                 function initExamTable() {
                     var table = $('#examTable').DataTable({
-                        language: { url: '/js/datatables/i18n/th.json' },
+                        language: {
+                            search: '@Context.Session.GetTranslation("search")',
+                            lengthMenu: '@Context.Session.GetTranslation("show_entries")',
+                            info: '@Context.Session.GetTranslation("showing_entries")',
+                            paginate: {
+                                first: '@Context.Session.GetTranslation("first")',
+                                last: '@Context.Session.GetTranslation("last")',
+                                next: '@Context.Session.GetTranslation("next")',
+                                previous: '@Context.Session.GetTranslation("previous")'
+                            },
+                            emptyTable: '@Context.Session.GetTranslation("no_data_available")',
+                            zeroRecords: '@Context.Session.GetTranslation("no_matching_records")'
+                        },
                         responsive: true,
                         autoWidth: false,
                         processing: true,
@@ -324,17 +349,17 @@
                                     return '<button class="btn btn-sm btn-icon btn-rounded btn-outline-primary toggle-child-row" ' +
                                         'style="padding:0.1rem 0.25rem; font-size:0.75rem; line-height:1;" ' +
                                         'data-id="' + data +
-                                        '" data-bs-toggle="tooltip" title="ดูข้อมูลเพิ่มเติม">' +
+                                        '" data-bs-toggle="tooltip" title="@Context.Session.GetTranslation("view_more_details")">' +
                                         '<i class="fas fa-plus" style="font-size:1.55em;"></i></button>';
                                 }
                             },
                             {
                                 data: 'title',
-                                title: '<i class="fas fa-file-alt me-1"></i> ชื่อชุดข้อสอบ'
+                                title: '<i class="fas fa-file-alt me-1"></i> @Context.Session.GetTranslation("exam_title")'
                             },
                             {
                                 data: 'course_id',
-                                title: '<i class="fas fa-graduation-cap me-1"></i> คอร์ส',
+                                title: '<i class="fas fa-graduation-cap me-1"></i> @Context.Session.GetTranslation("course")',
                                 render: function (data, type, row, meta) {
                                     return row.course_code + ' ( ' + row.course_name + ' )';
                                 }
@@ -342,14 +367,14 @@
 
                             {
                                 data: 'start_at',
-                                title: '<i class="fas fa-play me-1"></i> เริ่ม',
+                                title: '<i class="fas fa-play me-1"></i> @Context.Session.GetTranslation("start")',
                                 render: function (v) {
                                     return v ? v.replace('T', ' ').substring(0, 16) : '-';
                                 }
                             },
                             {
                                 data: 'end_at',
-                                title: '<i class="fas fa-stop me-1"></i> หมดอายุ',
+                                title: '<i class="fas fa-stop me-1"></i> @Context.Session.GetTranslation("expired")',
                                 render: function (v) {
                                     return v ? v.replace('T', ' ').substring(0, 16) : '-';
                                 }
@@ -357,28 +382,28 @@
 
                             {
                                 data: 'target_group',
-                                title: '<i class="fas fa-users me-1"></i> กลุ่มพนักงาน'
+                                title: '<i class="fas fa-users me-1"></i> @Context.Session.GetTranslation("target_group")'
                             },
                             {
                                 data: 'forms_url',
                                 title: '<i class="fab fa-microsoft me-1"></i> Microsoft Forms',
                                 render: function (v) {
-                                    return v ? '<a href="' + v + '" target="_blank">เปิด</a>' : '-';
+                                    return v ? '<a href="' + v + '" target="_blank">@Context.Session.GetTranslation("open")</a>' : '-';
                                 }
                             },
 
                             {
                                 data: 'excel_url',
-                                title: '<i class="fas fa-file-excel me-1"></i> ไฟล์ผลสอบ',
+                                title: '<i class="fas fa-file-excel me-1"></i> @Context.Session.GetTranslation("exam_results_file")',
                                 className: 'text-center',
                                 render: function (v) {
-                                    return v ? '<a href="' + v + '" target="_blank" download>ดาวน์โหลด</a>' : '-';
+                                    return v ? '<a href="' + v + '" target="_blank" download>@Context.Session.GetTranslation("download")</a>' : '-';
                                 }
                             },
 
                             {
                                 data: 'pdline_id',
-                                title: '<i class="fas fa-network-wired me-1"></i> ไลน์ผลิต',
+                                title: '<i class="fas fa-network-wired me-1"></i> @Context.Session.GetTranslation("production_line")',
                                 className: 'text-center',
                                 render: function (v) {
                                     if (!v) return '-';
@@ -388,12 +413,12 @@
                             },
                             {
                                 data: 'selected_employees_count',
-                                title: '<i class="fas fa-users me-1"></i> ผู้เข้าทดสอบ',
+                                title: '<i class="fas fa-users me-1"></i> @Context.Session.GetTranslation("test_takers")',
                                 className: 'text-center'
                             },
                             {
                                 data: 'is_completed',
-                                title: '<i class="fas fa-check-circle me-1"></i> เสร็จสิ้น',
+                                title: '<i class="fas fa-check-circle me-1"></i> @Context.Session.GetTranslation("completed")',
                                 orderable: false,
                                 className: 'text-center',
                                 render: function (val, type, row) {
@@ -406,12 +431,12 @@
                             },
                             {
                                 data: null,
-                                title: '<i class="fas fa-print me-1"></i> พิมพ์',
+                                title: '<i class="fas fa-print me-1"></i> @Context.Session.GetTranslation("print")',
                                 orderable: false,
                                 className: 'text-center',
                                 render: function (row) {
                                     var url = '@Url.Action("PrintExam","Exam")' + '?id=' + row.id;
-                                    return '<a class="btn btn-outline-secondary btn-sm py-0 px-1" target="_blank" href="' + url + '">พิมพ์</a>';
+                                    return '<a class="btn btn-outline-secondary btn-sm py-0 px-1" target="_blank" href="' + url + '">@Context.Session.GetTranslation("print")</a>';
                                 }
                             },
                             {
@@ -422,8 +447,8 @@
                                 render: function (data, type, row) {
                                     if (canEdit) {
                                         if (row.is_completed) {
-                                            return '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 me-1" disabled>แก้ไข</button>' +
-                                                '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" disabled>ลบ</button>';
+                                            return '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 me-1" disabled>@Context.Session.GetTranslation("edit")</button>' +
+                                                '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" disabled>@Context.Session.GetTranslation("delete")</button>';
                                         }
                                         var editBtn = '<button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 me-1 btn-edit" ' +
                                             'data-id="' + row.id + '" ' +
@@ -442,19 +467,19 @@
                                             'data-factory="' + (row.factory_id || '') + '" ' +
                                             'data-stage="' + (row.stage_id || '') + '" ' +
                                             'data-pdline="' + (row.pdline_id || '') + '" ' +
-                                            'data-employees="' + (row.selected_employees || '') + '">แก้ไข</button>';
+                                            'data-employees="' + (row.selected_employees || '') + '">@Context.Session.GetTranslation("edit")</button>';
                                         var delBtn = '<form method="post" action="' + '@Url.Action("DeleteExam","Exam")' + '" class="d-inline ms-1 frm-del">' +
                                             '<input type="hidden" name="id" value="' + row.id + '" />' +
-                                            '<button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete">ลบ</button>' +
+                                            '<button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1 btn-delete">@Context.Session.GetTranslation("delete")</button>' +
                                             '</form>';
                                         return editBtn + delBtn;
                                     } else {
-                                        return '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 me-1 btn-edit" disabled>แก้ไข</button>';
+                                        return '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 me-1 btn-edit" disabled>@Context.Session.GetTranslation("edit")</button>';
                                     }
                                 }
                             }
                         ],
-                        // ซ่อนคอลัมน์แรก (index)
+                        // Hide first column (index)
                         columnDefs: [
                             // อย่าซ่อนคอลัมน์ปุ่ม + (index 0)
                         ],
@@ -478,7 +503,7 @@
 
                 // โหลด mapping PDLINE id->name ก่อน แล้วค่อย init ตาราง เพื่อให้แสดงชื่อได้เลย
                 window.pdlineDict = window.pdlineDict || {};
-                $.get('/OracleStations/GetPdlines')
+                $.get('@Url.Action("GetPdlines","OracleStations")')
                     .done(function (data) {
                         var dict = {};
                         if (Array.isArray(data)) {
@@ -499,6 +524,528 @@
         });
     </script>
     <script>
+        // ===== Recipients (esmms_employees_receive_mail) =====
+        (function () {
+            var modalId = 'recipientsModal';
+            if ($('#' + modalId).length === 0) {
+                $('body').append(
+                    '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-hidden="true">'
+                    + '  <div class="modal-dialog modal-dialog-centered modal-lg">'
+                    + '    <div class="modal-content">'
+                    + '      <form id="frmRecipient" method="post" action="@Url.Action("AddEmailRecipient","Exam")">'
+                    + '        @Html.AntiForgeryToken()'
+                    + '        <div class="modal-header">'
+                    + '          <h6 class="modal-title"><i class="fas fa-envelope me-2"></i>@Context.Session.GetTranslation("setup_email_recipients")</h6>'
+                    + '          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+                    + '        </div>'
+                    + '        <div class="modal-body">'
+                    + '          <!-- Manual Add Section -->'
+                    + '          <div class="card border-0 bg-light mb-4">'
+                    + '            <div class="card-header bg-primary text-white">'
+                    + '              <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>เพิ่มผู้รับอีเมลแบบ Manual</h6>'
+                    + '            </div>'
+                    + '            <div class="card-body">'
+                    + '              <div class="row g-3">'
+                    + '                <div class="col-md-4">'
+                    + '                  <label class="form-label fw-bold">รหัสพนักงาน <span class="text-danger">*</span></label>'
+                    + '                  <input name="emp_no" id="rc_emp_no" class="form-control" maxlength="50" placeholder="กรอกรหัสพนักงาน" required />'
+                    + '                </div>'
+                    + '                <div class="col-md-4">'
+                    + '                  <label class="form-label fw-bold">ชื่อ-นามสกุล <span class="text-danger">*</span></label>'
+                    + '                  <input name="full_name" id="rc_full_name" class="form-control" maxlength="255" placeholder="กรอกชื่อ-นามสกุล" required />'
+                    + '                </div>'
+                    + '                <div class="col-md-4">'
+                    + '                  <label class="form-label fw-bold">อีเมล <span class="text-danger">*</span></label>'
+                    + '                  <input name="email" id="rc_email" type="email" class="form-control" maxlength="255" placeholder="กรอกอีเมล" required />'
+                    + '                </div>'
+                    + '                <div class="col-md-3">'
+                    + '                  <label class="form-label fw-bold">คอร์ส (ถ้ามี)</label>'
+                    + '                  <input name="course_id" id="rc_course_id" type="number" class="form-control" min="1" placeholder="รหัสคอร์ส" />'
+                    + '                </div>'
+                    + '                <div class="col-md-3 d-flex align-items-end">'
+                    + '                  <div class="form-check form-switch">'
+                    + '                    <input class="form-check-input" type="checkbox" name="is_active" id="rc_active" checked />'
+                    + '                    <label class="form-check-label fw-bold" for="rc_active">เปิดใช้งาน</label>'
+                    + '                  </div>'
+                    + '                </div>'
+                    + '                <div class="col-md-6 d-flex align-items-end">'
+                    + '                  <button type="submit" class="btn btn-primary px-4">'
+                    + '                    <i class="fas fa-save me-2"></i>บันทึกข้อมูล'
+                    + '                  </button>'
+                    + '                </div>'
+                    + '              </div>'
+                    + '            </div>'
+                    + '          </div>'
+                    + '          '
+                    + '          <!-- Quick Add Section -->'
+                    + '          <div class="card border-0 bg-light mb-4">'
+                    + '            <div class="card-header bg-success text-white">'
+                    + '              <h6 class="mb-0"><i class="fas fa-users me-2"></i>เพิ่มพนักงานจากระบบ</h6>'
+                    + '            </div>'
+                    + '            <div class="card-body">'
+                    + '              <div class="row g-3">'
+                    + '                <div class="col-md-8">'
+                    + '                  <label class="form-label fw-bold">เลือกพนักงาน</label>'
+                    + '                  <select id="availableEmployees" class="form-select">'
+                    + '                    <option value="">เลือกพนักงานจากระบบ...</option>'
+                    + '                  </select>'
+                    + '                </div>'
+                    + '                <div class="col-md-4 d-flex align-items-end">'
+                    + '                  <button type="button" class="btn btn-success px-4" onclick="addSelectedEmployee()">'
+                    + '                    <i class="fas fa-plus me-2"></i>เพิ่มพนักงาน'
+                    + '                  </button>'
+                    + '                </div>'
+                    + '              </div>'
+                    + '            </div>'
+                    + '          </div>'
+                    + '          '
+                    + '          <!-- Recipients List -->'
+                    + '          <div class="card border-0">'
+                    + '            <div class="card-header bg-info text-white">'
+                    + '              <h6 class="mb-0"><i class="fas fa-list me-2"></i>รายการผู้รับอีเมล</h6>'
+                    + '            </div>'
+                    + '            <div class="card-body p-0">'
+                    + '              <div class="table-responsive">'
+                    + '                <table class="table table-hover align-middle mb-0" id="recipientsTable"></table>'
+                    + '              </div>'
+                    + '            </div>'
+                    + '          </div>'
+                    + '        </div>'
+                    + '        <div class="modal-footer">'
+                    + '          <button type="button" class="btn btn-light" data-bs-dismiss="modal">@Context.Session.GetTranslation("close")</button>'
+                    + '        </div>'
+                    + '      </form>'
+                    + '    </div>'
+                    + '  </div>'
+                    + '</div>'
+                );
+            }
+
+            function loadRecipients() {
+                var courseId = $('#rc_course_id').val();
+                var url = '@Url.Action("GetEmailRecipients","Exam")' + (courseId ? ('?course_id=' + encodeURIComponent(courseId)) : '');
+                $.get(url).done(function (res) {
+                    var data = (res && res.data) || [];
+                    var $t = $('#recipientsTable');
+                    if (!$t.data('dt')) {
+                        var dt = $t.DataTable({
+                            language: {
+                                search: '@Context.Session.GetTranslation("search")',
+                                lengthMenu: '@Context.Session.GetTranslation("show_entries")',
+                                info: '@Context.Session.GetTranslation("showing_entries")',
+                                paginate: {
+                                    first: '@Context.Session.GetTranslation("first")',
+                                    last: '@Context.Session.GetTranslation("last")',
+                                    next: '@Context.Session.GetTranslation("next")',
+                                    previous: '@Context.Session.GetTranslation("previous")'
+                                },
+                                emptyTable: '@Context.Session.GetTranslation("no_data_available")',
+                                zeroRecords: '@Context.Session.GetTranslation("no_matching_records")'
+                            },
+                            paging: false, searching: false, info: false, ordering: false,
+                            data: data,
+                            columns: [
+                                { data: 'emp_no', title: 'Emp No', width: '15%' },
+                                { data: 'full_name', title: 'Name', width: '25%' },
+                                { data: 'email', title: 'Email', width: '30%' },
+                                { data: 'course_id', title: 'Course', className: 'text-center', width: '15%', render: function (v) { return v || '-'; } },
+                                {
+                                    data: 'is_active', title: 'Active', className: 'text-center', width: '15%', render: function (v, t, row) {
+                                        var chk = v ? 'checked' : '';
+                                        return '<div class="form-check form-switch d-inline-block m-0">'
+                                            + '<input class="form-check-input rc-toggle" type="checkbox" data-id="' + row.id + '" ' + chk + ' /></div>';
+                                    }
+                                }
+                            ]
+                        });
+                        $t.data('dt', dt);
+
+                        // เพิ่ม event handler สำหรับ toggle (ลบ event เก่าก่อน)
+                        $t.off('change', '.rc-toggle').on('change', '.rc-toggle', function () {
+                            var id = $(this).data('id');
+                            var isActive = $(this).is(':checked');
+                            toggleRecipientActive(id, isActive);
+                        });
+                    } else {
+                        // ลบ DataTable เก่าและสร้างใหม่
+                        var dt = $t.data('dt');
+                        dt.destroy();
+                        $t.data('dt', null);
+
+                        // สร้าง DataTable ใหม่
+                        var newDt = $t.DataTable({
+                            language: {
+                                search: '@Context.Session.GetTranslation("search")',
+                                lengthMenu: '@Context.Session.GetTranslation("show_entries")',
+                                info: '@Context.Session.GetTranslation("showing_entries")',
+                                paginate: {
+                                    first: '@Context.Session.GetTranslation("first")',
+                                    last: '@Context.Session.GetTranslation("last")',
+                                    next: '@Context.Session.GetTranslation("next")',
+                                    previous: '@Context.Session.GetTranslation("previous")'
+                                },
+                                emptyTable: '@Context.Session.GetTranslation("no_data_available")',
+                                zeroRecords: '@Context.Session.GetTranslation("no_matching_records")'
+                            },
+                            paging: false, searching: false, info: false, ordering: false,
+                            data: data,
+                            columns: [
+                                { data: 'emp_no', title: 'Emp No', width: '15%' },
+                                { data: 'full_name', title: 'Name', width: '25%' },
+                                { data: 'email', title: 'Email', width: '30%' },
+                                { data: 'course_id', title: 'Course', className: 'text-center', width: '15%', render: function (v) { return v || '-'; } },
+                                {
+                                    data: 'is_active', title: 'Active', className: 'text-center', width: '15%', render: function (v, t, row) {
+                                        var chk = v ? 'checked' : '';
+                                        return '<div class="form-check form-switch d-inline-block m-0">'
+                                            + '<input class="form-check-input rc-toggle" type="checkbox" data-id="' + row.id + '" ' + chk + ' /></div>';
+                                    }
+                                }
+                            ]
+                        });
+                        $t.data('dt', newDt);
+
+                        // เพิ่ม event handler สำหรับ toggle
+                        $t.off('change', '.rc-toggle').on('change', '.rc-toggle', function () {
+                            var id = $(this).data('id');
+                            var isActive = $(this).is(':checked');
+                            toggleRecipientActive(id, isActive);
+                        });
+                    }
+                });
+            }
+
+            var isToggling = false; // ตัวแปรป้องกันการเรียกใช้ซ้ำ
+
+            function toggleRecipientActive(id, isActive) {
+                if (isToggling) {
+                    console.log('Toggle already in progress, skipping...');
+                    return;
+                }
+
+                isToggling = true;
+                console.log('Toggling recipient:', id, 'to active:', isActive);
+
+                $.post('@Url.Action("ToggleEmailRecipient", "Exam")', {
+                    id: id,
+                    is_active: isActive,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                }).done(function (res) {
+                    console.log('Toggle response:', res);
+                    if (res.success) {
+                        // โหลดข้อมูลใหม่เสมอหลังจาก toggle
+                        loadRecipients();
+                        loadAvailableEmployees();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ',
+                            text: res.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        // เรียกใช้ GetEmailRecipients หลังจากปิด toggle
+                        if (!isActive) {
+                            console.log('Calling GetEmailRecipients after toggle off...');
+                            var courseId = $('#rc_course_id').val();
+                            var url = '@Url.Action("GetEmailRecipients","Exam")' + (courseId ? ('?course_id=' + encodeURIComponent(courseId)) : '');
+                            $.get(url).done(function (recipientsRes) {
+                                console.log('GetEmailRecipients response:', recipientsRes);
+                            }).fail(function (xhr, status, error) {
+                                console.log('GetEmailRecipients failed:', error);
+                            });
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: res.message
+                        });
+                        // ถ้าเกิดข้อผิดพลาดให้โหลดข้อมูลใหม่
+                        loadRecipients();
+                    }
+                }).fail(function (xhr, status, error) {
+                    console.log('Toggle failed:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล'
+                    });
+                    loadRecipients();
+                }).always(function () {
+                    isToggling = false; // รีเซ็ตสถานะ
+                });
+            }
+
+            function loadAvailableEmployees() {
+                var courseId = $('#rc_course_id').val();
+                var url = '@Url.Action("GetAvailableEmployees","Exam")' + (courseId ? ('?course_id=' + encodeURIComponent(courseId)) : '');
+                $.get(url).done(function (res) {
+                    var data = (res && res.data) || [];
+                    var $select = $('#availableEmployees');
+                    $select.empty();
+                    $select.append('<option value="">เลือกพนักงาน...</option>');
+
+                    data.forEach(function (emp) {
+                        $select.append('<option value="' + emp.emp_no + '" data-email="' + emp.email + '">' + emp.full_name + ' (' + emp.emp_no + ')</option>');
+                    });
+                });
+            }
+
+
+            $('#btnOpenRecipients').on('click', function () {
+                loadRecipients();
+                loadAvailableEmployees();
+                var m = new bootstrap.Modal(document.getElementById(modalId));
+                m.show();
+            });
+
+            // Submit add/update
+            $(document).on('submit', '#frmRecipient', function (e) {
+                e.preventDefault();
+                var $f = $(this);
+                var fd = new FormData($f[0]);
+                var token = $('input[name="__RequestVerificationToken"]').first().val();
+                if (token && !fd.has('__RequestVerificationToken')) fd.append('__RequestVerificationToken', token);
+                $.ajax({ url: $f.attr('action'), method: 'POST', data: fd, contentType: false, processData: false })
+                    .done(function (res) {
+                        if (res && res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'สำเร็จ',
+                                text: res.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            $('#rc_emp_no').val('');
+                            $('#rc_email').val('');
+                            $('#rc_full_name').val('');
+                            window.loadRecipients();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: (res && res.message) || '@Context.Session.GetTranslation("save_failed")'
+                            });
+                        }
+                    }).fail(function () {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: '@Context.Session.GetTranslation("save_failed")'
+                        });
+                    });
+            });
+
+            // Toggle active
+            @* $(document).on('change', '.rc-toggle', function () {
+                var id = $(this).data('id');
+                var isActive = $(this).is(':checked');
+                var url = '@Url.Action("ToggleEmailRecipient","Exam")';
+                var token = $('input[name="__RequestVerificationToken"]').first().val();
+                $.post(url, { id: id, is_active: isActive, __RequestVerificationToken: token })
+                    .done(function (res) { if (!(res && res.success)) alert((res && res.message) || '@Context.Session.GetTranslation("update_failed")'); })
+                    .fail(function () { alert('@Context.Session.GetTranslation("update_failed")'); });
+            }); *@
+
+                // Delete
+                $(document).on('click', '.rc-del', function () {
+                    if (!confirm('@Context.Session.GetTranslation("confirm_delete_item")')) return;
+                    var id = $(this).data('id');
+                    var url = '@Url.Action("DeleteEmailRecipient","Exam")';
+                    var token = $('input[name="__RequestVerificationToken"]').first().val();
+                    $.post(url, { id: id, __RequestVerificationToken: token })
+                        .done(function (res) { if (res && res.success) { loadRecipients(); } else { alert((res && res.message) || '@Context.Session.GetTranslation("delete_failed")'); } })
+                        .fail(function () { alert('@Context.Session.GetTranslation("delete_failed")'); });
+                });
+        })();
+
+        // ประกาศฟังก์ชันเป็น global เพื่อให้เรียกใช้จากนอก IIFE ได้
+        window.loadRecipients = function () {
+            var courseId = $('#rc_course_id').val();
+            var url = '@Url.Action("GetEmailRecipients","Exam")' + (courseId ? ('?course_id=' + encodeURIComponent(courseId)) : '');
+            $.get(url).done(function (res) {
+                var data = (res && res.data) || [];
+                var $t = $('#recipientsTable');
+
+                // ลบ DataTable เก่าถ้ามี
+                if ($t.data('dt')) {
+                    $t.data('dt').destroy();
+                    $t.data('dt', null);
+                }
+
+                // สร้าง DataTable ใหม่
+                var dt = $t.DataTable({
+                    language: {
+                        search: '@Context.Session.GetTranslation("search")',
+                        lengthMenu: '@Context.Session.GetTranslation("show_entries")',
+                        info: '@Context.Session.GetTranslation("showing_entries")',
+                        paginate: {
+                            first: '@Context.Session.GetTranslation("first")',
+                            last: '@Context.Session.GetTranslation("last")',
+                            next: '@Context.Session.GetTranslation("next")',
+                            previous: '@Context.Session.GetTranslation("previous")'
+                        },
+                        emptyTable: '@Context.Session.GetTranslation("no_data_available")',
+                        zeroRecords: '@Context.Session.GetTranslation("no_matching_records")'
+                    },
+                    paging: false, searching: false, info: false, ordering: false,
+                    data: data,
+                    columns: [
+                        { data: 'emp_no', title: 'Emp No', width: '15%' },
+                        { data: 'full_name', title: 'Name', width: '25%' },
+                        { data: 'email', title: 'Email', width: '30%' },
+                        { data: 'course_id', title: 'Course', className: 'text-center', width: '15%', render: function (v) { return v || '-'; } },
+                        {
+                            data: 'is_active', title: 'Active', className: 'text-center', width: '15%', render: function (v, t, row) {
+                                var chk = v ? 'checked' : '';
+                                return '<div class="form-check form-switch d-inline-block m-0">'
+                                    + '<input class="form-check-input rc-toggle" type="checkbox" data-id="' + row.id + '" ' + chk + ' /></div>';
+                            }
+                        }
+                    ]
+                });
+                $t.data('dt', dt);
+
+                // เพิ่ม event handler สำหรับ toggle
+                $t.off('change', '.rc-toggle').on('change', '.rc-toggle', function () {
+                    var id = $(this).data('id');
+                    var isActive = $(this).is(':checked');
+                    window.toggleRecipientActive(id, isActive);
+                });
+            });
+        };
+
+        window.loadAvailableEmployees = function () {
+            var courseId = $('#rc_course_id').val();
+            var url = '@Url.Action("GetAvailableEmployees","Exam")' + (courseId ? ('?course_id=' + encodeURIComponent(courseId)) : '');
+            $.get(url).done(function (res) {
+                var data = (res && res.data) || [];
+                var $select = $('#availableEmployees');
+                $select.empty();
+                $select.append('<option value="">เลือกพนักงาน...</option>');
+
+                data.forEach(function (emp) {
+                    $select.append('<option value="' + emp.emp_no + '" data-email="' + emp.email + '">' + emp.full_name + ' (' + emp.emp_no + ')</option>');
+                });
+            });
+        };
+
+        window.toggleRecipientActive = function (id, isActive) {
+            if (window.isToggling) {
+                console.log('Toggle already in progress, skipping...');
+                return;
+            }
+
+            window.isToggling = true;
+            console.log('Toggling recipient:', id, 'to active:', isActive);
+
+            $.post('@Url.Action("ToggleEmailRecipient", "Exam")', {
+                id: id,
+                is_active: isActive,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            }).done(function (res) {
+                console.log('Toggle response:', res);
+                if (res.success) {
+                    // โหลดข้อมูลใหม่เสมอหลังจาก toggle
+                    window.loadRecipients();
+                    window.loadAvailableEmployees();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ',
+                        text: res.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    // เรียกใช้ GetEmailRecipients หลังจากปิด toggle
+                    if (!isActive) {
+                        console.log('Calling GetEmailRecipients after toggle off...');
+                        var courseId = $('#rc_course_id').val();
+                        var url = '@Url.Action("GetEmailRecipients","Exam")' + (courseId ? ('?course_id=' + encodeURIComponent(courseId)) : '');
+                        $.get(url).done(function (recipientsRes) {
+                            console.log('GetEmailRecipients response:', recipientsRes);
+                        }).fail(function (xhr, status, error) {
+                            console.log('GetEmailRecipients failed:', error);
+                        });
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: res.message
+                    });
+                    // ถ้าเกิดข้อผิดพลาดให้โหลดข้อมูลใหม่
+                    window.loadRecipients();
+                }
+            }).fail(function (xhr, status, error) {
+                console.log('Toggle failed:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล'
+                });
+                window.loadRecipients();
+            }).always(function () {
+                window.isToggling = false; // รีเซ็ตสถานะ
+            });
+        };
+
+        // ฟังก์ชันสำหรับเพิ่มพนักงานที่เลือก (อยู่นอก IIFE เพื่อให้ onclick เรียกใช้ได้)
+        function addSelectedEmployee() {
+            var $select = $('#availableEmployees');
+            var selectedOption = $select.find('option:selected');
+            if (selectedOption.val()) {
+                var empNo = selectedOption.val();
+                var email = selectedOption.data('email');
+                var courseId = $('#rc_course_id').val();
+
+                $.post('@Url.Action("AddEmailRecipient", "Exam")', {
+                    emp_no: empNo,
+                    email: email,
+                    full_name: selectedOption.text().split(' (')[0], // เอาเฉพาะชื่อ ไม่เอา (emp_no)
+                    course_id: courseId,
+                    is_active: true,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                }).done(function (res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ',
+                            text: res.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        // เรียกใช้ฟังก์ชัน global
+                        window.loadRecipients();
+                        window.loadAvailableEmployees();
+                        $select.val('');
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: res.message
+                        });
+                    }
+                }).fail(function () {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล'
+                    });
+                });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'คำเตือน',
+                    text: 'กรุณาเลือกพนักงาน'
+                });
+            }
+        }
+    </script>
+    <script>
+        // ประกาศตัวแปร appBasePath
+        var appBasePath = '@Url.Content("~/")';
         // ปุ่มแก้ไข
         $(document).on('click', '.btn-edit', function () {
             var b = $(this);
@@ -577,12 +1124,12 @@
                     if (res && res.success) {
                         if (window.examTable) window.examTable.ajax.reload(null, false);
                     } else {
-                        alert((res && res.message) || 'อัปเดตไม่สำเร็จ');
+                        alert((res && res.message) || '@Context.Session.GetTranslation("update_failed")');
                         $switch.prop('checked', true);
                     }
                 })
                 .fail(function () {
-                    alert('เกิดข้อผิดพลาดในการอัปเดต');
+                    alert('@Context.Session.GetTranslation("update_error")');
                     $switch.prop('checked', true);
                 });
         });
@@ -682,12 +1229,45 @@
                             '<div class="col-12"><strong>คอร์ส:</strong> ' +
                             (res.data[0].course_code || '-') + ' (' + (res.data[0].course_name || '-') + ')</div></div>';
                         html += '<div class="table-responsive"><table class="table table-sm table-bordered mb-0">';
-                        html += '<thead><tr><th class="text-center" style="width:60px">#</th><th>คำถาม</th><th class="text-center" style="width:120px">คำตอบที่ถูก</th></tr></thead><tbody>';
+                        html += '<thead><tr>' +
+                            '<th class="text-center" style="width:60px">#</th>' +
+                            '<th style="min-width:240px">คำถาม</th>' +
+                            '<th style="min-width:280px">ตัวเลือก (A–D)</th>' +
+                            '<th class="text-center" style="width:120px">คำตอบที่ถูก</th>' +
+                            '</tr></thead><tbody>';
                         res.data.forEach(function (it, idx) {
+                            var esc = function (s) { return $('<div>').text(s || '').html() || '-'; };
+                            var a = esc(it.choice_a);
+                            var b = esc(it.choice_b);
+                            var c = esc(it.choice_c);
+                            var d = esc(it.choice_d);
+                            var correct = (it.correct_choice || '').toUpperCase();
+                            var badgeA = correct === 'A' ? ' <span class="badge bg-success">ถูก</span>' : '';
+                            var badgeB = correct === 'B' ? ' <span class="badge bg-success">ถูก</span>' : '';
+                            var badgeC = correct === 'C' ? ' <span class="badge bg-success">ถูก</span>' : '';
+                            var badgeD = correct === 'D' ? ' <span class="badge bg-success">ถูก</span>' : '';
+
+                            function renderChoice(letter, text, imgPath, badge) {
+                                var html = '<div><strong>' + letter + '.</strong> ' + (text || '-') + badge;
+                                if (imgPath) {
+                                    var src = (typeof imgPath === 'string' && (imgPath.startsWith('/') || imgPath.startsWith('http'))) ? imgPath : (appBasePath + imgPath);
+                                    html += '<div><img src="' + src + '" style="max-height:80px;" /></div>';
+                                }
+                                html += '</div>';
+                                return html;
+                            }
+
+                            var choicesHtml = '' +
+                                renderChoice('A', a, it.choice_a_image_path, badgeA) +
+                                renderChoice('B', b, it.choice_b_image_path, badgeB) +
+                                renderChoice('C', c, it.choice_c_image_path, badgeC) +
+                                renderChoice('D', d, it.choice_d_image_path, badgeD);
+
                             html += '<tr>' +
                                 '<td class="text-center">' + (it.sort_order || (idx + 1)) + '</td>' +
-                                '<td>' + $('<div>').text(it.question_text || '-').html() + '</td>' +
-                                '<td class="text-center">' + (it.correct_choice || '-') + '</td>' +
+                                '<td>' + esc(it.question_text || '-') + '</td>' +
+                                '<td>' + choicesHtml + '</td>' +
+                                '<td class="text-center"><span class="badge bg-primary">' + (correct || '-') + '</span></td>' +
                                 '</tr>';
                         });
                         html += '</tbody></table></div>';
@@ -733,7 +1313,7 @@
 
         // ========= โหลดข้อมูลไลน์ผลิต =========
         function loadFactories($sel) {
-            $.get('/OracleStations/GetFactories').done(function (data) {
+            $.get('@Url.Action("GetFactories","OracleStations")').done(function (data) {
                 if (Array.isArray(data)) {
                     $sel.empty().append('<option value="">-- โรงงาน --</option>');
                     data.forEach(function (it) {
@@ -744,7 +1324,7 @@
         }
 
         function loadStages(factoryId, $sel) {
-            $.get('/OracleStations/GetStages', { factoryId: factoryId || '' }).done(function (data) {
+            $.get('@Url.Action("GetStages","OracleStations")', { factoryId: factoryId || '' }).done(function (data) {
                 if (Array.isArray(data)) {
                     $sel.empty().append('<option value="">-- สเตจ --</option>');
                     data.forEach(function (it) {
@@ -755,7 +1335,7 @@
         }
 
         function loadPdlines(factoryId, $sel) {
-            $.get('/OracleStations/GetPdlines', { factoryId: factoryId || '' }).done(function (data) {
+            $.get('@Url.Action("GetPdlines","OracleStations")', { factoryId: factoryId || '' }).done(function (data) {
                 if (Array.isArray(data)) {
                     $sel.empty().append('<option value="">-- ไลน์ผลิต --</option>');
                     data.forEach(function (it) {
@@ -772,7 +1352,7 @@
 
         // simplify: โหลด PD Line เดียว
         function loadOnlyPdlines($sel, presetVal) {
-            $.get('/OracleStations/GetPdlines').done(function (data) {
+            $.get('@Url.Action("GetPdlines","OracleStations")').done(function (data) {
                 if (Array.isArray(data)) {
                     $sel.empty().append('<option value="">-- ไลน์ผลิต --</option>');
                     data.forEach(function (it) {
@@ -853,13 +1433,14 @@
             var pdlineDict = window.pdlineDict || {};
             function ensurePdlineDict(then) {
                 if (Object.keys(pdlineDict).length > 0) { then(); return; }
-                $.get('/OracleStations/GetPdlines').done(function (data) {
-                    var dict = {};
-                    if (Array.isArray(data)) {
-                        data.forEach(function (it) { dict[(it.Id || it.id)] = (it.Name || it.name); });
-                    }
-                    pdlineDict = dict; window.pdlineDict = dict; then();
-                }).fail(function () { then(); });
+                @* $.get('~/OracleStations/GetPdlines').done(function (data) { *@
+                    $.get('@Url.Action("GetPdlines","OracleStations")').done(function (data) {
+                        var dict = {};
+                        if (Array.isArray(data)) {
+                            data.forEach(function (it) { dict[(it.Id || it.id)] = (it.Name || it.name); });
+                        }
+                        pdlineDict = dict; window.pdlineDict = dict; then();
+                    }).fail(function () { then(); });
             }
             function loadEmpPdlineMap(done) {
                 if (!examIdForEmp) { done(); return; }
@@ -885,10 +1466,10 @@
                     pageLength: -1,
                     ajax: function (request, callback) {
                         var q = $modal.find('#empSearch').val() || '';
-                        var params = { status: 'active', door: '', department: q, shift: '', fingerprint: '' };
+                        var params = { status: 'active', door: '', department: 'MFG,QMQA,QMQS,IE,IT', shift: '', fingerprint: '' };
                         ensurePdlineDict(function () {
                             loadEmpPdlineMap(function () {
-                                $.get('/Employee/GetEmployeesData', params).done(function (res) {
+                                $.get('@Url.Action("GetEmployeesListData","Employee")', params).done(function (res) {
                                     var list = Array.isArray(res) ? res : (res && res.data ? res.data : []);
                                     var rows = list.map(function (e) {
                                         var pid = e.personID || e.PersonID || e.EmpNo || e.empNo || e.PersonId || e.person_id || '';

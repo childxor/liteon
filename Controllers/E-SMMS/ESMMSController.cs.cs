@@ -105,7 +105,7 @@ namespace IPS_TH.Controllers.ESMMS
                     ViewBag.Shiftfromces941 = shiftfromces941;
                 }
 
-                await LoadPermissions("E-SMMS", "E-SMMS");
+                await LoadPermissions("ESMMS", "question_bank");
 
                 // ส่งข้อมูลแผนกของผู้ใช้ไปยัง View
                 ViewData["CurrentUserDepartment"] = HttpContext.Session.GetString("WorkArea");
@@ -122,7 +122,7 @@ namespace IPS_TH.Controllers.ESMMS
         [HttpGet]
         public async Task<IActionResult> question_bank()
         {
-            await LoadPermissions("ESMMS", "course");
+            await LoadPermissions("ESMMS", "question_bank");
             return RedirectToAction(nameof(course));
         }
 
@@ -132,7 +132,7 @@ namespace IPS_TH.Controllers.ESMMS
         [HttpGet]
         public async Task<IActionResult> course()
         {
-            await LoadPermissions("ESMMS", "course");
+            await LoadPermissions("ESMMS", "question_bank");
 
             var items = await _context
                 .esmms_course
@@ -154,6 +154,7 @@ namespace IPS_TH.Controllers.ESMMS
                     x.description_th,
                     x.description_en,
                     x.random_question_count,
+                    x.pass_score,
                     x.dl,
                     x.idl, 
                     x.wi,
@@ -169,9 +170,6 @@ namespace IPS_TH.Controllers.ESMMS
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCourse(esmms_course input)
         {
-            if (!CheckPermission("CanAdd") && !IsCurrentUserAdmin)
-                return ErrorResponse("คุณไม่มีสิทธิ์เพิ่มข้อมูล");
-
             if (!ModelState.IsValid)
                 return ErrorResponse("กรุณากรอกข้อมูลให้ครบถ้วน");
 
@@ -190,9 +188,6 @@ namespace IPS_TH.Controllers.ESMMS
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditCourse(esmms_course input)
         {
-            if (!CheckPermission("CanEdit") && !IsCurrentUserAdmin)
-                return ErrorResponse("คุณไม่มีสิทธิ์แก้ไขข้อมูล");
-
             if (!ModelState.IsValid)
                 return ErrorResponse("กรุณากรอกข้อมูลให้ครบถ้วน");
 
@@ -204,6 +199,7 @@ namespace IPS_TH.Controllers.ESMMS
             entity.description_th = input.description_th;
             entity.description_en = input.description_en;
             entity.random_question_count = input.random_question_count;
+            entity.pass_score = input.pass_score;
             entity.dl = input.dl;
             entity.idl = input.idl;
             entity.wi = input.wi;
@@ -214,6 +210,61 @@ namespace IPS_TH.Controllers.ESMMS
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(course));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCourse(int id)
+        {
+            var course = await _context.esmms_course.FirstOrDefaultAsync(x => x.id == id);
+            if (course == null)
+                return ErrorResponse("ไม่พบข้อมูลสำหรับลบ");
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // หา exam ทั้งหมดของคอร์สนี้
+                var examIds = await _context.esmms_exam
+                    .Where(e => e.course_id == id)
+                    .Select(e => e.id)
+                    .ToListAsync();
+
+                if (examIds.Count > 0)
+                {
+                    // ลบรายละเอียดข้อสอบของชุดสอบทั้งหมด
+                    var examDetails = _context.esmms_exam_detail.Where(d => examIds.Contains(d.exam_id));
+                    _context.esmms_exam_detail.RemoveRange(examDetails);
+
+                    // ลบรายการพนักงานในการสอบโดยอ้างอิง exam_id
+                    var examEmpsByExam = _context.esmms_exam_employee
+                        .Where(x => x.exam_id.HasValue && examIds.Contains(x.exam_id.Value));
+                    _context.esmms_exam_employee.RemoveRange(examEmpsByExam);
+
+                    // ลบชุดสอบ
+                    var exams = _context.esmms_exam.Where(e => examIds.Contains(e.id));
+                    _context.esmms_exam.RemoveRange(exams);
+                }
+
+                // ลบรายการพนักงานที่ผูกด้วย course_id โดยตรง
+                var examEmpsByCourse = _context.esmms_exam_employee.Where(x => x.course_id == id);
+                _context.esmms_exam_employee.RemoveRange(examEmpsByCourse);
+
+                // ลบธนาคารคำถามของคอร์สนี้ (ถ้ามี)
+                var questions = _context.esmms_question.Where(q => q.course_id == id);
+                _context.esmms_question.RemoveRange(questions);
+
+                // ลบคอร์ส
+                _context.esmms_course.Remove(course);
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+                return RedirectToAction(nameof(course));
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                return ErrorResponse($"ลบไม่สำเร็จ: {ex.Message}");
+            }
         }
     }
 }

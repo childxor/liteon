@@ -2290,27 +2290,18 @@
             border-color: #0d6efd !important;
         }
         
-        /* ปรับปรุงการแสดงผล scroll bar */
+        /* ลบ scrollbar ของ DataTable */
         .dataTables_scrollBody {
-            border: 1px solid #dee2e6 !important;
+            overflow: hidden !important;
+            height: auto !important;
         }
         
-        .dataTables_scrollBody::-webkit-scrollbar {
-            width: 8px !important;
-            height: 8px !important;
+        .dataTables_scrollHead {
+            overflow: hidden !important;
         }
         
-        .dataTables_scrollBody::-webkit-scrollbar-track {
-            background: #f1f1f1 !important;
-        }
-        
-        .dataTables_scrollBody::-webkit-scrollbar-thumb {
-            background: #888 !important;
-            border-radius: 4px !important;
-        }
-        
-        .dataTables_scrollBody::-webkit-scrollbar-thumb:hover {
-            background: #555 !important;
+        .dataTables_scroll {
+            overflow: visible !important;
         }
         
         /* ปรับปรุงการแสดงผล loading */
@@ -3658,25 +3649,50 @@
                                 render: function(data, type, row) {
                                     let displayText = '<span class="emp-name-text">' + row.personName + '</span>';
 
-                                    // แสดงข้อมูลตู้เก็บของหรือปุ่มเพิ่มตู้
+                                    // สัญลักษณ์แสดงสถานะโปร: true = ผ่านโปร, อื่นๆ = ยังไม่ผ่านโปร
+                                    // ใช้ไอคอนเล็ก ๆ ข้างชื่อ เพื่อไม่เพิ่มคอลัมน์ใหม่
+                                    var probationIcon = (row.probationPass === true)
+                                        ? ' <i class="fas fa-check-circle text-success ms-1" data-bs-toggle="tooltip" title="ผ่านโปรแล้ว"></i>'
+                                        : ' <i class="fas fa-hourglass-half text-muted ms-1" data-bs-toggle="tooltip" title="ยังไม่ผ่านโปร"></i>';
+                                    displayText += probationIcon;
+
+                                    // สัญลักษณ์ตู้แบบกระชับ (icon + tooltip)
                                     if (row.cabinetInfo && row.cabinetInfo.No) {
-                                            displayText += ' <span class="badge badge-sm bg-secondary bg-opacity-10 text-secondary border border-secondary ms-1 px-2 py-1">' +
-                                                '<i class="fas fa-archive me-1" style="font-size: 0.7rem;"></i>' + row.cabinetInfo.No +
-                                                '<button type="button" class="btn p-0 ms-1 border-0 bg-transparent text-danger" ' +
-                                                'onclick="removeCabinet(\'' + row.personID + '\', \'' + row.cabinetInfo.No + '\')" ' +
-                                                'data-bs-toggle="tooltip" title="ลบตู้" style="font-size: 0.7rem; line-height: 1;">' +
-                                                '<i class="fas fa-times"></i></button></span>';
+                                        displayText += ' <button type="button" class="btn p-0 border-0 bg-transparent text-secondary ms-1" ' +
+                                                       'onclick="removeCabinet(\'' + row.personID + '\', \'' + row.cabinetInfo.No + '\')" ' +
+                                                       'data-bs-toggle="tooltip" title="ตู้เลขที่ ' + row.cabinetInfo.No + ' (คลิกเพื่อลบ)">' +
+                                                       '<i class="fas fa-archive"></i></button>';
                                     } else {
-                                        displayText += ' <button type="button" class="btn btn-outline-primary btn-cabinet-add ms-1" ' +
-                                            'data-bs-toggle="modal" data-bs-target="#assignCabinetModal" ' +
-                                            'data-person-id="' + row.personID + '" ' +
-                                            'data-person-name="' + row.personName + '" ' +
-                                            'title="เพิ่มตู้เก็บของ">' +
-                                            '<i class="fas fa-plus"></i></button>';
+                                        displayText += ' <button type="button" class="btn p-0 border-0 bg-transparent text-primary ms-1 btn-cabinet-add" ' +
+                                                       'data-bs-toggle="modal" data-bs-target="#assignCabinetModal" ' +
+                                                       'data-person-id="' + row.personID + '" ' +
+                                                       'data-person-name="' + row.personName + '" ' +
+                                                       'title="เพิ่มตู้เก็บของ">' +
+                                                       '<i class="fas fa-box-open"></i></button>';
                                     }
 
+                                    // สัญลักษณ์คอมพิวเตอร์แบบกระชับ (icon + badge count + tooltip)
                                     if (row.computerCount > 0) {
-                                        displayText += ' <span class="badge badge-sm bg-info bg-opacity-10 text-info border border-info ms-1 px-2 py-1" onclick="showComputers(\'' + row.personID + '\')" data-bs-toggle="tooltip" title="ดูคอมพิวเตอร์ ' + row.computerCount + ' เครื่อง"><i class="fas fa-desktop me-1" style="font-size: 0.7rem;"></i>' + row.computerCount + '</span>';
+                                        displayText += ' <button type="button" class="btn p-0 border-0 bg-transparent text-info ms-1 position-relative" ' +
+                                                       'onclick="showComputers(\'' + row.personID + '\')" ' +
+                                                       'data-bs-toggle="tooltip" title="ดูคอมพิวเตอร์ ' + row.computerCount + ' เครื่อง">' +
+                                                       '<i class="fas fa-desktop"></i>' +
+                                                       '<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info text-white" style="font-size: 0.6rem;">' + row.computerCount + '</span>' +
+                                                       '</button>';
+                                    }
+
+                                    // สัญลักษณ์ชั่วโมง OT ของรอบเงินเดือนปัจจุบัน (Approved / On Approve)
+                                    var approved = Number(row.otPeriodApprovedHours || 0);
+                                    var onApprove = Number(row.otPeriodOnApproveHours || 0);
+                                    if ((approved + onApprove) > 0) {
+                                        var y = row.payPeriodYear || '';
+                                        var m = row.payPeriodMonth || '';
+                                        var p = row.payPeriodPeriod || '';
+                                        var tip = 'OT รอบปี ' + y + ' เดือน ' + m + ' งวด ' + p + ' - อนุมัติ: ' + approved + ' ชม., รออนุมัติ: ' + onApprove + ' ชม.';
+                                        displayText += ' <span class="badge bg-warning text-dark ms-1" data-bs-toggle="tooltip" title="' + tip + '">' +
+                                                       '<i class="fas fa-business-time me-1"></i>' +
+                                                       approved + '/' + onApprove + ' ชม.' +
+                                                       '</span>';
                                     }
                                     return displayText;
                                 }
@@ -4148,7 +4164,6 @@
                                 }
                             },
                             autoWidth: true,
-                            scrollX: true,
                             columnDefs: [
                                 { responsivePriority: 1, targets: [1, 2] }, // รหัสพนักงาน, ชื่อ - สำคัญสุด
                                 { responsivePriority: 2, targets: [8, 10] }, // เวลาเข้า-ออก, สถานะ - สำคัญรอง
@@ -5372,7 +5387,7 @@
                             statuses.push(`<span class="badge bg-${badgeColor} text-light"
                             data-bs-toggle="tooltip"
                             data-bs-html="true"
-                            data-bs-placement="right"
+                            data-bs-placement="right" 
                             data-bs-title="${tooltipContent}">
                             <i class="fas ${badgeIcon} me-1"></i>OT
                             <span class="badge bg-light text-dark ms-1">
@@ -5383,7 +5398,7 @@
                             if (row.lastTime < row.overtimeInfo.endTime) {
                                 statuses.push(`<span class="badge bg-warning text-dark">
                             <i class="fas fa-exclamation-triangle me-1"></i>โอทีไม่ครบ
-                            </span>`);
+                            </span>`); 
                             }
                         }
                         // ตรวจสอบว่าต้องขอโอทีหรือไม่ (ย้ายจากคอลัมน์เวลา)

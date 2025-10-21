@@ -119,11 +119,12 @@ namespace IPS_TH.Controllers
                 }
 
                 var identity = HttpContext.User?.Identity;
-                if (identity == null || !identity.IsAuthenticated)
-                {
-                    // หากไม่ใช่ Windows Auth ให้ย้อนกลับไปหน้า Login (fallback เฉพาะกรณีจำเป็น)
-                    return RedirectToAction("Login", "Authen");
-                }
+                //if (identity == null || !identity.IsAuthenticated)
+                //{
+                //    // หากไม่ใช่ Windows Auth ให้ย้อนกลับไปหน้า Login (fallback เฉพาะกรณีจำเป็น)
+                //    Console.WriteLine("No Windows Identity");
+                //    return RedirectToAction("Login", "Authen");
+                //}
 
                 var identityName = identity.Name ?? string.Empty; // รูปแบบ DOMAIN\\username
                 var parts = identityName.Split('\\');
@@ -180,8 +181,9 @@ namespace IPS_TH.Controllers
                 HttpContext.Session.SetString("AuthMode", "auto");
 
                 var deptInfo = await GetDeptInfoFromCES941ByAdUser(domainUsername);
-                HttpContext.Session.SetString("Department", deptInfo.TitleShort ?? string.Empty);
-                HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? string.Empty);
+                var deptInfoFromHRMIPS = await GetDeptInfoFromHRMIPSByAdUser(domainUsername);
+                HttpContext.Session.SetString("Department", deptInfo.TitleShort ?? deptInfoFromHRMIPS.TitleShort ?? string.Empty);
+                HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? deptInfoFromHRMIPS.WorkArea ?? string.Empty);
                 HttpContext.Session.SetString("UserName", domainUsername);
                 HttpContext.Session.SetString("EmployeeID", !string.IsNullOrEmpty(adUser?.EmployeeId) ? adUser.EmployeeId : (userAccount.Emp_no ?? string.Empty));
                 HttpContext.Session.SetString("EmployeeName", adUser?.DisplayName ?? ($"{adUser?.GivenName} {adUser?.Surname}".Trim())) ;
@@ -256,6 +258,21 @@ namespace IPS_TH.Controllers
             using (var connection = new SqlConnection(_ces941ConnectionString))
             {
                 var query = "SELECT TOP 1 TitleShort, WorkArea FROM vEmployee WHERE Language = 'EN' AND ADUser = @aduser";
+                var result = await connection.QueryAsync<dynamic>(query, new { aduser });
+                var row = result.FirstOrDefault();
+                return (row?.TitleShort?.ToString() ?? string.Empty, row?.WorkArea?.ToString() ?? string.Empty);
+            }
+        }
+
+        private async Task<(string TitleShort, string WorkArea)> GetDeptInfoFromHRMIPSByAdUser(string aduser)
+        {
+            if (string.IsNullOrWhiteSpace(aduser)) return (string.Empty, string.Empty);
+            using (var connection = new SqlConnection(_defaultConnectionString))
+            {
+                var query = @"SELECT top(1) Id, personID, name, isActive, RecordStatus, CREATEDATE, cardCategory, cardNumber, cardStatus, cardType, cardTypeDesc, deptID, deptName, disableDate, enableDate, leaveJobDate, modifyTime, password, reserve1, 
+                                     reserve2, reserve3, reserve4, reserveChar1, status, subSystem, superPassword, useCategory, useStatus, userLevel, shiftMent, ADUser, TitleShort, WorkArea
+                              FROM emp_person
+                              WHERE ADUser = @aduser and personID like '%-1'";
                 var result = await connection.QueryAsync<dynamic>(query, new { aduser });
                 var row = result.FirstOrDefault();
                 return (row?.TitleShort?.ToString() ?? string.Empty, row?.WorkArea?.ToString() ?? string.Empty);
@@ -379,9 +396,10 @@ namespace IPS_TH.Controllers
                 );
                 HttpContext.Session.SetString("IsAdmin", isAdmin.ToString());
                 HttpContext.Session.SetString("Language", userAccount.Language ?? "th");
-                var deptInfo = await GetDeptInfoFromCES941ByAdUser(domainUsername);
-                HttpContext.Session.SetString("Department", deptInfo.TitleShort ?? "");
-                HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? "");
+                var deptInfoFromCES941 = await GetDeptInfoFromCES941ByAdUser(domainUsername);
+                var deptInfoFromHRMIPS = await GetDeptInfoFromHRMIPSByAdUser(domainUsername);
+                HttpContext.Session.SetString("Department", deptInfoFromCES941.TitleShort ?? deptInfoFromHRMIPS.TitleShort ?? "");
+                HttpContext.Session.SetString("WorkArea", deptInfoFromCES941.WorkArea ?? deptInfoFromHRMIPS.WorkArea ?? "");
                 HttpContext.Session.SetString("UserName", domainUsername ?? "");
 
                 // โหลดข้อมูลภาษาเมื่อ login
@@ -568,7 +586,7 @@ namespace IPS_TH.Controllers
             ).OrderByDescending(u => u.LastLogin).ToList();
 
             bool isAdmin = userData.Any(u =>
-                u.RoleName.Equals("admin", StringComparison.OrdinalIgnoreCase)
+                u.RoleName.Equals("Administrators", StringComparison.OrdinalIgnoreCase)
             );
 
             // ส่งข้อูลไปยัง View หรือ JSON

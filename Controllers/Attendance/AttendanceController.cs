@@ -420,11 +420,21 @@ namespace IPS_TH.Controllers.Employee
                     }
                 }
 
+                // 3.2 ดึงงวดเงินเดือนทั้งหมดในช่วงที่เลือก และสร้างดัชนีสรุป OT แบบ query เดียว
+                var payPeriods = await GetPayPeriodsForDateRangeAsync(dateRange);
+                var overtimePeriodIndex = await BuildOvertimeSumsIndexAsync(payPeriods);
+
                 // 4. ประมวลผลข้อมูลตามช่วงวันที่
                 foreach (var date in dateRange)
                 {
-                    // 4.1 ดึงข้อมูลโอทีทั้งหมดในครั้งเดียว
+                    // 4.1 ดึงข้อมูลโอทีรายวัน
                     var overtimeDict = await GetAllOvertimeInfoDictionary(date);
+                    // 4.1.1 เลือกงวดที่ครอบคลุมวันปัจจุบันจากรายการ (ไม่ query ใหม่)
+                    var payPeriod = payPeriods.FirstOrDefault(p =>
+                        ((DateTime)p.StartDate).Date <= date.Date && ((DateTime)p.EndDate).Date >= date.Date
+                    );
+
+                    // ดึงยอด OT สะสมของงวดจากดัชนีแบบออฟไลน์: ใช้ overtimePeriodIndex ที่เตรียมไว้
 
                     var currentDate = date.ToString("yyyy-MM-dd");
                     await ProcessDateData(
@@ -435,6 +445,8 @@ namespace IPS_TH.Controllers.Employee
                         parameters.ShiftFilter,
                         resignationDict,
                         overtimeDict,
+                        payPeriod,
+                        overtimePeriodIndex,
                         showResigned,
                         cabinetResult,
                         hideResigned,
@@ -743,6 +755,197 @@ namespace IPS_TH.Controllers.Employee
             return result;
         }
 
+        // ไทย: ดึงรอบปิดเงินเดือนที่ครอบคลุมวันที่กำหนดจาก MPayPeriod
+        // 简中: 从 MPayPeriod 获取包含指定日期的薪资结算周期
+        private async Task<dynamic> GetPayPeriodForDateAsync(DateTime date)
+        {
+            using (var connection = new SqlConnection(_ces941ConnectionString))
+            {
+                await connection.OpenAsync();
+                var sql = @"
+                    SELECT TOP 1 Year, Month, Period, StartDate, EndDate, CloseDate
+                    FROM MPayPeriod
+                    WHERE CAST(@TheDate AS DATE) BETWEEN CAST(StartDate AS DATE) AND CAST(EndDate AS DATE)
+                    ORDER BY StartDate DESC";
+                var period = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { TheDate = date.ToString("yyyy-MM-dd") });
+                return period;
+            }
+        }
+
+        // ไทย: สรุปชั่วโมง OT ต่อพนักงานภายในช่วงงวดเงินเดือนของวันที่กำหนด
+        // 简中: 汇总指定日期所在结算周期内各员工的 OT 小时数
+        private async Task<Dictionary<string, dynamic>> GetOvertimeSumByPayPeriodAsync(DateTime date)
+        {
+            var sums = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var period = await GetPayPeriodForDateAsync(date);
+                if (period == null)
+                    return sums;
+
+                DateTime startDate = period.StartDate;
+                DateTime endDate = period.EndDate;
+
+                using (var connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    var sql = @"
+                        SELECT EmpNo,
+                               SUM(ISNULL(OTBfrQty,0) + ISNULL(OTNrmQty,0) + ISNULL(OTAftQty,0)) AS TotalHours
+                        FROM TOTPlan
+                        WHERE CAST(WrkDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+                          AND (ApprStatus IN ('Approved','On Approve'))
+                        GROUP BY EmpNo";
+
+                    var rows = await connection.QueryAsync<dynamic>(sql, new { StartDate = startDate, EndDate = endDate });
+                    foreach (var r in rows)
+                    {
+                        string empNo = r?.EmpNo?.ToString()?.Trim();
+                        if (string.IsNullOrEmpty(empNo))
+                            continue;
+                        decimal totalHours = 0m;
+                        try { totalHours = (decimal)(r.TotalHours ?? 0m); } catch { totalHours = 0m; }
+                        sums[empNo] = new
+                        {
+                            totalHours = totalHours,
+                            year = (int?)period.Year,
+                            month = (int?)period.Month,
+                            period = (int?)period.Period,
+                            startDate = (DateTime?)period.StartDate,
+                            endDate = (DateTime?)period.EndDate,
+                            closeDate = (DateTime?)period.CloseDate
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in GetOvertimeSumByPayPeriodAsync: {ex.Message}");
+            }
+            return sums;
+        }
+
+        // ไทย: ดึงช่วงงวดเงินเดือนทั้งหมดที่ทับซ้อนช่วงวันที่เลือก เพียงครั้งเดียว
+        private async Task<List<dynamic>> GetPayPeriodsForDateRangeAsync(IEnumerable<DateTime> dateRange)
+        {
+            var result = new List<dynamic>();
+            try
+            {
+                if (dateRange == null || !dateRange.Any()) return result;
+                var minDate = dateRange.Min().Date;
+                var maxDate = dateRange.Max().Date;
+                using (var connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    var sql = @"
+                        SELECT Year, Month, Period, StartDate, EndDate, CloseDate
+                        FROM MPayPeriod
+                        WHERE CAST(EndDate AS DATE) >= CAST(@MinDate AS DATE)
+                          AND CAST(StartDate AS DATE) <= CAST(@MaxDate AS DATE)
+                        ORDER BY StartDate DESC";
+                    var rows = await connection.QueryAsync<dynamic>(sql, new { MinDate = minDate, MaxDate = maxDate });
+                    result = rows.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in GetPayPeriodsForDateRangeAsync: {ex.Message}");
+            }
+            return result;
+        }
+
+        // ไทย: สร้างดัชนีสรุป OT ของทุกงวดในชุดที่กำหนด โดย query TOTPlan เพียงครั้งเดียวต่อช่วงวันรวม
+        private async Task<Dictionary<string, dynamic>> BuildOvertimeSumsIndexAsync(IEnumerable<dynamic> payPeriods)
+        {
+            // โครงสร้าง: key = EmpNo, value = { 'YYYY-M-P': { Approved: decimal, OnApprove: decimal } }
+            var index = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                if (payPeriods == null) return index;
+                var periods = payPeriods.ToList();
+                if (periods.Count == 0) return index;
+
+                // หา min/max คร่อมทุกงวด แล้วดึง TOTPlan ชุดใหญ่ครั้งเดียว
+                DateTime minDate = periods.Min(p => (DateTime)p.StartDate);
+                DateTime maxDate = periods.Max(p => (DateTime)p.EndDate);
+
+                using (var connection = new SqlConnection(_ces941ConnectionString))
+                {
+                    await connection.OpenAsync();
+                    var sql = @"
+                        WITH Base AS (
+                            SELECT EmpNo,
+                                   CAST(WrkDate AS DATE) AS WrkDate,
+                                   DteTmeStr,
+                                   DteTmeEnd,
+                                   ApprStatus,
+                                   ISNULL(OTBfrQty,0) + ISNULL(OTNrmQty,0) + ISNULL(OTAftQty,0) AS Hours
+                            FROM TOTPlan
+                            WHERE CAST(WrkDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+                              AND (ApprStatus IN ('Approved','On Approve'))
+                        ), Dedup AS (
+                            SELECT EmpNo,
+                                   WrkDate,
+                                   DteTmeStr,
+                                   DteTmeEnd,
+                                   MAX(Hours) AS Hours,
+                                   MAX(CASE WHEN ApprStatus = 'Approved' THEN 1 ELSE 0 END) AS HasApproved
+                            FROM Base
+                            GROUP BY EmpNo, WrkDate, DteTmeStr, DteTmeEnd
+                        )
+                        SELECT EmpNo,
+                               WrkDate,
+                               CASE WHEN HasApproved = 1 THEN 'Approved' ELSE 'On Approve' END AS ApprStatus,
+                               Hours
+                        FROM Dedup";
+
+                    var rows = await connection.QueryAsync<dynamic>(sql, new { StartDate = minDate, EndDate = maxDate });
+
+                    // เตรียมค้นหา period ที่ครอบคลุมแต่ละ WrkDate แบบออฟไลน์ และรวม Approved/On Approve แยกกัน
+                    foreach (var r in rows)
+                    {
+                        string empNo = r?.EmpNo?.ToString()?.Trim();
+                        if (string.IsNullOrEmpty(empNo)) continue;
+                        DateTime wrkDate = (DateTime)r.WrkDate;
+                        decimal hours = 0m; try { hours = (decimal)(r.Hours ?? 0m); } catch { hours = 0m; }
+                        string status = (r?.ApprStatus?.ToString() ?? "").Trim();
+
+                        var period = periods.FirstOrDefault(p => ((DateTime)p.StartDate).Date <= wrkDate.Date && ((DateTime)p.EndDate).Date >= wrkDate.Date);
+                        if (period == null) continue;
+                        string periodKey = $"{(int)period.Year}-{(int)period.Month}-{(int)period.Period}";
+
+                        if (!index.ContainsKey(empNo))
+                        {
+                            index[empNo] = new Dictionary<string, Dictionary<string, decimal>>(StringComparer.OrdinalIgnoreCase);
+                        }
+                        var empDict = index[empNo] as Dictionary<string, Dictionary<string, decimal>>;
+                        if (!empDict.ContainsKey(periodKey))
+                        {
+                            empDict[periodKey] = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                { "Approved", 0m },
+                                { "OnApprove", 0m }
+                            };
+                        }
+                        var bucket = empDict[periodKey];
+                        if (string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase))
+                        {
+                            bucket["Approved"] = (bucket.ContainsKey("Approved") ? bucket["Approved"] : 0m) + hours;
+                        }
+                        else
+                        {
+                            bucket["OnApprove"] = (bucket.ContainsKey("OnApprove") ? bucket["OnApprove"] : 0m) + hours;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in BuildOvertimeSumsIndexAsync: {ex.Message}");
+            }
+            return index;
+        }
+
         // ฟังก์ชันนี้จะดึงข้อมูลคอมพิวเตอร์ทั้งหมดและจัดกลุ่มตาม Owner (รหัสพนักงานเจ้าของ)
         private async Task<ILookup<string, dynamic>> GetComputersByOwnerAsync()
         {
@@ -777,6 +980,8 @@ namespace IPS_TH.Controllers.Employee
             string shiftFilter,
             Dictionary<string, dynamic> resignationDict,
             Dictionary<string, dynamic> overtimeDict,
+            dynamic payPeriod,
+            Dictionary<string, dynamic> overtimePeriodSums,
             bool showResigned = true,
             List<dynamic> cabinetResult = null,
             bool hideResigned = false,
@@ -784,7 +989,7 @@ namespace IPS_TH.Controllers.Employee
             bool showIncomplete = false,
             ILookup<string, dynamic> computersByOwner = null,
             dynamic currentShift = null,
-            Dictionary<string, string> workAreaDict = null
+            Dictionary<string, dynamic> workAreaDict = null
         )
         {
             using (var connection = new SqlConnection(_ces941ConnectionString))
@@ -808,6 +1013,8 @@ namespace IPS_TH.Controllers.Employee
                         shiftFilter,
                         resignationDict,
                         overtimeDict,
+                        payPeriod,
+                        overtimePeriodSums,
                         showResigned,
                         cabinetResult,
                         hideResigned,
@@ -1442,11 +1649,11 @@ namespace IPS_TH.Controllers.Employee
             return idx > 0 ? personId.Substring(0, idx) : personId;
         }
 
-        // ไทย: ดึง WorkArea เป็นพจนานุกรม EmpNo → WorkArea เพื่อใช้เป็นข้อมูลสำรองกรณี currentShift ไม่มีข้อมูล
-        // 简中: 拉取 WorkArea，构建 EmpNo → WorkArea 字典，作为 currentShift 缺失时的后备
-        private async Task<Dictionary<string, string>> GetWorkAreaDictionary(IEnumerable<string> empNos)
+        // ไทย: ดึง WorkArea และ ProbationPass เป็นพจนานุกรม EmpNo → { WorkArea, ProbationPass }
+        // 简中: 拉取 WorkArea 与 ProbationPass，构建 EmpNo → { WorkArea, ProbationPass } 字典
+        private async Task<Dictionary<string, dynamic>> GetWorkAreaDictionary(IEnumerable<string> empNos)
         {
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var dict = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
             if (empNos == null)
                 return dict;
 
@@ -1463,20 +1670,21 @@ namespace IPS_TH.Controllers.Employee
                 {
                     var batch = list.Skip(i).Take(batchSize).ToList();
                     var inClause = string.Join(",", batch.Select((_, idx) => $"@p{idx}"));
-                    var sql = $@"SELECT EmpNo, WorkArea FROM vEmployee WHERE EmpNo IN ({inClause})";
+                    var sql = $@"SELECT EmpNo, WorkArea, ProbationPass FROM vEmployee WHERE EmpNo IN ({inClause})";
                     var param = new DynamicParameters();
                     for (int idx = 0; idx < batch.Count; idx++)
                     {
                         param.Add($"@p{idx}", batch[idx]);
                     }
-                    var rows = await ces941.QueryAsync<dynamic>(sql, param);
+                    var rows = await ces941.QueryAsync<dynamic>(sql, param); 
                     foreach (var r in rows)
                     {
                         string key = r?.EmpNo?.ToString() ?? string.Empty;
                         string wa = r?.WorkArea?.ToString() ?? string.Empty;
+                        bool probationPass = r?.ProbationPass?.ToString() == "Y";
                         if (!string.IsNullOrWhiteSpace(key) && !dict.ContainsKey(key))
                         {
-                            dict[key] = wa;
+                            dict[key] = new { WorkArea = wa, ProbationPass = probationPass };
                         }
                     }
                 }
@@ -1494,6 +1702,8 @@ namespace IPS_TH.Controllers.Employee
             string shiftFilter, 
             Dictionary<string, dynamic> resignationDict,
             Dictionary<string, dynamic> overtimeDict,
+            dynamic payPeriod,
+            Dictionary<string, dynamic> overtimePeriodSums,
             bool showResigned = true,
             List<dynamic> cabinetResult = null,
             bool hideResigned = false,
@@ -1501,7 +1711,7 @@ namespace IPS_TH.Controllers.Employee
             bool showIncomplete = false,
             ILookup<string, dynamic> computersByOwner = null,
             dynamic currentShift = null,
-            Dictionary<string, string> workAreaDict = null
+            Dictionary<string, dynamic> workAreaDict = null
         )
         {
             try
@@ -1848,6 +2058,27 @@ namespace IPS_TH.Controllers.Employee
                     overtimeInfo = new { hasOvertime = false };
                 }
 
+                // 9.1 ยอดชั่วโมง OT สะสมตามงวดเงินเดือน (Approved / On Approve)
+                decimal otApprovedHours = 0m;
+                decimal otOnApproveHours = 0m;
+                if (!string.IsNullOrWhiteSpace(empNo) && overtimePeriodSums != null && payPeriod != null)
+                {
+                    try
+                    {
+                        string key = $"{(int?)payPeriod?.Year}-{(int?)payPeriod?.Month}-{(int?)payPeriod?.Period}";
+                        var empIndex = overtimePeriodSums.ContainsKey(empNo)
+                            ? (overtimePeriodSums[empNo] as Dictionary<string, Dictionary<string, decimal>>)
+                            : null;
+                        if (empIndex != null && key != null && empIndex.ContainsKey(key))
+                        {
+                            var bucket = empIndex[key];
+                            otApprovedHours = bucket.ContainsKey("Approved") ? bucket["Approved"] : 0m;
+                            otOnApproveHours = bucket.ContainsKey("OnApprove") ? bucket["OnApprove"] : 0m;
+                        }
+                    }
+                    catch { otApprovedHours = 0m; otOnApproveHours = 0m; }
+                }
+
                 if (hideAbsent && status == "Absent")
                 {
                     return null;
@@ -1868,11 +2099,17 @@ namespace IPS_TH.Controllers.Employee
 
                 // แปลง WorkArea และตรวจสอบสถานะลาออก (หาก WorkArea เป็น Unknown ให้ถือว่าเป็นลาออก)
                 var workArea = shiftfromsql944hrips?.WorkArea?.ToString();
-                if (string.IsNullOrWhiteSpace(workArea) && workAreaDict != null)
+                bool probationPass = false; // NULL หรือ N ให้ถือว่ายังไม่ผ่าน
+                if (workAreaDict != null && !string.IsNullOrWhiteSpace(empNo) && workAreaDict.ContainsKey(empNo))
                 {
-                    // ไทย: ใช้ fallback จาก dictionary ที่ดึงโดย EmpNo → WorkArea
-                    // 简中: 使用 EmpNo → WorkArea 的字典作为后备
-                    workArea = workAreaDict.ContainsKey(empNo ?? string.Empty) ? workAreaDict[empNo ?? string.Empty] : workArea;
+                    // ไทย: ใช้ข้อมูลจาก dictionary ซึ่งมีทั้ง WorkArea และ ProbationPass
+                    // 简中: 使用字典中的 WorkArea 与 ProbationPass
+                    var empInfo = workAreaDict[empNo];
+                    if (string.IsNullOrWhiteSpace(workArea))
+                    {
+                        workArea = empInfo?.WorkArea?.ToString();
+                    }
+                    probationPass = (empInfo?.ProbationPass == true);
                 }
                 var deptNameResolved = string.IsNullOrWhiteSpace(workArea) ? "Unknown" : workArea;
                 isResigned = isResigned || string.Equals(deptNameResolved, "Unknown", StringComparison.OrdinalIgnoreCase);
@@ -1889,6 +2126,15 @@ namespace IPS_TH.Controllers.Employee
                     personID = personId,
                     personName = person?.name ?? "Unknown",
                     deptName = deptNameResolved,
+                    probationPass = probationPass,
+                    otPeriodApprovedHours = otApprovedHours,
+                    otPeriodOnApproveHours = otOnApproveHours,
+                    payPeriodYear = (int?)payPeriod?.Year,
+                    payPeriodMonth = (int?)payPeriod?.Month,
+                    payPeriodPeriod = (int?)payPeriod?.Period,
+                    payPeriodStart = (DateTime?)payPeriod?.StartDate,
+                    payPeriodEnd = (DateTime?)payPeriod?.EndDate,
+                    payPeriodClose = (DateTime?)payPeriod?.CloseDate,
                     rDate = currentDate,
                     shift_group = resultDataPlan?.workplan_id ?? "Unknown",
                     shift = resultDataPlan?.shift_code ?? "Unknown",
@@ -3031,7 +3277,7 @@ namespace IPS_TH.Controllers.Employee
                     string eventCode = "0000"; // ค่าเริ่มต้นเป็นการออก
                     if (type == "in" || type == "inDay")
                     {
-                        eventCode = "0001"; // รหัสเข้างาน
+                        eventCode = "0001"; // รหัสเข้างาน 
                     }
 
                     // สร้างข้อมูลสำหรับบันทึก

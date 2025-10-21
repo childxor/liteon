@@ -116,8 +116,8 @@
                         <i class="fas fa-users fa-2x text-rainy-primary"></i>
                     </div>
                     <div>
-                        <h4 class="section-title mb-1">สรุปข้อมูลพนักงาน</h4>
-                        <p class="section-subtitle mb-0">Employee Statistics Overview</p>
+                        <h4 class="section-title mb-1">@Context.Session.GetTranslation("employee_statistics_title")</h4>
+                        <p class="section-subtitle mb-0">@Context.Session.GetTranslation("employee_statistics_subtitle")</p>
                     </div>
                 </div>
             </div>
@@ -127,10 +127,10 @@
                         <div class="card-body text-center py-3">
                             <div class="d-flex align-items-center justify-content-center mb-2">
                                 <i class="fas fa-users fa-lg text-rainy-primary me-2"></i>
-                                <span class="badge bg-rainy-primary rounded-pill small">ทั้งหมด</span>
+                                <span class="badge bg-rainy-primary rounded-pill small">@Context.Session.GetTranslation("all_items")</span>
                             </div>
                             <h4 class="fw-bold text-rainy-dark mb-1" id="totalEmployees">0</h4>
-                            <p class="card-text text-rainy-muted small mb-0">พนักงานทั้งหมด</p>
+                            <p class="card-text text-rainy-muted small mb-0">@Context.Session.GetTranslation("all_employees")</p>
                             <div class="progress mt-2" style="height: 4px;">
                                 <div class="progress-bar bg-rainy-primary" style="width: 100%"></div>
                             </div>
@@ -145,7 +145,7 @@
                                 <span class="badge bg-rainy-success rounded-pill small" id="activePercent">0%</span>
                             </div>
                             <h4 class="fw-bold text-rainy-dark mb-1" id="activeEmployees">0</h4>
-                            <p class="card-text text-rainy-muted small mb-0">พนักงานปัจจุบัน</p>
+                            <p class="card-text text-rainy-muted small mb-0">@Context.Session.GetTranslation("current_employees")</p>
                             <div class="progress mt-2" style="height: 4px;">
                                 <div class="progress-bar bg-rainy-success" id="activeProgress" style="width: 0%"></div>
                             </div>
@@ -160,7 +160,7 @@
                                 <span class="badge bg-rainy-warning rounded-pill small" id="newPercent">0%</span>
                             </div>
                             <h4 class="fw-bold text-rainy-dark mb-1" id="newEmployees">0</h4>
-                            <p class="card-text text-rainy-muted small mb-0">พนักงานใหม่เดือนนี้</p>
+                            <p class="card-text text-rainy-muted small mb-0">@Context.Session.GetTranslation("new_employees_this_month")</p>
                             <div class="progress mt-2" style="height: 4px;">
                                 <div class="progress-bar bg-rainy-warning" id="newProgress" style="width: 0%"></div>
                             </div>
@@ -175,7 +175,7 @@
                                 <span class="badge bg-rainy-danger rounded-pill small" id="resignedPercent">0%</span>
                             </div>
                             <h4 class="fw-bold text-rainy-dark mb-1" id="resignedEmployees">0</h4>
-                            <p class="card-text text-rainy-muted small mb-0">ลาออกเดือนนี้</p>
+                            <p class="card-text text-rainy-muted small mb-0">@Context.Session.GetTranslation("resigned_this_month")</p>
                             <div class="progress mt-2" style="height: 4px;">
                                 <div class="progress-bar bg-rainy-danger" id="resignedProgress" style="width: 0%"></div>
                             </div>
@@ -194,11 +194,11 @@
                             <i class="fas fa-phone fa-2x text-primary"></i>
                         </div>
                         <div>
-                            <h4 class="section-title mb-1">รายชื่อที่มีเบอร์โทรศัพท์</h4>
-                            <p class="section-subtitle mb-0">เบอร์โทรศัพท์ที่มีอยู่ในระบบเป็นเบอร์โต๊ะทำงาน</p>
+                            <h4 class="section-title mb-1">@Context.Session.GetTranslation("phone_list_title")</h4>
+                            <p class="section-subtitle mb-0">@Context.Session.GetTranslation("phone_list_subtitle")</p>
                         </div>
                     </div>
-                    <span class="badge bg-primary"><i class="fas fa-phone me-1"></i><span id="phoneCount">0 รายการ</span></span>
+                    <span class="badge bg-primary"><i class="fas fa-phone me-1"></i><span id="phoneCount">0 @Context.Session.GetTranslation("phone_count")</span></span>
                 </div>
             </div>
             <div class="card border-0 shadow-sm">
@@ -207,18 +207,18 @@
                     <div class="border rounded p-3 mb-3 bg-light">
                         <div class="row g-2 align-items-end"> 
                             <div class="col-md-4">
-                                <label class="form-label mb-1"><i class="fas fa-id-badge me-1 text-secondary"></i>ค้นหา/เพิ่มเบอร์ (PersonID)</label>
-                                <input type="text" class="form-control" id="inputFindPersonId" placeholder="เช่น 10129029">
+                                <label class="form-label mb-1"><i class="fas fa-id-badge me-1 text-secondary"></i>@Context.Session.GetTranslation("search_add_phone")</label>
+                                <input type="text" class="form-control" id="inputFindPersonId" placeholder="@Context.Session.GetTranslation("person_id_placeholder")">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label mb-1"><i class="fas fa-phone me-1 text-secondary"></i>เบอร์โทรศัพท์โต๊ะทำงาน</label>
-                                <input type="text" class="form-control" id="inputPhoneValue" placeholder="เช่น 344" disabled>
+                                <label class="form-label mb-1"><i class="fas fa-phone me-1 text-secondary"></i>@Context.Session.GetTranslation("desk_phone")</label>
+                                <input type="text" class="form-control" id="inputPhoneValue" placeholder="@Context.Session.GetTranslation("phone_placeholder")" disabled>
                             </div>
                             <div class="col-md-5">
                                 <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-primary" id="btnFindPerson"><i class="fas fa-user-search me-1"></i>ค้นหา</button>
-                                    <button type="button" class="btn btn-primary" id="btnSavePhone" disabled><i class="fas fa-save me-1"></i>บันทึกเบอร์</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="btnClearForm"><i class="fas fa-undo me-1"></i>ล้างฟอร์ม</button>
+                                    <button type="button" class="btn btn-outline-primary" id="btnFindPerson"><i class="fas fa-user-search me-1"></i>@Context.Session.GetTranslation("search")</button>
+                                    <button type="button" class="btn btn-primary" id="btnSavePhone" disabled><i class="fas fa-save me-1"></i>@Context.Session.GetTranslation("save_phone")</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="btnClearForm"><i class="fas fa-undo me-1"></i>@Context.Session.GetTranslation("clear_form")</button>
                                 </div>
                             </div>
                         </div>
@@ -226,10 +226,10 @@
                             <div class="alert alert-info mb-0 py-2">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div><i class="fas fa-user me-1 text-secondary"></i><strong>ชื่อ:</strong> <span id="resultName">-</span> <span class="text-muted">(<span id="resultPersonId">-</span>)</span></div>
-                                        <div class="small text-muted"><i class="fas fa-building me-1"></i><strong>แผนก:</strong> <span id="resultDept">-</span> | <i class="fas fa-id-card me-1"></i><strong>Card:</strong> <span id="resultCard">-</span></div>
+                                        <div><i class="fas fa-user me-1 text-secondary"></i><strong>@Context.Session.GetTranslation("name"):</strong> <span id="resultName">-</span> <span class="text-muted">(<span id="resultPersonId">-</span>)</span></div>
+                                        <div class="small text-muted"><i class="fas fa-building me-1"></i><strong>@Context.Session.GetTranslation("department"):</strong> <span id="resultDept">-</span> | <i class="fas fa-id-card me-1"></i><strong>Card:</strong> <span id="resultCard">-</span></div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenEditModal" style="display:none;"><i class="fas fa-pen me-1"></i>แก้ไขในหน้าต่าง</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenEditModal" style="display:none;"><i class="fas fa-pen me-1"></i>@Context.Session.GetTranslation("edit_in_window")</button>
                                 </div>
                             </div>
                         </div>
@@ -239,24 +239,24 @@
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">กำลังโหลด...</span>
                             </div>
-                            <p class="mt-2 text-muted">กำลังโหลดข้อมูลเบอร์โทรศัพท์...</p>
+                            <p class="mt-2 text-muted">@Context.Session.GetTranslation("loading_data")</p>
                         </div>
                         <div id="phoneTableError" class="text-center py-4" style="display: none;">
                             <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
-                            <p class="text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                            <p class="text-muted">@Context.Session.GetTranslation("loading_error")</p>
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadPhoneList()">
-                                <i class="fas fa-redo me-1"></i>ลองใหม่
+                                <i class="fas fa-redo me-1"></i>@Context.Session.GetTranslation("try_again")
                             </button>
                         </div>
                         <table class="table table-sm table-striped align-middle datatable" id="phoneTable" style="width: 100%">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 60px;"><i class="fas fa-hashtag me-1 text-secondary"></i>#</th>
-                                    <th><i class="fas fa-id-card me-1 text-secondary"></i>CardNumber</th>
-                                    <th><i class="fas fa-user me-1 text-secondary"></i>ชื่อ</th>
-                                    <th><i class="fas fa-building me-1 text-secondary"></i>แผนก</th>
-                                    <th><i class="fas fa-phone me-1 text-secondary"></i>เบอร์โทรศัพท์</th>
-                                    <th style="width: 160px;"><i class="fas fa-sliders-h me-1 text-secondary"></i>การจัดการ</th>
+                                    <th><i class="fas fa-id-card me-1 text-secondary"></i>@Context.Session.GetTranslation("card_number")</th>
+                                    <th><i class="fas fa-user me-1 text-secondary"></i>@Context.Session.GetTranslation("name")</th>
+                                    <th><i class="fas fa-building me-1 text-secondary"></i>@Context.Session.GetTranslation("department")</th>
+                                    <th><i class="fas fa-phone me-1 text-secondary"></i>@Context.Session.GetTranslation("phone_number")</th>
+                                    <th style="width: 160px;"><i class="fas fa-sliders-h me-1 text-secondary"></i>@Context.Session.GetTranslation("management")</th>
                                 </tr>
                             </thead>
                             <tbody id="phoneTableBody">
@@ -280,7 +280,7 @@
                     if(!list || list.length === 0){
                         // ล้างข้อมูลใน DataTable
                         window.phoneDataTable.clear().draw();
-                        document.getElementById('phoneCount').textContent = '0 รายการ';
+                        document.getElementById('phoneCount').textContent = '0 @Context.Session.GetTranslation("phone_count")';
                         return;
                     }
                     
@@ -306,7 +306,7 @@
                         window.phoneDataTable.clear().rows.add(tableData).draw();
                         
                         // อัปเดตจำนวนรายการ
-                        document.getElementById('phoneCount').textContent = (list.length || 0) + ' รายการ';
+                        document.getElementById('phoneCount').textContent = (list.length || 0) + ' @Html.Raw(Context.Session.GetTranslation("phone_count"))';
                     } catch (error) {
                         console.error('เกิดข้อผิดพลาดในการอัปเดต DataTable:', error);
                         // ลองเริ่มต้น DataTable ใหม่
@@ -319,7 +319,7 @@
                         setTimeout(() => {
                             if (window.phoneDataTable && window.phoneDataTable.clear) {
                                 window.phoneDataTable.clear().rows.add(tableData).draw();
-                                document.getElementById('phoneCount').textContent = (list.length || 0) + ' รายการ';
+                                document.getElementById('phoneCount').textContent = (list.length || 0) + ' @Html.Raw(Context.Session.GetTranslation("phone_count"))';
                             }
                         }, 100);
                     }
@@ -406,7 +406,7 @@
                         btnFind.addEventListener('click', function(){
                             const pid = (inputPid.value || '').trim();
                             if(!pid){
-                                Swal.fire({ icon: 'warning', title: 'กรุณาระบุ PersonID', timer: 1500, showConfirmButton: false });
+                                Swal.fire({ icon: 'warning', title: '@Context.Session.GetTranslation("please_enter_person_id")', timer: 1500, showConfirmButton: false });
                                 return;
                             }
                             fetch((window.appBasePath || '') + 'Home/FindPersonForPhone?personId=' + encodeURIComponent(pid))
@@ -427,11 +427,11 @@
                                             openEditModal(d.personID || pid, d.name || '-', d.deptName || '-', d.phone || '');
                                         };
                                     } else {
-                                        Swal.fire({ icon: 'warning', title: 'ไม่พบชื่อ', timer: 1500, showConfirmButton: false });
+                                        Swal.fire({ icon: 'warning', title: '@Context.Session.GetTranslation("name_not_found")', timer: 1500, showConfirmButton: false });
                                         resetForm();
                                     }
                                 })
-                                .catch(() => { Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการค้นหา', timer: 1800, showConfirmButton: false }); });
+                                .catch(() => { Swal.fire({ icon: 'error', title: '@Context.Session.GetTranslation("search_error")', timer: 1800, showConfirmButton: false }); });
                         });
                     }
 
@@ -439,7 +439,7 @@
                         btnSave.addEventListener('click', function(){
                             const pidShown = resultPersonId.textContent || (inputPid.value || '').trim();
                             const phoneVal = inputPhone.value || '';
-                            if(!pidShown){ Swal.fire({ icon: 'warning', title: 'ไม่พบ PersonID', timer: 1500, showConfirmButton: false }); return; }
+                            if(!pidShown){ Swal.fire({ icon: 'warning', title: '@Context.Session.GetTranslation("person_id_not_found")', timer: 1500, showConfirmButton: false }); return; }
                             fetch((window.appBasePath || '') + 'Home/UpdatePhone', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -449,12 +449,12 @@
                             .then(res => {
                                 if(res && res.success){
                                     loadPhoneList();
-                                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
+                                    Swal.fire({ icon: 'success', title: '@Context.Session.GetTranslation("save_success")', timer: 1500, showConfirmButton: false });
                                 } else {
-                                    Swal.fire({ icon: 'error', title: res?.message || 'บันทึกไม่สำเร็จ', timer: 1800, showConfirmButton: false });
+                                    Swal.fire({ icon: 'error', title: res?.message || '@Context.Session.GetTranslation("save_failed")', timer: 1800, showConfirmButton: false });
                                 }
                             })
-                            .catch(() => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการบันทึก', timer: 1800, showConfirmButton: false }));
+                            .catch(() => Swal.fire({ icon: 'error', title: '@Context.Session.GetTranslation("save_error")', timer: 1800, showConfirmButton: false }));
                         });
                     }
 
@@ -490,12 +490,12 @@
                                 if(res && res.success){
                                     editModal.hide();
                                     loadPhoneList();
-                                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
+                                    Swal.fire({ icon: 'success', title: '@Context.Session.GetTranslation("save_success")', timer: 1500, showConfirmButton: false });
                                 } else {
                                     Swal.fire({ icon: 'error', title: res?.message || 'บันทึกไม่สำเร็จ', timer: 1800, showConfirmButton: false });
                                 }
                             })
-                            .catch(() => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการบันทึก', timer: 1800, showConfirmButton: false }));
+                            .catch(() => Swal.fire({ icon: 'error', title: '@Context.Session.GetTranslation("save_error")', timer: 1800, showConfirmButton: false }));
                         });
                     }
 
@@ -525,12 +525,12 @@
                                 if(res && res.success){
                                     clearModal.hide();
                                     loadPhoneList();
-                                    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500, showConfirmButton: false });
+                                    Swal.fire({ icon: 'success', title: '@Context.Session.GetTranslation("delete_success")', timer: 1500, showConfirmButton: false });
                                 } else {
-                                    Swal.fire({ icon: 'error', title: res?.message || 'ลบไม่สำเร็จ', timer: 1800, showConfirmButton: false });
+                                    Swal.fire({ icon: 'error', title: res?.message || '@Context.Session.GetTranslation("delete_failed")', timer: 1800, showConfirmButton: false });
                                 }
                             })
-                            .catch(() => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการลบ', timer: 1800, showConfirmButton: false }));
+                            .catch(() => Swal.fire({ icon: 'error', title: '@Context.Session.GetTranslation("delete_error")', timer: 1800, showConfirmButton: false }));
                         });
                     }
 
@@ -559,30 +559,30 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-phone me-2"></i>แก้ไขเบอร์โทรศัพท์</h5>
+                        <h5 class="modal-title"><i class="fas fa-phone me-2"></i>@Context.Session.GetTranslation("edit_phone")</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-2">
-                            <label class="form-label mb-1">PersonID</label>
+                            <label class="form-label mb-1">@Context.Session.GetTranslation("person_id")</label>
                             <input type="text" class="form-control" id="editPersonId" disabled>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label mb-1">ชื่อ</label>
+                            <label class="form-label mb-1">@Context.Session.GetTranslation("name")</label>
                             <div class="form-control-plaintext" id="editName">-</div>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label mb-1">แผนก</label>
+                            <label class="form-label mb-1">@Context.Session.GetTranslation("department")</label>
                             <div class="form-control-plaintext" id="editDept">-</div>
                         </div>
                         <div>
-                            <label class="form-label mb-1">เบอร์โทรศัพท์</label>
-                            <input type="text" class="form-control" id="editPhone" placeholder="เช่น 0812345678">
+                            <label class="form-label mb-1">@Context.Session.GetTranslation("phone_number")</label>
+                            <input type="text" class="form-control" id="editPhone" placeholder="@Context.Session.GetTranslation("phone_edit_placeholder")">
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                        <button type="button" class="btn btn-primary" id="btnEditSave">บันทึก</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@Context.Session.GetTranslation("close")</button>
+                        <button type="button" class="btn btn-primary" id="btnEditSave">@Context.Session.GetTranslation("save")</button>
                     </div>
                 </div>
             </div>
@@ -593,16 +593,16 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบเบอร์</h5>
+                        <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>@Context.Session.GetTranslation("confirm_delete_phone")</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="clearPersonId">
-                        ต้องการลบเบอร์ของ <strong id="clearName">-</strong> ใช่หรือไม่?
+                        @Context.Session.GetTranslation("confirm_delete_message") <strong id="clearName">-</strong> @Context.Session.GetTranslation("confirm_question")?
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                        <button type="button" class="btn btn-danger" id="btnClearConfirm">ลบ</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@Context.Session.GetTranslation("cancel")</button>
+                        <button type="button" class="btn btn-danger" id="btnClearConfirm">@Context.Session.GetTranslation("delete")</button>
                     </div>
                 </div>
             </div>
@@ -620,12 +620,12 @@
                                     <i class="fas fa-archive fa-2x text-rainy-secondary"></i>
                                 </div>
                                 <div>
-                                    <h4 class="section-title mb-1">สรุปข้อมูลตู้เก็บของ</h4>
-                                    <p class="section-subtitle mb-0">Cabinet Management Overview</p>
+                                    <h4 class="section-title mb-1">@Context.Session.GetTranslation("cabinet_management_title")</h4>
+                                    <p class="section-subtitle mb-0">@Context.Session.GetTranslation("cabinet_management_subtitle")</p>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="btnToggleCabinetDetails">
-                                <i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด
+                                <i class="fas fa-chevron-down me-1"></i>@Context.Session.GetTranslation("show_details")
                             </button>
                         </div>
                     </div>
@@ -767,12 +767,12 @@
                                     <i class="fas fa-laptop fa-2x text-rainy-info"></i>
                                 </div>
                                 <div>
-                                    <h4 class="section-title mb-1">สรุปข้อมูลคอมพิวเตอร์</h4>
-                                    <p class="section-subtitle mb-0">Computer Asset Management Overview</p>
+                                    <h4 class="section-title mb-1">@Context.Session.GetTranslation("computer_management_title")</h4>
+                                    <p class="section-subtitle mb-0">@Context.Session.GetTranslation("computer_management_subtitle")</p>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-outline-info btn-sm" id="btnToggleComputerDetails">
-                                <i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด
+                                <i class="fas fa-chevron-down me-1"></i>@Context.Session.GetTranslation("show_details")
                             </button>
                         </div>
                     </div>
@@ -2174,34 +2174,34 @@
                     data: [],
                     columns: [
                         { title: '#', width: '60px' },
-                        { title: 'CardNumber' },
-                        { title: 'ชื่อ' },
-                        { title: 'แผนก' },
-                        { title: 'เบอร์โทรศัพท์' },
-                        { title: 'การจัดการ', width: '160px', orderable: false, searchable: false }
+                        { title: '@Context.Session.GetTranslation("card_number")' },
+                        { title: '@Context.Session.GetTranslation("name")' },
+                        { title: '@Context.Session.GetTranslation("department")' },
+                        { title: '@Context.Session.GetTranslation("phone_number")' },
+                        { title: '@Context.Session.GetTranslation("management")', width: '160px', orderable: false, searchable: false }
                     ],
                     language: {
                         url: '/js/datatables/i18n/th.json',
-                        search: "ค้นหา:",
-                        lengthMenu: "แสดง _MENU_ รายการต่อหน้า",
-                        info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
-                        infoEmpty: "แสดง 0 ถึง 0 จาก 0 รายการ",
-                        infoFiltered: "(กรองจาก _MAX_ รายการทั้งหมด)",
+                        search: "@Context.Session.GetTranslation("search_placeholder")",
+                        lengthMenu: "@Context.Session.GetTranslation("length_menu")",
+                        info: "@Context.Session.GetTranslation("info")",
+                        infoEmpty: "@Context.Session.GetTranslation("info_empty")",
+                        infoFiltered: "@Context.Session.GetTranslation("info_filtered")",
                         paginate: {
-                            first: "หน้าแรก",
-                            previous: "ก่อนหน้า",
-                            next: "ถัดไป",
-                            last: "หน้าสุดท้าย"
+                            first: "@Context.Session.GetTranslation("first_page")",
+                            previous: "@Context.Session.GetTranslation("previous_page")",
+                            next: "@Context.Session.GetTranslation("next_page")",
+                            last: "@Context.Session.GetTranslation("last_page")"
                         },
-                        emptyTable: "ไม่มีข้อมูลในตาราง",
-                        zeroRecords: "ไม่พบข้อมูลที่ค้นหา"
+                        emptyTable: "@Context.Session.GetTranslation("empty_table")",
+                        zeroRecords: "@Context.Session.GetTranslation("zero_records")"
                     },
                     responsive: {
                         details: {
                             display: $.fn.dataTable.Responsive.display.modal({
                                 header: function(row) {
                                     var data = row.data();
-                                    return '<h5 class="modal-title">รายละเอียด: ' + data[2] + '</h5>';
+                                    return '<h5 class="modal-title">@Context.Session.GetTranslation("details")' + data[2] + '</h5>';
                                 }
                             }),
                             renderer: $.fn.dataTable.Responsive.renderer.tableAll({
@@ -2213,7 +2213,7 @@
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6"f>>' +
                          '<"row"<"col-md-12"tr>>' +
                          '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
-                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "@Context.Session.GetTranslation("all_items")"]],
                     pageLength: 10,
                     order: [[0, 'asc']],
                     columnDefs: [
@@ -3383,12 +3383,28 @@
                 $.ajax({
                     url: appBasePath + 'Home/ChangeLanguage',
                     type: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     data: {
                         lang: lang
                     },
                     success: function (response) {
                         if (response.success) {
-                            location.reload();
+                            // แทนที่จะ reload ทั้งหน้า ให้โหลดข้อมูลภาษาใหม่และแปลหน้า
+                            loadLanguageData(getModuleIdFromUrl(), function() {
+                                translatePage();
+                                
+                                // อัปเดต language selector
+                                if ($('#languageSelector').length) {
+                                    $('#languageSelector').val(lang);
+                                }
+                                
+                                // แสดงข้อความแจ้งเตือน
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.success('เปลี่ยนภาษาเป็น ' + getLanguageName(lang) + ' เรียบร้อยแล้ว');
+                                }
+                            });
                         } else {
                             showError('@Context.Session.GetTranslation("cannot_change_language")');
                         }
@@ -3438,11 +3454,11 @@
                 
                 if ($detailsSection.is(':visible')) {
                     $detailsSection.slideUp(300);
-                    $btn.html('<i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด');
+                    $btn.html('<i class="fas fa-chevron-down me-1"></i>@Context.Session.GetTranslation("show_details")');
                     $btn.removeClass('btn-primary active').addClass('btn-outline-primary');
                 } else {
                     $detailsSection.slideDown(300);
-                    $btn.html('<i class="fas fa-chevron-up me-1"></i>ซ่อนรายละเอียด');
+                    $btn.html('<i class="fas fa-chevron-up me-1"></i>@Context.Session.GetTranslation("hide_details")');
                     $btn.removeClass('btn-outline-primary').addClass('btn-primary active');
                 }
             });
@@ -3454,11 +3470,11 @@
                 
                 if ($detailsSection.is(':visible')) {
                     $detailsSection.slideUp(300);
-                    $btn.html('<i class="fas fa-chevron-down me-1"></i>แสดงรายละเอียด');
+                    $btn.html('<i class="fas fa-chevron-down me-1"></i>@Context.Session.GetTranslation("show_details")');
                     $btn.removeClass('btn-info active').addClass('btn-outline-info');
                 } else {
                     $detailsSection.slideDown(300);
-                    $btn.html('<i class="fas fa-chevron-up me-1"></i>ซ่อนรายละเอียด');
+                    $btn.html('<i class="fas fa-chevron-up me-1"></i>@Context.Session.GetTranslation("hide_details")');
                     $btn.removeClass('btn-outline-info').addClass('btn-info active');
                 }
             });

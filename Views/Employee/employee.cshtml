@@ -594,7 +594,7 @@
                         if (useDict) {
                             applyAndDraw(useDict);
                         } else {
-                            $.get('/OracleStations/GetPdlines')
+                            $.get('@Url.Action("GetPdlines","OracleStations")')
                                 .done(function(pdlines){
                                     var dict = {};
                                     if (Array.isArray(pdlines)) {
@@ -652,7 +652,7 @@
                     // สร้าง Sheet สรุปภาพรวมสิทธิ์ประตู
                     var overviewData = createDoorAccessOverviewSheet(data);
                     var overviewWs = XLSX.utils.aoa_to_sheet(overviewData);
-                    // ปรับความกว้างคอลัมน์สำหรับชีตภาพรวมสิทธิ์
+                    // ปรับความกว้างคอลัมน์สำหรับชีตภาพรวมสิทธิ์  
                     overviewWs['!cols'] = [
                         { wch: 20 }, // Department
                         { wch: 15 }, // Employee ID
@@ -1194,7 +1194,7 @@
                     info: true,
                     order: [[2, 'desc']], // เรียงตาม jobgrade (column index 2) จากมากไปน้อย
                     ajax: {
-                        url: appBasePath + 'Employee/GetEmployeesData',
+                        url: appBasePath + 'Employee/GetEmployeesListData',
                         type: 'GET',
                         data: function(d) {
                             d.status = $('#filter-storage').data('status');

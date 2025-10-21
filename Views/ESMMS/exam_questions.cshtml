@@ -1,8 +1,9 @@
 @using IPS_TH.Models.ESMMS
+@using IPS_TH.Extensions
 @model IEnumerable<esmms_question>
 
 @{
-    ViewData["Title"] = "จัดการข้อสอบรายคอร์ส";
+    ViewData["Title"] = Context.Session.GetTranslation("exam_questions_management_title");
     var selected = ViewBag.SelectedCourse as string ?? string.Empty;
 }
 
@@ -10,10 +11,10 @@
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-2">
-                <h5 class="mb-0">ข้อสอบตามคอร์ส</h5>
+                <h5 class="mb-0">@Context.Session.GetTranslation("exam_by_course")</h5>
                 <form method="get" asp-action="Index" asp-controller="ExamQuestion" class="d-flex align-items-center">
                     <select name="course_code" class="form-select form-select-sm me-2" onchange="this.form.submit()">
-                        <option value="">-- เลือกคอร์ส --</option>
+                        <option value="">-- @Context.Session.GetTranslation("select_course") --</option>
                         @foreach (var c in (IEnumerable<dynamic>)ViewBag.Courses)
                         {
                             <option value="@c.course_code"
@@ -21,11 +22,12 @@
                                 @c.description_en</option>
                         }
                     </select>
-                    <noscript><button class="btn btn-sm btn-secondary" type="submit">เลือก</button></noscript>
+                    <noscript><button class="btn btn-sm btn-secondary"
+                            type="submit">@Context.Session.GetTranslation("select")</button></noscript>
                 </form>
             </div>
             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
-                <i class="bi bi-plus-lg"></i> เพิ่มข้อสอบ
+                <i class="bi bi-plus-lg"></i> @Context.Session.GetTranslation("add_question")
             </button>
         </div>
         <div class="card-body p-3">
@@ -40,20 +42,20 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">เพิ่มข้อสอบ</h6>
+                <h6 class="modal-title">@Context.Session.GetTranslation("add_question")</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form asp-action="CreateQuestion" asp-controller="ExamQuestion" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <div class="modal-body">
-                    <div class="row g-2"> 
+                    <div class="row g-2">
                         <div class="col-12">
-                            <label class="form-label">คอร์ส (course_code)</label>
+                            <label class="form-label">@Context.Session.GetTranslation("course_code")</label>
                             <input name="course_code" class="form-control form-control-sm" maxlength="20" readonly
                                 value="@selected" required />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">คำถาม</label>
+                            <label class="form-label">@Context.Session.GetTranslation("question")</label>
                             <textarea name="question_text" class="form-control form-control-sm" rows="3"
                                 maxlength="1000" required></textarea>
                         </div>
@@ -62,29 +64,57 @@
                             <input type="file" name="image" accept="image/*" class="form-control form-control-sm" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก A</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_a")</label>
                             <input name="choice_a" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_a" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก B</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_b")</label>
                             <input name="choice_b" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_b" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก C</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_c")</label>
                             <input name="choice_c" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_c" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก D</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_d")</label>
                             <input name="choice_d" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_d" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
                         </div>
                         <div class="col-6">
+                            <label class="form-label">ตัวเลือก E</label>
+                            <input name="choice_e" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_e" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ตัวเลือก F</label>
+                            <input name="choice_f" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_f" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ตัวเลือก G</label>
+                            <input name="choice_g" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_g" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ตัวเลือก H</label>
+                            <input name="choice_h" class="form-control form-control-sm" maxlength="500" />
+                            <input type="file" name="image_h" accept="image/*"
+                                class="form-control form-control-sm mt-1" />
+                        </div>
+                        <div class="col-12">
                             <label class="form-label">คำตอบที่ถูกต้อง</label>
-                            <select name="correct_choice" class="form-select form-select-sm">
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                            </select>
+                            <textarea name="correct_answer" class="form-control form-control-sm" rows="2"
+                                maxlength="500" placeholder="กรอกคำตอบที่ถูกต้อง" required></textarea>
                         </div>
                         <div class="col-6">
                             <label class="form-label">คะแนน</label>
@@ -122,12 +152,12 @@
                     <input type="hidden" name="id" id="edit_id_q" />
                     <div class="row g-2">
                         <div class="col-12">
-                            <label class="form-label">คอร์ส (course_code)</label>
+                            <label class="form-label">@Context.Session.GetTranslation("course_code")</label>
                             <input name="course_code" id="edit_course_code_q" class="form-control form-control-sm"
                                 maxlength="20" readonly />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">คำถาม</label>
+                            <label class="form-label">@Context.Session.GetTranslation("question")</label>
                             <textarea name="question_text" id="edit_question_text_q"
                                 class="form-control form-control-sm" rows="3" maxlength="1000" required></textarea>
                         </div>
@@ -143,29 +173,81 @@
                                 class="form-control form-control-sm" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก A</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_a")</label>
                             <input name="choice_a" id="edit_a_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_a_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_a" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก B</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_b")</label>
                             <input name="choice_b" id="edit_b_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_b_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_b" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก C</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_c")</label>
                             <input name="choice_c" id="edit_c_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_c_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_c" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">ตัวเลือก D</label>
+                            <label class="form-label">@Context.Session.GetTranslation("option_d")</label>
                             <input name="choice_d" id="edit_d_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_d_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_d" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
                         </div>
                         <div class="col-6">
+                            <label class="form-label">ตัวเลือก E</label>
+                            <input name="choice_e" id="edit_e_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_e_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_e" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ตัวเลือก F</label>
+                            <input name="choice_f" id="edit_f_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_f_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_f" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ตัวเลือก G</label>
+                            <input name="choice_g" id="edit_g_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_g_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_g" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ตัวเลือก H</label>
+                            <input name="choice_h" id="edit_h_q" class="form-control form-control-sm" maxlength="500" />
+                            <div class="mt-1 d-flex align-items-center gap-2">
+                                <div id="prev_h_q" class="flex-grow-1 small text-muted">ไม่มีรูป</div>
+                                <input type="file" name="image_h" accept="image/*"
+                                    class="form-control form-control-sm" />
+                            </div>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label">คำตอบที่ถูกต้อง</label>
-                            <select name="correct_choice" id="edit_correct_q" class="form-select form-select-sm">
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                            </select>
+                            <textarea name="correct_answer" id="edit_correct_q" class="form-control form-control-sm"
+                                rows="2" maxlength="500" placeholder="กรอกคำตอบที่ถูกต้อง" required></textarea>
                         </div>
                         <div class="col-6">
                             <label class="form-label">คะแนน</label>
@@ -209,16 +291,118 @@
                         { data: null, title: '#', orderable: false, render: (d, t, r, m) => m.row + 1 },
                         { data: 'course_code', title: 'คอร์ส' },
                         { data: 'question_text', title: 'คำถาม' },
-                        { data: 'image_path', title: 'รูปภาพ', className: 'text-center', render: function (v) {
-                            if (!v) return '-';
-                            var src = v.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + v) : (APP_BASE + v);
-                            return '<img src="' + src + '" style="max-height:60px;" />';
-                        } },
-                        { data: 'choice_a', title: 'A' },
-                        { data: 'choice_b', title: 'B' },
-                        { data: 'choice_c', title: 'C' },
-                        { data: 'choice_d', title: 'D' },
-                        { data: 'correct_choice', title: 'คำตอบ' },
+                        {
+                            data: 'image_path', title: 'รูปภาพ', className: 'text-center', render: function (v) {
+                                if (!v) return '-';
+                                var src = v.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + v) : (APP_BASE + v);
+                                return '<img src="' + src + '" style="max-height:60px;" />';
+                            }
+                        },
+                        {
+                            data: null, title: 'A', render: function (d, t, row) {
+                                var txt = row.choice_a || '';
+                                var img = row.choice_a_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'B', render: function (d, t, row) {
+                                var txt = row.choice_b || '';
+                                var img = row.choice_b_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'C', render: function (d, t, row) {
+                                var txt = row.choice_c || '';
+                                var img = row.choice_c_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'D', render: function (d, t, row) {
+                                var txt = row.choice_d || '';
+                                var img = row.choice_d_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'E', render: function (d, t, row) {
+                                var txt = row.choice_e || '';
+                                var img = row.choice_e_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'F', render: function (d, t, row) {
+                                var txt = row.choice_f || '';
+                                var img = row.choice_f_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'G', render: function (d, t, row) {
+                                var txt = row.choice_g || '';
+                                var img = row.choice_g_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        {
+                            data: null, title: 'H', render: function (d, t, row) {
+                                var txt = row.choice_h || '';
+                                var img = row.choice_h_image_path || '';
+                                var esc = function (s) { return $('<div>').text(s || '').html(); };
+                                var html = txt ? esc(txt) : (img ? '(รูปภาพ)' : '-');
+                                if (img) {
+                                    var src = img.startsWith('/') ? (APP_BASE.replace(/\/$/, '') + img) : (APP_BASE + img);
+                                    html += '<div><img src="' + src + '" style="max-height:60px;" /></div>';
+                                }
+                                return html;
+                            }
+                        },
+                        { data: 'correct_answer', title: 'คำตอบ' },
                         { data: 'score', title: 'คะแนน', className: 'text-center' },
                         { data: 'is_active', title: 'สถานะ', className: 'text-center', render: v => v ? '<span class="badge text-bg-success">ใช้งาน</span>' : '<span class="badge text-bg-secondary">ปิด</span>' },
                         {
@@ -232,7 +416,19 @@
                                     + ' data-b="' + (row.choice_b || '').replace(/"/g, '&quot;') + '"'
                                     + ' data-c="' + (row.choice_c || '').replace(/"/g, '&quot;') + '"'
                                     + ' data-d="' + (row.choice_d || '').replace(/"/g, '&quot;') + '"'
-                                    + ' data-correct="' + (row.correct_choice || 'A') + '"'
+                                    + ' data-e="' + (row.choice_e || '').replace(/"/g, '&quot;') + '"'
+                                    + ' data-f="' + (row.choice_f || '').replace(/"/g, '&quot;') + '"'
+                                    + ' data-g="' + (row.choice_g || '').replace(/"/g, '&quot;') + '"'
+                                    + ' data-h="' + (row.choice_h || '').replace(/"/g, '&quot;') + '"'
+                                    + ' data-img-a="' + (row.choice_a_image_path || '') + '"'
+                                    + ' data-img-b="' + (row.choice_b_image_path || '') + '"'
+                                    + ' data-img-c="' + (row.choice_c_image_path || '') + '"'
+                                    + ' data-img-d="' + (row.choice_d_image_path || '') + '"'
+                                    + ' data-img-e="' + (row.choice_e_image_path || '') + '"'
+                                    + ' data-img-f="' + (row.choice_f_image_path || '') + '"'
+                                    + ' data-img-g="' + (row.choice_g_image_path || '') + '"'
+                                    + ' data-img-h="' + (row.choice_h_image_path || '') + '"'
+                                    + ' data-correct="' + (row.correct_answer || '').replace(/"/g, '&quot;') + '"'
                                     + ' data-score="' + (row.score || 1) + '"'
                                     + ' data-active="' + (row.is_active ? 'true' : 'false') + '">แก้ไข</button>';
                                 var delBtn = '<button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-id="' + row.id + '">ลบ</button>';
@@ -257,6 +453,10 @@
                     $('#edit_b_q').val(b.data('b'));
                     $('#edit_c_q').val(b.data('c'));
                     $('#edit_d_q').val(b.data('d'));
+                    $('#edit_e_q').val(b.data('e'));
+                    $('#edit_f_q').val(b.data('f'));
+                    $('#edit_g_q').val(b.data('g'));
+                    $('#edit_h_q').val(b.data('h'));
                     $('#edit_correct_q').val(b.data('correct'));
                     $('#edit_score_q').val(b.data('score'));
                     $('#edit_active_q').prop('checked', (b.data('active') === true || b.data('active') === 'true'));
@@ -267,6 +467,20 @@
                     } else {
                         $('#edit_image_preview').html('<span class="text-muted">ไม่มีรูป</span>');
                     }
+
+                    function setPrev(id, path) {
+                        if (!path) { $(id).html('<span class="text-muted">ไม่มีรูป</span>'); return; }
+                        var src = (typeof path === 'string' && path.startsWith('/')) ? (APP_BASE.replace(/\/$/, '') + path) : (APP_BASE + path);
+                        $(id).html('<img src="' + src + '" style="max-height:70px;" />');
+                    }
+                    setPrev('#prev_a_q', b.data('img-a'));
+                    setPrev('#prev_b_q', b.data('img-b'));
+                    setPrev('#prev_c_q', b.data('img-c'));
+                    setPrev('#prev_d_q', b.data('img-d'));
+                    setPrev('#prev_e_q', b.data('img-e'));
+                    setPrev('#prev_f_q', b.data('img-f'));
+                    setPrev('#prev_g_q', b.data('img-g'));
+                    setPrev('#prev_h_q', b.data('img-h'));
                     new bootstrap.Modal(document.getElementById('editModalQ')).show();
                 });
 

@@ -1,8 +1,9 @@
 @using IPS_TH.Models.ESMMS
+@using IPS_TH.Extensions
 @model IEnumerable<esmms_course>
 
 @{
-    ViewData["Title"] = "จัดการคอร์สฝึกอบรม";
+    ViewData["Title"] = Context.Session.GetTranslation("course_management_title");
     var permissions = ViewData["Permissions"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
     bool canAdd = (permissions.ContainsKey("CanAdd") && permissions["CanAdd"]) || (permissions.ContainsKey("IsAdmin") &&
     permissions["IsAdmin"]);
@@ -14,13 +15,13 @@
 <div class="container-fluid py-3 mt-4">
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0">จัดการคอร์สฝึกอบรม</h5>
+            <h5 class="mb-0">@Context.Session.GetTranslation("course_management_title")</h5>
             <div class="d-flex align-items-center">
                 <div id="dtButtons" class="me-2"></div>
                 @if (canAdd)
                 {
                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
-                        <i class="bi bi-plus-lg"></i> เพิ่มคอร์ส
+                        <i class="bi bi-plus-lg"></i> @Context.Session.GetTranslation("add_course")
                     </button>
                 }
             </div>
@@ -39,7 +40,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">เพิ่มคอร์ส</h6>
+                    <h6 class="modal-title">@Context.Session.GetTranslation("add_course")</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form asp-action="CreateCourse" asp-controller="ESMMS" method="post">
@@ -47,53 +48,62 @@
                     <div class="modal-body">
                         <div class="row g-2">
                             <div class="col-6">
-                                <label class="form-label">Course Code</label>
+                                <label class="form-label">@Context.Session.GetTranslation("course_code")</label>
                                 <input name="course_code" class="form-control form-control-sm" maxlength="20" required />
                             </div>
                             <div class="col-6">
-                                <label class="form-label">Expire</label>
+                                <label class="form-label">@Context.Session.GetTranslation("expire")</label>
                                 <input name="expire_period" class="form-control form-control-sm" maxlength="50"
-                                    placeholder="เช่น 1 year" />
+                                    placeholder="@Context.Session.GetTranslation("expire_placeholder")" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">คำอธิบาย (TH)</label>
+                                <label class="form-label">@Context.Session.GetTranslation("description_th")</label>
                                 <input name="description_th" class="form-control form-control-sm" maxlength="255" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">คำอธิบาย (EN)</label>
+                                <label class="form-label">@Context.Session.GetTranslation("description_en")</label>
                                 <input name="description_en" class="form-control form-control-sm" maxlength="255" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Trainer</label>
+                                <label class="form-label">@Context.Session.GetTranslation("trainer")</label>
                                 <input name="trainer" class="form-control form-control-sm" maxlength="100" />
                             </div>
                             <div class="col-6">
-                                <label class="form-label">จำนวนข้อที่จะสุ่ม</label>
+                                <label class="form-label">@Context.Session.GetTranslation("random_question_count")</label>
                                 <input type="number" name="random_question_count" class="form-control form-control-sm"
                                     min="1" step="1" value="10" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">@Context.Session.GetTranslation("pass_score")</label>
+                                <input type="number" name="pass_score" class="form-control form-control-sm" min="0" step="1"
+                                    value="8" />
                             </div>
                             <div class="col-12">
                                 <div class="d-flex gap-3">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" value="true" name="dl" id="dlCheck">
-                                        <label class="form-check-label" for="dlCheck">DL</label>
+                                        <label class="form-check-label"
+                                            for="dlCheck">@Context.Session.GetTranslation("dl")</label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" value="true" name="idl"
                                             id="idlCheck">
-                                        <label class="form-check-label" for="idlCheck">IDL</label>
+                                        <label class="form-check-label"
+                                            for="idlCheck">@Context.Session.GetTranslation("idl")</label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" value="true" name="wi" id="wiCheck">
-                                        <label class="form-check-label" for="wiCheck">WI</label>
+                                        <label class="form-check-label"
+                                            for="wiCheck">@Context.Session.GetTranslation("wi")</label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                        <button type="button" class="btn btn-light"
+                            data-bs-dismiss="modal">@Context.Session.GetTranslation("cancel")</button>
+                        <button type="submit" class="btn btn-primary">@Context.Session.GetTranslation("save")</button>
                     </div>
                 </form>
             </div>
@@ -106,7 +116,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">แก้ไขคอร์ส</h6>
+                <h6 class="modal-title">@Context.Session.GetTranslation("edit_course")</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form asp-action="EditCourse" asp-controller="ESMMS" method="post">
@@ -144,6 +154,11 @@
                             <input type="number" name="random_question_count" id="edit_random_question_count"
                                 class="form-control form-control-sm" min="1" step="1" />
                         </div>
+                        <div class="col-6">
+                            <label class="form-label">คะแนนผ่าน</label>
+                            <input type="number" name="pass_score" id="edit_pass_score"
+                                class="form-control form-control-sm" min="0" step="1" />
+                        </div>
                         <div class="col-12">
                             <div class="d-flex gap-3">
                                 <div class="form-check">
@@ -164,8 +179,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-light"
+                        data-bs-dismiss="modal">@Context.Session.GetTranslation("cancel")</button>
+                    <button type="submit" class="btn btn-primary">@Context.Session.GetTranslation("save")</button>
                 </div>
             </form>
         </div>
@@ -179,7 +195,19 @@
             var canEdit = @Json.Serialize(canEdit);
             try {
                 var table = $('#courseTable').DataTable({
-                    language: { url: '/js/datatables/i18n/th.json' },
+                    language: {
+                        search: '@Context.Session.GetTranslation("search")',
+                        lengthMenu: '@Context.Session.GetTranslation("show_entries")',
+                        info: '@Context.Session.GetTranslation("showing_entries")',
+                        paginate: {
+                            first: '@Context.Session.GetTranslation("first")',
+                            last: '@Context.Session.GetTranslation("last")',
+                            next: '@Context.Session.GetTranslation("next")',
+                            previous: '@Context.Session.GetTranslation("previous")'
+                        },
+                        emptyTable: '@Context.Session.GetTranslation("no_data_available")',
+                        zeroRecords: '@Context.Session.GetTranslation("no_matching_records")'
+                    },
                     responsive: true,
                     autoWidth: false,
                     processing: true,
@@ -198,11 +226,11 @@
                                 return meta.row + 1;
                             }
                         },
-                        { data: 'course_code', title: '<i class="fas fa-barcode me-1"></i> Course Code' },
-                        { data: 'description_th', title: '<i class="fas fa-comment-dots me-1"></i> คำอธิบาย (TH)' },
-                        { data: 'description_en', title: '<i class="fas fa-comment-alt me-1"></i> คำอธิบาย (EN)' },
+                        { data: 'course_code', title: '<i class="fas fa-barcode me-1"></i> @Context.Session.GetTranslation("course_code")' },
+                        { data: 'description_th', title: '<i class="fas fa-comment-dots me-1"></i> @Context.Session.GetTranslation("description_th")' },
+                        { data: 'description_en', title: '<i class="fas fa-comment-alt me-1"></i> @Context.Session.GetTranslation("description_en")' },
                         {
-                            data: 'dl', title: '<i class="fas fa-book-open me-1"></i> DL', className: 'text-center',
+                            data: 'dl', title: '<i class="fas fa-book-open me-1"></i> @Context.Session.GetTranslation("dl")', className: 'text-center',
                             render: function (val) {
                                 return '<div class="form-check form-switch d-inline-block m-0">'
                                     + '<input class="form-check-input" type="checkbox" ' + (val ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled') + '>'
@@ -211,7 +239,7 @@
                             }
                         },
                         {
-                            data: 'idl', title: '<i class="fas fa-book-reader me-1"></i> IDL', className: 'text-center',
+                            data: 'idl', title: '<i class="fas fa-book-reader me-1"></i> @Context.Session.GetTranslation("idl")', className: 'text-center',
                             render: function (val) {
                                 return '<div class="form-check form-switch d-inline-block m-0">'
                                     + '<input class="form-check-input" type="checkbox" ' + (val ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled') + '>'
@@ -220,7 +248,7 @@
                             }
                         },
                         {
-                            data: 'wi', title: '<i class="fas fa-file-alt me-1"></i> WI', className: 'text-center',
+                            data: 'wi', title: '<i class="fas fa-file-alt me-1"></i> @Context.Session.GetTranslation("wi")', className: 'text-center',
                             render: function (val) {
                                 return '<div class="form-check form-switch d-inline-block m-0">'
                                     + '<input class="form-check-input" type="checkbox" ' + (val ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled') + '>'
@@ -228,12 +256,13 @@
                                     + '</div>';
                             }
                         },
-                        { data: 'random_question_count', title: '<i class="fas fa-random me-1"></i> ข้อสุ่ม', className: 'text-center' },
-                        { data: 'expire_period', title: '<i class="fas fa-hourglass-end me-1"></i> Expire' },
-                        { data: 'trainer', title: '<i class="fas fa-chalkboard-teacher me-1"></i> Trainer' },
+                        { data: 'random_question_count', title: '<i class="fas fa-random me-1"></i> @Context.Session.GetTranslation("random_questions")', className: 'text-center' },
+                        { data: 'pass_score', title: '<i class="fas fa-check-circle me-1"></i> @Context.Session.GetTranslation("pass_score")', className: 'text-center' },
+                        { data: 'expire_period', title: '<i class="fas fa-hourglass-end me-1"></i> @Context.Session.GetTranslation("expire")' },
+                        { data: 'trainer', title: '<i class="fas fa-chalkboard-teacher me-1"></i> @Context.Session.GetTranslation("trainer")' },
                         {
                             data: null,
-                            title: '<i class="fas fa-cogs me-1"></i> Action',
+                            title: '<i class="fas fa-cogs me-1"></i> @Context.Session.GetTranslation("action")',
                             orderable: false,
                             className: 'text-end',
                             render: function (data, type, row) {
@@ -242,16 +271,16 @@
                                         'data-id="' + row.id + '" data-code="' + (row.course_code || '') + '" ' +
                                         'data-th="' + (row.description_th || '') + '" data-en="' + (row.description_en || '') + '" ' +
                                         'data-dl="' + (row.dl ? 'true' : 'false') + '" data-idl="' + (row.idl ? 'true' : 'false') + '" ' +
-                                        'data-wi="' + (row.wi ? 'true' : 'false') + '" data-rqc="' + (row.random_question_count || 0) + '" data-exp="' + (row.expire_period || '') + '" ' +
-                                        'data-tr="' + (row.trainer || '') + '">แก้ไข</button>';
+                                        'data-wi="' + (row.wi ? 'true' : 'false') + '" data-rqc="' + (row.random_question_count || 0) + '" data-ps="' + (row.pass_score || 0) + '" data-exp="' + (row.expire_period || '') + '" ' +
+                                        'data-tr="' + (row.trainer || '') + '">@Context.Session.GetTranslation("edit")</button>';
                                 } else {
                                     return '<button type="button" class="btn btn-outline-secondary btn-sm me-1 btn-edit" disabled>' +
-                                        'แก้ไข</button>';
+                                        '@Context.Session.GetTranslation("edit")</button>';
                                 }
                             }
                         }
                     ],
-                    // ซ่อนคอลัมน์แรก (index)
+                    // Hide first column
                     columnDefs: [
                         { targets: 0, visible: false }
                     ],
@@ -285,6 +314,7 @@
             $('#edit_idl').prop('checked', b.data('idl') === true || b.data('idl') === 'true');
             $('#edit_wi').prop('checked', b.data('wi') === true || b.data('wi') === 'true');
             $('#edit_random_question_count').val(b.data('rqc'));
+            $('#edit_pass_score').val(b.data('ps'));
             var modal = new bootstrap.Modal(document.getElementById('editModal'));
             modal.show();
         });

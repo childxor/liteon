@@ -36,10 +36,47 @@ namespace IPS_TH.Models.ESMMS
         [StringLength(500)]
         public string? choice_d { get; set; }
 
-        // ตัวเลือกที่ถูกต้อง: A/B/C/D
+        [StringLength(500)]
+        public string? choice_e { get; set; }
+
+        [StringLength(500)]
+        public string? choice_f { get; set; }
+
+        [StringLength(500)]
+        public string? choice_g { get; set; } 
+
+        [StringLength(500)]
+        public string? choice_h { get; set; }
+
+        // รูปภาพประกอบของตัวเลือก (path ใต้ wwwroot)
+        [StringLength(255)]
+        public string? choice_a_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_b_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_c_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_d_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_e_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_f_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_g_image_path { get; set; }
+
+        [StringLength(255)]
+        public string? choice_h_image_path { get; set; }
+
+        // คำตอบที่ถูกต้อง (เก็บเป็นข้อความจริง)
         [Required]
         [StringLength(1)]
-        public string correct_choice { get; set; } = "A";
+        public string correct_answer { get; set; } = string.Empty;
 
         public int score { get; set; } = 1;
 

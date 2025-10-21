@@ -10,7 +10,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 
-namespace IPS_TH.Controllers.ESMMS
+namespace IPS_TH.Controllers.ESMMS 
 {
     public class ExamQuestionController : BaseController
     {
@@ -19,7 +19,7 @@ namespace IPS_TH.Controllers.ESMMS
         [HttpGet]
         public async Task<IActionResult> Index(string course_code)
         {
-            await LoadPermissions("Exam", "ExamQuestion");
+            await LoadPermissions("ExamQuestion", "Index");
 
             var courses = await _context.esmms_course
                 .OrderBy(x => x.course_code)
@@ -35,7 +35,7 @@ namespace IPS_TH.Controllers.ESMMS
 
             return View("~/Views/ESMMS/exam_questions.cshtml", items);
         }
-
+ 
         [HttpGet]
         public async Task<IActionResult> GetQuestions(string course_code)
         {
@@ -62,19 +62,29 @@ namespace IPS_TH.Controllers.ESMMS
                 input.course_id = course?.id;
             }
 
-            // อัปโหลดรูปถ้ามี
+            // อัปโหลดรูปคำถามถ้ามี
             if (image != null && image.Length > 0)
             {
-                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "exam");
-                if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
-                var fileName = $"q_{DateTime.Now:yyyyMMddHHmmssfff}_{Path.GetFileName(image.FileName)}";
-                var fullPath = Path.Combine(uploadsDir, fileName);
-                using (var stream = new FileStream(fullPath, FileMode.Create))
-                {
-                    await image.CopyToAsync(stream);
-                }
-                input.image_path = $"uploads/exam/{fileName}";
+                input.image_path = await SaveUploadedImage(image, "q");
             }
+
+            // อัปโหลดรูปตัวเลือก A–H ถ้ามี (ชื่อฟิลด์ image_a ... image_h)
+            var fA = Request?.Form?.Files?.GetFile("image_a");
+            var fB = Request?.Form?.Files?.GetFile("image_b");
+            var fC = Request?.Form?.Files?.GetFile("image_c");
+            var fD = Request?.Form?.Files?.GetFile("image_d");
+            var fE = Request?.Form?.Files?.GetFile("image_e");
+            var fF = Request?.Form?.Files?.GetFile("image_f");
+            var fG = Request?.Form?.Files?.GetFile("image_g");
+            var fH = Request?.Form?.Files?.GetFile("image_h");
+            if (fA != null && fA.Length > 0) input.choice_a_image_path = await SaveUploadedImage(fA, "qa");
+            if (fB != null && fB.Length > 0) input.choice_b_image_path = await SaveUploadedImage(fB, "qb");
+            if (fC != null && fC.Length > 0) input.choice_c_image_path = await SaveUploadedImage(fC, "qc");
+            if (fD != null && fD.Length > 0) input.choice_d_image_path = await SaveUploadedImage(fD, "qd");
+            if (fE != null && fE.Length > 0) input.choice_e_image_path = await SaveUploadedImage(fE, "qe");
+            if (fF != null && fF.Length > 0) input.choice_f_image_path = await SaveUploadedImage(fF, "qf");
+            if (fG != null && fG.Length > 0) input.choice_g_image_path = await SaveUploadedImage(fG, "qg");
+            if (fH != null && fH.Length > 0) input.choice_h_image_path = await SaveUploadedImage(fH, "qh");
 
             input.created_at = System.DateTime.Now;
             input.updated_at = System.DateTime.Now;
@@ -114,13 +124,25 @@ namespace IPS_TH.Controllers.ESMMS
 
             if (image != null && image.Length > 0)
             {
-                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "exam");
-                if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
-                var fileName = $"q_{DateTime.Now:yyyyMMddHHmmssfff}_{Path.GetFileName(image.FileName)}";
-                using var stream = new FileStream(Path.Combine(uploadsDir, fileName), FileMode.Create);
-                await image.CopyToAsync(stream);
-                input.image_path = $"uploads/exam/{fileName}";
+                input.image_path = await SaveUploadedImage(image, "q");
             }
+
+            var fA = Request?.Form?.Files?.GetFile("image_a");
+            var fB = Request?.Form?.Files?.GetFile("image_b");
+            var fC = Request?.Form?.Files?.GetFile("image_c");
+            var fD = Request?.Form?.Files?.GetFile("image_d");
+            var fE = Request?.Form?.Files?.GetFile("image_e");
+            var fF = Request?.Form?.Files?.GetFile("image_f");
+            var fG = Request?.Form?.Files?.GetFile("image_g");
+            var fH = Request?.Form?.Files?.GetFile("image_h");
+            if (fA != null && fA.Length > 0) input.choice_a_image_path = await SaveUploadedImage(fA, "qa");
+            if (fB != null && fB.Length > 0) input.choice_b_image_path = await SaveUploadedImage(fB, "qb");
+            if (fC != null && fC.Length > 0) input.choice_c_image_path = await SaveUploadedImage(fC, "qc");
+            if (fD != null && fD.Length > 0) input.choice_d_image_path = await SaveUploadedImage(fD, "qd");
+            if (fE != null && fE.Length > 0) input.choice_e_image_path = await SaveUploadedImage(fE, "qe");
+            if (fF != null && fF.Length > 0) input.choice_f_image_path = await SaveUploadedImage(fF, "qf");
+            if (fG != null && fG.Length > 0) input.choice_g_image_path = await SaveUploadedImage(fG, "qg");
+            if (fH != null && fH.Length > 0) input.choice_h_image_path = await SaveUploadedImage(fH, "qh");
 
             input.created_at = DateTime.Now;
             input.updated_at = DateTime.Now;
@@ -141,7 +163,7 @@ namespace IPS_TH.Controllers.ESMMS
             if (entity == null) return ErrorResponse("ไม่พบข้อมูล");
 
             entity.course_code = input.course_code;
-            if (!string.IsNullOrEmpty(input.course_code))
+            if (!string.IsNullOrEmpty(input.course_code)) 
             {
                 var course = await _context.esmms_course.FirstOrDefaultAsync(c => c.course_code == input.course_code);
                 entity.course_id = course?.id;
@@ -151,21 +173,37 @@ namespace IPS_TH.Controllers.ESMMS
             entity.choice_b = input.choice_b;
             entity.choice_c = input.choice_c;
             entity.choice_d = input.choice_d;
-            entity.correct_choice = input.correct_choice;
+            entity.choice_e = input.choice_e;
+            entity.choice_f = input.choice_f;
+            entity.choice_g = input.choice_g;
+            entity.choice_h = input.choice_h;
+            entity.correct_answer = input.correct_answer;
             entity.score = input.score;
             entity.is_active = input.is_active;
 
             if (image != null && image.Length > 0)
             {
                 var oldImage = entity.image_path;
-                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "exam");
-                if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
-                var fileName = $"q_{DateTime.Now:yyyyMMddHHmmssfff}_{Path.GetFileName(image.FileName)}";
-                using var stream = new FileStream(Path.Combine(uploadsDir, fileName), FileMode.Create);
-                await image.CopyToAsync(stream);
-                entity.image_path = $"uploads/exam/{fileName}";
+                entity.image_path = await SaveUploadedImage(image, "q");
                 DeleteImageFileIfExists(oldImage);
             }
+
+            var fA = Request?.Form?.Files?.GetFile("image_a");
+            var fB = Request?.Form?.Files?.GetFile("image_b");
+            var fC = Request?.Form?.Files?.GetFile("image_c");
+            var fD = Request?.Form?.Files?.GetFile("image_d");
+            var fE = Request?.Form?.Files?.GetFile("image_e");
+            var fF = Request?.Form?.Files?.GetFile("image_f");
+            var fG = Request?.Form?.Files?.GetFile("image_g");
+            var fH = Request?.Form?.Files?.GetFile("image_h");
+            if (fA != null && fA.Length > 0) { var old = entity.choice_a_image_path; entity.choice_a_image_path = await SaveUploadedImage(fA, "qa"); DeleteImageFileIfExists(old); }
+            if (fB != null && fB.Length > 0) { var old = entity.choice_b_image_path; entity.choice_b_image_path = await SaveUploadedImage(fB, "qb"); DeleteImageFileIfExists(old); }
+            if (fC != null && fC.Length > 0) { var old = entity.choice_c_image_path; entity.choice_c_image_path = await SaveUploadedImage(fC, "qc"); DeleteImageFileIfExists(old); }
+            if (fD != null && fD.Length > 0) { var old = entity.choice_d_image_path; entity.choice_d_image_path = await SaveUploadedImage(fD, "qd"); DeleteImageFileIfExists(old); }
+            if (fE != null && fE.Length > 0) { var old = entity.choice_e_image_path; entity.choice_e_image_path = await SaveUploadedImage(fE, "qe"); DeleteImageFileIfExists(old); }
+            if (fF != null && fF.Length > 0) { var old = entity.choice_f_image_path; entity.choice_f_image_path = await SaveUploadedImage(fF, "qf"); DeleteImageFileIfExists(old); }
+            if (fG != null && fG.Length > 0) { var old = entity.choice_g_image_path; entity.choice_g_image_path = await SaveUploadedImage(fG, "qg"); DeleteImageFileIfExists(old); }
+            if (fH != null && fH.Length > 0) { var old = entity.choice_h_image_path; entity.choice_h_image_path = await SaveUploadedImage(fH, "qh"); DeleteImageFileIfExists(old); }
 
             entity.updated_at = DateTime.Now;
             entity.updated_by = GetCurrentUserName();
@@ -179,6 +217,14 @@ namespace IPS_TH.Controllers.ESMMS
             var entity = await _context.esmms_question.FirstOrDefaultAsync(q => q.id == id);
             if (entity == null) return ErrorResponse("ไม่พบข้อมูล");
             DeleteImageFileIfExists(entity.image_path);
+            DeleteImageFileIfExists(entity.choice_a_image_path);
+            DeleteImageFileIfExists(entity.choice_b_image_path);
+            DeleteImageFileIfExists(entity.choice_c_image_path);
+            DeleteImageFileIfExists(entity.choice_d_image_path);
+            DeleteImageFileIfExists(entity.choice_e_image_path);
+            DeleteImageFileIfExists(entity.choice_f_image_path);
+            DeleteImageFileIfExists(entity.choice_g_image_path);
+            DeleteImageFileIfExists(entity.choice_h_image_path);
             _context.esmms_question.Remove(entity);
             await _context.SaveChangesAsync();
             return SuccessResponse();
@@ -208,7 +254,11 @@ namespace IPS_TH.Controllers.ESMMS
             entity.choice_b = input.choice_b;
             entity.choice_c = input.choice_c;
             entity.choice_d = input.choice_d;
-            entity.correct_choice = input.correct_choice;
+            entity.choice_e = input.choice_e;
+            entity.choice_f = input.choice_f;
+            entity.choice_g = input.choice_g;
+            entity.choice_h = input.choice_h;
+            entity.correct_answer = input.correct_answer;
             entity.score = input.score;
             entity.is_active = input.is_active;
 
@@ -216,17 +266,26 @@ namespace IPS_TH.Controllers.ESMMS
             if (image != null && image.Length > 0)
             {
                 var oldImage = entity.image_path;
-                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "exam");
-                if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
-                var fileName = $"q_{DateTime.Now:yyyyMMddHHmmssfff}_{Path.GetFileName(image.FileName)}";
-                var fullPath = Path.Combine(uploadsDir, fileName);
-                using (var stream = new FileStream(fullPath, FileMode.Create))
-                {
-                    await image.CopyToAsync(stream);
-                }
-                entity.image_path = $"uploads/exam/{fileName}";
+                entity.image_path = await SaveUploadedImage(image, "q");
                 DeleteImageFileIfExists(oldImage);
             }
+
+            var fA = Request?.Form?.Files?.GetFile("image_a");
+            var fB = Request?.Form?.Files?.GetFile("image_b");
+            var fC = Request?.Form?.Files?.GetFile("image_c");
+            var fD = Request?.Form?.Files?.GetFile("image_d");
+            var fE = Request?.Form?.Files?.GetFile("image_e");
+            var fF = Request?.Form?.Files?.GetFile("image_f");
+            var fG = Request?.Form?.Files?.GetFile("image_g");
+            var fH = Request?.Form?.Files?.GetFile("image_h");
+            if (fA != null && fA.Length > 0) { var old = entity.choice_a_image_path; entity.choice_a_image_path = await SaveUploadedImage(fA, "qa"); DeleteImageFileIfExists(old); }
+            if (fB != null && fB.Length > 0) { var old = entity.choice_b_image_path; entity.choice_b_image_path = await SaveUploadedImage(fB, "qb"); DeleteImageFileIfExists(old); }
+            if (fC != null && fC.Length > 0) { var old = entity.choice_c_image_path; entity.choice_c_image_path = await SaveUploadedImage(fC, "qc"); DeleteImageFileIfExists(old); }
+            if (fD != null && fD.Length > 0) { var old = entity.choice_d_image_path; entity.choice_d_image_path = await SaveUploadedImage(fD, "qd"); DeleteImageFileIfExists(old); }
+            if (fE != null && fE.Length > 0) { var old = entity.choice_e_image_path; entity.choice_e_image_path = await SaveUploadedImage(fE, "qe"); DeleteImageFileIfExists(old); }
+            if (fF != null && fF.Length > 0) { var old = entity.choice_f_image_path; entity.choice_f_image_path = await SaveUploadedImage(fF, "qf"); DeleteImageFileIfExists(old); }
+            if (fG != null && fG.Length > 0) { var old = entity.choice_g_image_path; entity.choice_g_image_path = await SaveUploadedImage(fG, "qg"); DeleteImageFileIfExists(old); }
+            if (fH != null && fH.Length > 0) { var old = entity.choice_h_image_path; entity.choice_h_image_path = await SaveUploadedImage(fH, "qh"); DeleteImageFileIfExists(old); }
 
             entity.updated_at = DateTime.Now;
             entity.updated_by = GetCurrentUserName();
@@ -245,9 +304,31 @@ namespace IPS_TH.Controllers.ESMMS
 
             var redirectCourse = entity.course_code ?? course_code;
             DeleteImageFileIfExists(entity.image_path);
+            DeleteImageFileIfExists(entity.choice_a_image_path);
+            DeleteImageFileIfExists(entity.choice_b_image_path);
+            DeleteImageFileIfExists(entity.choice_c_image_path);
+            DeleteImageFileIfExists(entity.choice_d_image_path);
+            DeleteImageFileIfExists(entity.choice_e_image_path);
+            DeleteImageFileIfExists(entity.choice_f_image_path);
+            DeleteImageFileIfExists(entity.choice_g_image_path);
+            DeleteImageFileIfExists(entity.choice_h_image_path);
             _context.esmms_question.Remove(entity);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index), new { course_code = redirectCourse });
+        }
+
+        private async Task<string> SaveUploadedImage(IFormFile file, string prefix)
+        {
+            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "exam");
+            if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
+            var sanitizedName = Path.GetFileName(file.FileName);
+            var fileName = $"{prefix}_{DateTime.Now:yyyyMMddHHmmssfff}_{sanitizedName}";
+            var fullPath = Path.Combine(uploadsDir, fileName);
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+            return $"uploads/exam/{fileName}";
         }
 
         private void DeleteImageFileIfExists(string? relativeOrAbsolutePath)

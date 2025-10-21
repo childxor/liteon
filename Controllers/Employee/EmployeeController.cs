@@ -38,6 +38,8 @@ namespace IPS_TH.Controllers.Employee
 
         private readonly IConfiguration _configuration;
 
+        private readonly string _oracleConnectionString;
+
         // sql944
         private readonly string _sql944ConnectionString;
 
@@ -58,6 +60,8 @@ namespace IPS_TH.Controllers.Employee
             _sql944ConnectionString = _configuration.GetConnectionString("SQL944");
             _hrIpsConnectionString = _configuration.GetConnectionString("HR_IPS");
             _ces941ConnectionString = _configuration.GetConnectionString("CES941");
+            _oracleConnectionString = _configuration.GetConnectionString("OracleConnection");
+
             _logger = logger;
         }
 
@@ -405,7 +409,7 @@ namespace IPS_TH.Controllers.Employee
             {
                 // ลบสิทธิ์เก่าที่อาจมี reserve1 = 2
                 await connection.ExecuteAsync(
-                    @"DELETE FROM PubDoorAuth WHERE PersonID IN (@personId1, @personId2) AND reserve1 = 2",
+                    @"DELETE FROM PubDoorAuth WHERE PersonID IN (@personId1, @personId2) AND (TRY_CAST(reserve1 AS INT) = 2 OR reserve1 = '2')",
                     new { personId1 = personId + "-1", personId2 = personId + "-2" }
                 );
 
@@ -1100,6 +1104,10 @@ namespace IPS_TH.Controllers.Employee
             {
                 using (IDbConnection db = new SqlConnection(_ces941ConnectionString))
                 {
+                    // ข้อมูลส่งมาแบบนี้ RM,SCM,SCMP
+                    // ต้องแปลงเป็น array เพื่อใช้กับ IN (@departments)
+                    var departments = department?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>();
+
                     string sql =
                         @"
                         SELECT 
@@ -1120,12 +1128,10 @@ namespace IPS_TH.Controllers.Employee
                             PassPort, TaxID, LeaveCalendarType, MFG, MROOrg, Expr1, 
                             CBasicDate, CComDate, TitleShort
                         FROM vEmployee
-                        WHERE Language = 'en'";
+                        WHERE Language = 'en'
+                        " + (departments.Length > 0 ? "AND WorkArea IN @departments" : "");
 
-                    // ย้ายเงื่อนไขการกรองตามสถานะการลาออกไปใช้ในตอนกรองข้อมูลหลังจากเปรียบเทียบแล้ว
-                    // ดึงข้อมูลทั้งหมดโดยไม่กรองเพื่อให้การเปรียบเทียบครบถ้วน
-
-                    var employees = await db.QueryAsync(sql);
+                    var employees = await db.QueryAsync(sql, new { departments });
                     return employees.ToList();
                 }
             }
@@ -1192,13 +1198,15 @@ namespace IPS_TH.Controllers.Employee
         }
 
         [HttpGet]
-        [Route("Employee/GetEmployeesData")]
-        public async Task<IActionResult> GetEmployees(
+        [Route("Employee/GetEmployeesListData")]
+        public async Task<IActionResult> GetEmployeesListData(
             string status = "",
             string door = "",
-            string department = "",
+            string department = "", 
             string shift = "",
-            string fingerprint = ""
+            string fingerprint = "",
+            string pdline = "",
+            bool mergeTraining = false
         )
         {
             try
@@ -1216,21 +1224,22 @@ namespace IPS_TH.Controllers.Employee
 
                 _logger.LogInformation("GetEmployeesData: Permissions loaded, starting data retrieval");
 
-                // ดึงข้อมูลจากแหล่งต่างๆ แบบ parallel
+                // ดึงข้อมูลจากแหล่งต่างๆ แบบ parallel เพื่อลดเวลาในการรอ // 并行获取数据以减少等待时间
                 var ces941Task = GetEmployeesFromCES941(department);
                 var sql944Task = GetSQL944Data(department);
                 var shiftsTask = GetShiftsData(); // ดึงขอมูลจาก HRM_IPS
-                // var shiftsTask = GetShiftsDataHR_IPS();
+                var jobGradeTask = GetJobGrades(); // เพิ่ม job grade task แบบ parallel
 
-                await Task.WhenAll(ces941Task, sql944Task, shiftsTask);
+                await Task.WhenAll(ces941Task, sql944Task, shiftsTask, jobGradeTask);
 
                 var ces941Employees = await ces941Task;
                 var sql944Data = await sql944Task;
                 var shifts = await shiftsTask;
+                var jobGradeDict = await jobGradeTask;
 
                 _logger.LogInformation($"GetEmployeesData: Retrieved {ces941Employees?.Count() ?? 0} employees from CES941, {sql944Data?.sql944Employees?.Count ?? 0} from SQL944");
 
-                // สร้าง Dictionary สำหรับข้อมูล CES941
+                // สร้าง Dictionary สำหรับข้อมูล CES941 // 创建CES941数据字典
                 var ces941Dict = new Dictionary<string, object>();
                 foreach (var emp in ces941Employees)
                 {
@@ -1240,7 +1249,7 @@ namespace IPS_TH.Controllers.Employee
                     }
                 }
 
-                // ประมวลผลข้อมูล SQL944
+                // ประมวลผลข้อมูล SQL944 // 处理SQL944数据
                 var sql944Employees = sql944Data.sql944Employees;
                 var cardDict = sql944Data.cardDict;
                 var fingerprintDict = sql944Data.fingerprintDict;
@@ -1251,8 +1260,10 @@ namespace IPS_TH.Controllers.Employee
                 var accessCountDict = sql944Data.accessCountDict;
                 var fingerprintDataIds = sql944Data.fingerprintDataIds;
 
-                // โหลด Job Grade จาก TEmpComDta
-                var jobGradeDict = await GetJobGrades();
+         
+                // ดึงข้อมูล training ทั้งหมด (รองรับหลายรายการต่อพนักงาน)
+                var trainingStatusDict = await GetTrainingStatusData();
+   
 
                 // รวมข้อมูลพนักงาน
                 var employeesList = await BuildEmployeesList(
@@ -1267,7 +1278,8 @@ namespace IPS_TH.Controllers.Employee
                     sql944Data.accessCountDict,
                     sql944Data.fingerprintDataIds,
                     shifts,
-                    jobGradeDict
+                    jobGradeDict,
+                    trainingStatusDict
                 );
 
                 _logger.LogInformation($"GetEmployeesData: Built employee list with {employeesList?.Count ?? 0} employees");
@@ -1279,7 +1291,8 @@ namespace IPS_TH.Controllers.Employee
                     door,
                     department,
                     shift,
-                    fingerprint
+                    fingerprint,
+                    pdline
                 );
 
                 // Debug logging
@@ -1364,131 +1377,118 @@ namespace IPS_TH.Controllers.Employee
             using var sql944Connection = new SqlConnection(_sql944ConnectionString);
             await sql944Connection.OpenAsync();
 
-            // ดึงข้อมูลบัตร (-1) จาก Person
-            var cardSql =
-                @"SELECT personID, Name, DeptName, DeptID, CardNumber, note 
-                FROM Person 
-                WHERE personID LIKE '%-1'";
-            var cardData = await sql944Connection.QueryAsync<dynamic>(cardSql);
+            // รวม query ทั้งหมดเป็น query เดียวเพื่อลดการ round-trip ไปยังฐานข้อมูล // 合并所有查询为单个查询以减少数据库往返
+            var combinedSql = @"
+                WITH PersonData AS (
+                    SELECT 
+                        personID, Name, DeptName, DeptID, CardNumber, note,
+                        CASE 
+                            WHEN personID LIKE '%-1' THEN 'card'
+                            WHEN personID LIKE '%-2' THEN 'fingerprint'
+                        END as personType
+                    FROM Person 
+                    WHERE personID LIKE '%-1' OR personID LIKE '%-2'
+                ),
+                BioData AS (
+                    SELECT PersonID, Result, GetBioDate 
+                    FROM BioDataGetList 
+                    WHERE PersonID LIKE '%-2'
+                ),
+                PersonFP AS (
+                    SELECT PersonID, FP1, FP2, FV1, FV2, FACE_FEA, COALESCE(TRY_CAST(IsDelete AS INT), 0) AS IsDelete
+                    FROM Person_FP
+                    WHERE PersonID LIKE '%-2' AND (IsDelete IS NULL OR TRY_CAST(IsDelete AS INT) = 0)
+                ),
+                DoorAccess AS (
+                    SELECT personID, COUNT(*) as accessCount
+                    FROM PubDoorAuth 
+                    WHERE TRY_CAST(reserve1 AS INT) IS NULL OR TRY_CAST(reserve1 AS INT) != 2
+                    GROUP BY personID
+                )
+                SELECT 
+                    p.personID,
+                    p.Name,
+                    p.DeptName,
+                    p.DeptID,
+                    p.CardNumber,
+                    p.note,
+                    p.personType,
+                    b.Result as BioResult,
+                    b.GetBioDate,
+                    pf.FP1, pf.FP2, pf.FV1, pf.FV2, pf.FACE_FEA, pf.IsDelete,
+                    da.accessCount
+                FROM PersonData p
+                LEFT JOIN BioData b ON p.personID = b.PersonID
+                LEFT JOIN PersonFP pf ON p.personID = pf.PersonID
+                LEFT JOIN DoorAccess da ON p.personID = da.personID";
 
-            foreach (var card in cardData)
-            {
-                string baseId = card.personID.Split('-')[0].Trim();
-                sql944Employees.Add(baseId);
-                cardDict[baseId] = card;
+            var combinedData = await sql944Connection.QueryAsync<dynamic>(combinedSql);
 
-                if (!string.IsNullOrEmpty(card.Name))
-                    nameDict[baseId] = card.Name;
-                if (!string.IsNullOrEmpty(card.DeptName))
-                    deptNameDict[baseId] = card.DeptName;
-                if (!string.IsNullOrEmpty(card.DeptID))
-                    deptIDDict[baseId] = card.DeptID;
-                if (!string.IsNullOrEmpty(card.CardNumber))
-                    cardNumberDict[baseId] = card.CardNumber;
-            }
-
-            // ดึงข้อมูลลายนิ้วมือ (-2) จาก Person (ไม่ใช้ Person_FP เพื่อให้รายชื่ออ้างอิงจาก Person เท่านั้น)
-            var personFpRowsSql =
-                @"SELECT personID, Name, DeptName, DeptID, CardNumber, note 
-                FROM Person 
-                WHERE personID LIKE '%-2'";
-            var personFpRows = await sql944Connection.QueryAsync<dynamic>(personFpRowsSql);
-
-            foreach (var row in personFpRows)
+            // ประมวลผลข้อมูลที่รวมแล้ว // 处理合并后的数据
+            foreach (var row in combinedData)
             {
                 string baseId = row.personID.Split('-')[0].Trim();
+                string personType = row.personType?.ToString() ?? "";
+                
                 sql944Employees.Add(baseId);
-                // เก็บ info ลายนิ้วมือไว้เพื่ออ้างอิงสถานะ (ไม่ใช้กำหนดชื่อ)
-                fingerprintDict[baseId] = row;
-                if (!string.IsNullOrEmpty(row.Name) && !nameDict.ContainsKey(baseId))
-                    nameDict[baseId] = row.Name;
-                if (!string.IsNullOrEmpty(row.DeptName) && !deptNameDict.ContainsKey(baseId))
-                    deptNameDict[baseId] = row.DeptName;
-                if (!string.IsNullOrEmpty(row.DeptID) && !deptIDDict.ContainsKey(baseId))
-                    deptIDDict[baseId] = row.DeptID;
-            }
 
-            // ดึงข้อมูล result จาก BioDataGetList สำหรับสถานะการดึงข้อมูล
-            var bioDataSql =
-                @"SELECT PersonID, Result, GetBioDate FROM BioDataGetList WHERE PersonID LIKE '%-2'";
-            IEnumerable<dynamic> bioData;
-            try
-            {
-                bioData = await sql944Connection.QueryAsync<dynamic>(bioDataSql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error querying BioDataGetList: {ex.Message}");
-                bioData = new List<dynamic>();
-            }
-
-            foreach (var bio in bioData)
-            {
-                string baseId = bio.PersonID.Split('-')[0].Trim();
-                if (fingerprintDict.ContainsKey(baseId))
+                if (personType == "card")
                 {
-                    // เพิ่มข้อมูล result และ GetBioDate เข้าไปใน fingerprintDict
-                    var existingData = fingerprintDict[baseId] as IDictionary<string, object>;
-                    if (existingData != null)
+                    cardDict[baseId] = row;
+                    
+                    if (!string.IsNullOrEmpty(row.Name))
+                        nameDict[baseId] = row.Name;
+                    if (!string.IsNullOrEmpty(row.DeptName))
+                        deptNameDict[baseId] = row.DeptName;
+                    if (!string.IsNullOrEmpty(row.DeptID))
+                        deptIDDict[baseId] = row.DeptID;
+                    if (!string.IsNullOrEmpty(row.CardNumber))
+                        cardNumberDict[baseId] = row.CardNumber;
+                }
+                else if (personType == "fingerprint")
+                {
+                    fingerprintDict[baseId] = row;
+                    
+                    if (!string.IsNullOrEmpty(row.Name) && !nameDict.ContainsKey(baseId))
+                        nameDict[baseId] = row.Name;
+                    if (!string.IsNullOrEmpty(row.DeptName) && !deptNameDict.ContainsKey(baseId))
+                        deptNameDict[baseId] = row.DeptName;
+                    if (!string.IsNullOrEmpty(row.DeptID) && !deptIDDict.ContainsKey(baseId))
+                        deptIDDict[baseId] = row.DeptID;
+                }
+
+                // นับจำนวนสิทธิ์การเข้าประตู // 计算门禁权限数量
+                if (row.accessCount != null)
+                {
+                    if (int.TryParse(row.accessCount.ToString(), out int accessCount))
                     {
-                        existingData["BioResult"] = bio.Result;
-                        existingData["GetBioDate"] = bio.GetBioDate;
+                        accessCountDict[baseId] = accessCount;
+                    }
+                    else
+                    {
+                        accessCountDict[baseId] = 0;
+                    }
+                }
+
+                // ตรวจสอบข้อมูลลายนิ้วมือ // 检查指纹数据
+                if (personType == "fingerprint")
+                {
+                    bool hasFingerprintData = (
+                        (row.FP1 != null && row.FP1.ToString() != string.Empty) ||
+                        (row.FP2 != null && row.FP2.ToString() != string.Empty) ||
+                        (row.FV1 != null && row.FV1.ToString() != string.Empty) ||
+                        (row.FV2 != null && row.FV2.ToString() != string.Empty) ||
+                        (row.FACE_FEA != null && row.FACE_FEA.ToString() != string.Empty) ||
+                        (row.BioResult != null && 
+                         string.Equals(row.BioResult.ToString(), "Fingerprint data archiving:True", StringComparison.Ordinal))
+                    );
+
+                    if (hasFingerprintData)
+                    {
+                        fingerprintDataIds.Add(baseId);
                     }
                 }
             }
-
-            // ดึงข้อมูลสิทธิ์การเข้าประตู
-            var doorAccessSql = @"SELECT personID, doorID FROM PubDoorAuth WHERE reserve1 != 2";
-            var doorAccessData = await sql944Connection.QueryAsync<dynamic>(doorAccessSql);
-
-            foreach (var access in doorAccessData)
-            {
-                string baseId = access.personID.Split('-')[0].Trim();
-                accessCountDict[baseId] = accessCountDict.GetValueOrDefault(baseId, 0) + 1;
-            }
-
-            // สร้างชุด hasFingerprintIds ที่ "มีข้อมูลลายนิ้วมือจริง" จาก 2 แหล่ง: Person_FP และ BioDataGetList(Result)
-            var personFpSql = @"
-                SELECT PersonID, FP1, FP2, FV1, FV2, FACE_FEA, ISNULL(IsDelete,0) AS IsDelete
-                FROM Person_FP
-                WHERE PersonID LIKE '%-2' AND ISNULL(IsDelete,0) = 0";
-            IEnumerable<dynamic> personFpData;
-            try
-            {
-                personFpData = await sql944Connection.QueryAsync<dynamic>(personFpSql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error querying Person_FP: {ex.Message}");
-                personFpData = new List<dynamic>();
-            }
-
-            IEnumerable<string> hasFromPersonFp = personFpData
-                .Where(r =>
-                    r != null && (
-                        (r.FP1 != null && r.FP1.ToString() != string.Empty) ||
-                        (r.FP2 != null && r.FP2.ToString() != string.Empty) ||
-                        (r.FV1 != null && r.FV1.ToString() != string.Empty) ||
-                        (r.FV2 != null && r.FV2.ToString() != string.Empty) ||
-                        (r.FACE_FEA != null && r.FACE_FEA.ToString() != string.Empty)
-                    )
-                )
-                .Select(r => Convert.ToString(r.PersonID) ?? string.Empty)
-                .Where(pid => !string.IsNullOrEmpty(pid) && pid.EndsWith("-2"))
-                .Select(pid => pid.Substring(0, pid.Length - 2))
-                .Cast<string>()
-                .ToList();
-
-            IEnumerable<string> hasFromBio = bioData
-                .Where(b => b != null &&
-                    string.Equals(Convert.ToString(b.Result), "Fingerprint data archiving:True", StringComparison.Ordinal))
-                .Select(b => Convert.ToString(b.PersonID) ?? string.Empty)
-                .Where(pid => !string.IsNullOrEmpty(pid) && pid.EndsWith("-2"))
-                .Select(pid => pid.Substring(0, pid.Length - 2))
-                .Cast<string>()
-                .ToList();
-
-            fingerprintDataIds = new HashSet<string>(hasFromPersonFp.Union(hasFromBio));
 
             return new SQL944DataResult
             {
@@ -1544,6 +1544,147 @@ namespace IPS_TH.Controllers.Employee
             }
         }
 
+        // ฟังก์ชั่นดึงข้อมูล training status สำหรับพนักงาน (รองรับหลายรายการต่อคน)
+        // 获取员工培训状态数据（支持每个员工多条记录）
+        private async Task<Dictionary<string, object>> GetTrainingStatusData()
+        {
+            var trainingDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                using (var oracleConnection = new SqlConnection(_oracleConnectionString))
+                {
+                    var sql = @"
+                        SELECT 
+                            esmms_exam_employee.id, 
+                            esmms_exam_employee.emp_no, 
+                            esmms_exam_employee.course_id, 
+                            esmms_exam_employee.pd_line, 
+                            esmms_exam_employee.score, 
+                            esmms_exam_employee.exam_id, 
+                            esmms_exam_employee.expire_period_snapshot, 
+                            esmms_exam_employee.expire_at, 
+                            esmms_exam_employee.is_active, 
+                            esmms_exam_employee.assigned_at, 
+                            esmms_exam_employee.created_at, 
+                            esmms_exam_employee.updated_at, 
+                            esmms_exam_employee.created_by, 
+                            esmms_exam_employee.updated_by, 
+                            esmms_exam_employee.pass_score, 
+                            esmms_exam_employee.is_passed, 
+                            esmms_exam.title as exam_title, 
+                            esmms_exam.description, 
+                            esmms_exam.random_question_count, 
+                            esmms_exam.duration_minutes, 
+                            esmms_exam.start_at, 
+                            esmms_exam.end_at, 
+                            esmms_exam.attempts_limit, 
+                            esmms_exam.target_group, 
+                            esmms_exam.excel_path, 
+                            esmms_exam.forms_url,
+                            esmms_course.course_code,
+                            esmms_course.description_en
+                        FROM esmms_exam_employee 
+                        INNER JOIN esmms_exam 
+                            ON esmms_exam_employee.exam_id = esmms_exam.id
+                        INNER JOIN esmms_course
+                            ON esmms_exam_employee.course_id = esmms_course.id
+                    ";
+                    var results = await connection.QueryAsync<dynamic>(sql);
+
+                    // รวมเป็นลิสต์ต่อ emp_no และคำนวณรายการล่าสุดสำหรับ __trainingStatus
+                    var temp = new Dictionary<string, List<dynamic>>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var r in results)
+                    {
+                        string empNo = (r.emp_no ?? r.EmpNo ?? "").ToString().Trim();
+                        if (string.IsNullOrEmpty(empNo)) continue;
+                        if (!temp.TryGetValue(empNo, out var list))
+                        {
+                            list = new List<dynamic>();
+                            temp[empNo] = list;
+                        }
+
+                        // คำนวณสถานะการฝึกอบรมจากข้อมูลวันที่หมดอายุ/คะแนน
+                        DateTime? expireAt = null;
+                        try { expireAt = (DateTime?)r.expire_at; } catch { }
+                        DateTime? assignedAt = null;
+                        try { assignedAt = (DateTime?)r.assigned_at; } catch { }
+                        int? score = null; try { score = (int?)r.score; } catch { }
+                        int? passScore = null; try { passScore = (int?)r.pass_score; } catch { }
+                        bool? isPassed = null; try { isPassed = (bool?)r.is_passed; } catch { }
+                        string examTitle = null; try { examTitle = (string?)r.exam_title; } catch { }
+                        string courseCode = null; try { courseCode = (string?)r.course_code; } catch { }
+                        string courseName = null; try { courseName = (string?)r.description_en; } catch { }
+
+                        if (isPassed == null && score != null && passScore != null)
+                        {
+                            isPassed = score >= passScore;
+                        }
+
+                        string status;
+                        var now = DateTime.Now;
+                        if (expireAt == null)
+                        {
+                            status = assignedAt != null ? "blue" : "red"; // กำลังดำเนินการ หรือ ยังไม่สอบ
+                        }
+                        else if (expireAt.Value < now)
+                        {
+                            status = "red"; // หมดอายุ
+                        }
+                        else if ((expireAt.Value - now).TotalDays <= 30)
+                        {
+                            status = "yellow"; // ใกล้หมดอายุ
+                        }
+                        else
+                        {
+                            status = (isPassed == false) ? "blue" : "green"; // ไม่ผ่าน/กำลังดำเนินการ หรือ ปกติ
+                        }
+
+                        var projected = new
+                        {
+                            emp_no = empNo,
+                            course_id = (string?)((r.course_id ?? "").ToString()),
+                            pd_line = (string?)((r.pd_line ?? "").ToString()),
+                            score = score,
+                            pass_score = passScore,
+                            is_passed = isPassed,
+                            assigned_at = assignedAt,
+                            end_at = expireAt, // ชื่อที่ frontend ใช้
+                            expire_at = expireAt,
+                            exam_title = examTitle,
+                            course_code = courseCode,
+                            course_name = courseName,
+                            status = status
+                        };
+
+                        list.Add(projected);
+                    }
+
+                    foreach (var kv in temp)
+                    {
+                        // sort โดยใช้ end_at ล่าสุดก่อน ถ้าไม่มีใช้ assigned_at
+                        var all = kv.Value
+                            .OrderByDescending(x => (DateTime?)x.end_at ?? (DateTime?)x.assigned_at)
+                            .ToList();
+
+                        var latest = all.FirstOrDefault();
+
+                        var payload = new Dictionary<string, object>
+                        {
+                            ["trainingStatuses"] = all,
+                            ["__trainingStatus"] = latest ?? new { status = "red" }
+                        };
+                        trainingDict[kv.Key] = payload;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error getting training status data: {ex.Message}");
+            }
+            return trainingDict;
+        }
+
         private async Task<List<dynamic>> BuildEmployeesList(
             Dictionary<string, object> ces941Dict,
             HashSet<string> sql944Employees,
@@ -1556,21 +1697,33 @@ namespace IPS_TH.Controllers.Employee
             Dictionary<string, int> accessCountDict,
             HashSet<string> fingerprintDataIds,
             Dictionary<string, string> shifts,
-            Dictionary<string, string> jobGradeDict
+            Dictionary<string, string> jobGradeDict,
+            Dictionary<string, object> trainingStatusDict
         )
         {
+            // ใช้ HashSet เพื่อลดการค้นหา O(1) // 使用HashSet以减少查找时间O(1)
+            var processedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var employeesList = new List<dynamic>();
-            var processedIds = new HashSet<string>();
 
-            // ประมวลผลพนักงานจาก CES941
-            foreach (var kvp in ces941Dict)
+            // รวม employee IDs ทั้งหมดเพื่อประมวลผลแบบ batch // 合并所有员工ID以批量处理
+            var allEmployeeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            allEmployeeIds.UnionWith(ces941Dict.Keys);
+            allEmployeeIds.UnionWith(sql944Employees);
+
+            // ประมวลผลพนักงานจาก CES941 ก่อน // 先处理来自CES941的员工
+            foreach (var id in allEmployeeIds)
             {
-                string id = kvp.Key;
-                var emp = kvp.Value;
-                processedIds.Add(id);
+                if (processedIds.Contains(id)) continue;
 
-                // ตรวจสอบว่ามีใน SQL944 (Person) หรือไม่
-                bool inSql944 = sql944Employees.Contains(id);
+                object emp = null;
+                bool existsInCES941 = false;
+                bool existsInSQL944 = sql944Employees.Contains(id);
+
+                if (ces941Dict.TryGetValue(id, out emp))
+                {
+                    existsInCES941 = true;
+                    processedIds.Add(id);
+                }
 
                 var employeeData = CreateEmployeeData(
                     id,
@@ -1586,43 +1739,14 @@ namespace IPS_TH.Controllers.Employee
                     fingerprintDataIds,
                     shifts,
                     jobGradeDict,
-                    true,
-                    inSql944
+                    trainingStatusDict,
+                    existsInCES941,
+                    existsInSQL944
                 );
 
                 if (employeeData != null && !string.IsNullOrWhiteSpace(employeeData.name))
                 {
                     employeesList.Add(employeeData);
-                }
-            }
-
-            // ประมวลผลพนักงานที่มีเฉพาะใน SQL944
-            foreach (var id in sql944Employees)
-            {
-                if (!processedIds.Contains(id))
-                {
-                    var employeeData = CreateEmployeeData(
-                            id,
-                            null,
-                            sql944Employees,
-                            cardDict,
-                            fingerprintDict,
-                            nameDict,
-                            deptNameDict,
-                            deptIDDict,
-                            cardNumberDict,
-                            accessCountDict,
-                            fingerprintDataIds,
-                            shifts,
-                        jobGradeDict,
-                            false,
-                            true
-                        );
-
-                    if (employeeData != null && !string.IsNullOrWhiteSpace(employeeData.name))
-                    {
-                        employeesList.Add(employeeData);
-                    }
                 }
             }
 
@@ -1643,27 +1767,18 @@ namespace IPS_TH.Controllers.Employee
             HashSet<string> fingerprintDataIds,
             Dictionary<string, string> shifts,
             Dictionary<string, string> jobGradeDict,
+            Dictionary<string, object> trainingStatusDict,
             bool existsInCES941,
             bool existsInSQL944
         )
         {
             bool inSql944 = sql944Employees.Contains(id);
-
+ 
             // ตรวจสอบสิทธิ์การเข้าถึงข้อมูลพนักงานตามแผนก
             string employeeDeptId =
                 deptIDDict.ContainsKey(id) && !string.IsNullOrWhiteSpace(deptIDDict[id])
                     ? deptIDDict[id]
                     : emp?.WorkArea ?? "";
-
-            // กรองข้อมูลตามสิทธิ์การเข้าถึง
-            if (!IsCurrentUserAdmin)
-            {
-                // ตรวจสอบว่าผู้ใช้มีแผนกหรือไม่ และแผนกของพนักงานตรงกับของผู้ใช้หรือไม่
-                if (string.IsNullOrEmpty(CurrentUserDepartment))
-                {
-                    return null; // ข้ามพนักงานที่ไม่มีสิทธิ์เข้าถึง
-                }
-            }
 
             // ดึงข้อมูล result จาก fingerprintDict
             string fingerprintResult = "";
@@ -1701,7 +1816,7 @@ namespace IPS_TH.Controllers.Employee
 
             // ดึงและปรับรูปแบบ Job Grade โดยคง suffix 'A' ถ้ามี และตัด prefix 'JG' และศูนย์นำหน้าเลข (เช่น JG06 -> 6, JG04A -> 4A)
             string jobGradeValue = "";
-            if (jobGradeDict != null && jobGradeDict.TryGetValue(id, out var rawJobGrade) && !string.IsNullOrWhiteSpace(rawJobGrade))
+			if (jobGradeDict != null && jobGradeDict.TryGetValue(id, out string rawJobGrade) && !string.IsNullOrWhiteSpace(rawJobGrade))
             {
                 var s = rawJobGrade.ToString().Trim().ToUpperInvariant();
                 if (s.StartsWith("JG"))
@@ -1718,6 +1833,32 @@ namespace IPS_TH.Controllers.Employee
                 jobGradeValue = hasA ? core + "A" : core;
             }
 
+            // ดึงข้อมูล training status หลายรายการและตัวล่าสุด // 获取多条及最新培训状态
+			object trainingData = null; // โครงรวม { trainingStatuses, __trainingStatus }
+			object trainingLatest = null; // ตัวล่าสุดสำหรับเรนเดอร์เร็ว
+			object trainingList = null; // รายการทั้งหมดของพนักงานคนนี้
+			if (trainingStatusDict != null && trainingStatusDict.TryGetValue(id, out object training))
+            {
+                trainingData = training;
+                try
+                {
+                    var dict = training as IDictionary<string, object>;
+                    if (dict != null && dict.ContainsKey("__trainingStatus"))
+                    {
+                        trainingLatest = dict["__trainingStatus"];
+                        if (dict.ContainsKey("trainingStatuses"))
+                        {
+                            trainingList = dict["trainingStatuses"];
+                        }
+                    }
+                    else
+                    {
+                        trainingLatest = training; // fallback
+                    }
+                }
+                catch { trainingLatest = training; }
+            }
+
             // สร้างข้อมูลพนักงาน
             return new
             {
@@ -1731,13 +1872,13 @@ namespace IPS_TH.Controllers.Employee
                 phone = emp?.MobilePhone ?? "",
                 email = emp?.eMailAdd ?? "",
                 gender = emp?.Gender ?? "",
-                cardNumber = cardNumberDict.GetValueOrDefault(id, ""),
+                cardNumber = cardNumberDict.ContainsKey(id) ? cardNumberDict[id] : "",
                 hasCardData = cardDict.ContainsKey(id),
                 hasFingerprintData = fingerprintDict.ContainsKey(id),
                 fingerprintResult = fingerprintResult,
                 getBioDate = getBioDate,
-                accessCount = accessCountDict.GetValueOrDefault(id, 0),
-                shift = shifts.GetValueOrDefault(id, ""),
+                accessCount = accessCountDict.ContainsKey(id) ? accessCountDict[id] : 0,
+                shift = shifts.ContainsKey(id) ? shifts[id] : "",
                 jobGrade = jobGradeValue,
                 hasFingerprint = fingerprintDataIds.Contains(id),
                 isActive = (cardDict.ContainsKey(id) || fingerprintDict.ContainsKey(id)) ? 1 : 0,
@@ -1746,6 +1887,8 @@ namespace IPS_TH.Controllers.Employee
                 noteStatus = noteStatus, // เพิ่มข้อมูลสถานะ note,
                 WorkArea = emp?.WorkArea ?? "",
                 Wrkplanid = emp?.WrkPlanID ?? "",
+                trainingStatuses = trainingList, // รวมทั้งหมดของคนนี้
+	                __trainingStatus = trainingLatest, // ใช้ตัวล่าสุดสำหรับคอลัมน์สรุป
             };
         }
 
@@ -1830,7 +1973,8 @@ namespace IPS_TH.Controllers.Employee
             string door,
             string department,
             string shift,
-            string fingerprint
+            string fingerprint,
+            string pdline
         )
         {
             // กรองตามสถานะ
@@ -1863,50 +2007,114 @@ namespace IPS_TH.Controllers.Employee
                 };
             }
 
+            // กรองตามแผนก
+            if (!string.IsNullOrEmpty(department))
+            {
+                var selectedDepartments = department.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(d => d.Trim())
+                    .Where(d => !string.IsNullOrEmpty(d))
+                    .ToList();
+                
+                if (selectedDepartments.Any())
+                {
+                    employeesList = employeesList.Where(e =>
+                    {
+                        var emp = (dynamic)e;
+                        string workArea = HasProp(emp, "WorkArea") && emp.WorkArea != null
+                            ? emp.WorkArea.ToString().Trim()
+                            : string.Empty;
+                        string deptID = HasProp(emp, "DeptID") && emp.DeptID != null
+                            ? emp.DeptID.ToString().Trim()
+                            : string.Empty;
+                        string deptName = HasProp(emp, "DeptName") && emp.DeptName != null
+                            ? emp.DeptName.ToString().Trim()
+                            : string.Empty;
+
+                        
+                        // ตรวจสอบว่าตรงกับแผนกที่เลือกหรือไม่
+                        return selectedDepartments.Any(selectedDept => 
+                            workArea.Equals(selectedDept, StringComparison.OrdinalIgnoreCase) ||
+                            deptID.Equals(selectedDept, StringComparison.OrdinalIgnoreCase) ||
+                            deptName.Equals(selectedDept, StringComparison.OrdinalIgnoreCase));
+                    }).ToList();
+                }
+            }
+
+            // กรองตามไลน์ผลิตจากตารางการสอบ (esmms_exam_employee) โดยรองรับค่าที่ส่งมาเป็นรหัสหรือชื่อ (จาก sys_pdline)
+            if (!string.IsNullOrWhiteSpace(pdline))
+            {
+                var tokens = pdline
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToList();
+
+                if (tokens.Any())
+                {
+                    var selectedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var selectedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var t in tokens)
+                    {
+                        // ถ้าเป็นตัวเลขให้ถือเป็นไอดีด้วย
+						if (int.TryParse(t, out int __)) selectedIds.Add(t);
+                        selectedNames.Add(t);
+                    }
+
+                    // แม็ปชื่อ -> ไอดี จาก sys_pdline เพื่อรองรับกรณี UI ส่งชื่อมา
+                    try
+                    {
+                        using (var conn = new SqlConnection(_connectionString))
+                        {
+                            await conn.OpenAsync();
+                            var rows = await conn.QueryAsync(
+                                @"SELECT PDLINE_ID, PDLINE_NAME FROM sys_pdline WHERE PDLINE_NAME IN @Names OR PDLINE_ID IN @Ids",
+                                new { Names = selectedNames.ToList(), Ids = selectedIds.ToList() }
+                            );
+                            foreach (var r in rows)
+                            {
+                                var idStr = (r.PDLINE_ID?.ToString() ?? string.Empty).Trim();
+                                var nmStr = (r.PDLINE_NAME?.ToString() ?? string.Empty).Trim();
+                                if (!string.IsNullOrEmpty(idStr)) selectedIds.Add(idStr);
+                                if (!string.IsNullOrEmpty(nmStr)) selectedNames.Add(nmStr);
+                            }
+                        }
+                    }
+                    catch { /* ถ้าแม็ปไม่ได้ ให้ใช้ค่าที่ส่งมาโดยตรง */ }
+
+                    // ดึงพนักงานจากตารางการสอบที่มี pd_line ตรงกับไอดีหรือชื่อที่เลือก
+                    var matchedEmpNos = await _context.esmms_exam_employee
+                        .Where(ee => ee.pd_line != null && (
+                            selectedIds.Contains(ee.pd_line) || selectedNames.Contains(ee.pd_line)
+                        ))
+                        .Select(ee => ee.emp_no)
+                        .Distinct()
+                        .ToListAsync();
+
+                    if (matchedEmpNos.Count == 0)
+                    {
+                        // ไม่พบข้อมูล ตัดเป็นลิสต์ว่าง
+                        employeesList = new List<dynamic>();
+                    }
+                    else
+                    {
+                        var empSet = new HashSet<string>(matchedEmpNos, StringComparer.OrdinalIgnoreCase);
+                        employeesList = employeesList.Where(e =>
+                        {
+                            var emp = (dynamic)e;
+                            var pid = HasProp(emp, "personID") && emp.personID != null ? emp.personID.ToString().Trim() : string.Empty;
+                            return empSet.Contains(pid);
+                        }).ToList();
+                    }
+                }
+            }
+
             // กรองตามประตู
             if (!string.IsNullOrEmpty(door) && door != "all")
             {
                 employeesList = await FilterByDoor(employeesList, door);
             }
 
-            // กรองตามแผนก - ปรับปรุงให้รองรับ WorkArea (CES941)
-            if (!string.IsNullOrEmpty(department) && department != "all")
-            {
-                employeesList = employeesList
-                    .Where(e =>
-                    {
-                        var emp = (dynamic)e;
-
-                        string empWorkArea = "";
-                        string empDepartmentName = "";
-                        string empDeptID = "";
-
-                        if (HasProp(emp, "WorkArea") && emp.WorkArea != null)
-                        {
-                            empWorkArea = emp.WorkArea.ToString().ToLower().Trim();
-                        }
-                        if (HasProp(emp, "department") && emp.department != null)
-                        {
-                            empDepartmentName = emp.department.ToString().ToLower().Trim();
-                        }
-                        if (HasProp(emp, "deptID") && emp.deptID != null)
-                        {
-                            empDeptID = emp.deptID.ToString().ToLower().Trim();
-                        }
-
-                        var filterDepartment = department.ToLower().Trim();
-
-                        // เปรียบเทียบกับ WorkArea เป็นหลัก และสำรองด้วยชื่อแผนก/รหัสแผนก
-                        return (!string.IsNullOrEmpty(empWorkArea) &&
-                                (empWorkArea == filterDepartment || empWorkArea.Contains(filterDepartment)))
-                            || (!string.IsNullOrEmpty(empDepartmentName) &&
-                                (empDepartmentName == filterDepartment || empDepartmentName.Contains(filterDepartment)))
-                            || (!string.IsNullOrEmpty(empDeptID) &&
-                                (empDeptID == filterDepartment || empDeptID.Contains(filterDepartment)));
-                    })
-                    .ToList();
-            }
-
+        
             // กรองตามกะ - รองรับทั้งค่าจาก emp_person_shift (shift) และ WrkPlanID (จาก CES941)
             if (!string.IsNullOrEmpty(shift) && shift != "all")
             {
@@ -1946,6 +2154,7 @@ namespace IPS_TH.Controllers.Employee
                 };
             }
 
+
             return employeesList;
         }
 
@@ -1970,7 +2179,7 @@ namespace IPS_TH.Controllers.Employee
         {
             using var sql944Connection = new SqlConnection(_sql944ConnectionString);
             var doorAccessSql =
-                @"SELECT DISTINCT personID FROM PubDoorAuth WHERE doorID = @doorID AND reserve1 != 2";
+                @"SELECT DISTINCT personID FROM PubDoorAuth WHERE doorID = @doorID AND (TRY_CAST(reserve1 AS INT) IS NULL OR TRY_CAST(reserve1 AS INT) != 2)";
             var authorizedPersons = await sql944Connection.QueryAsync<string>(
                 doorAccessSql,
                 new { doorID = door }
@@ -2487,15 +2696,21 @@ namespace IPS_TH.Controllers.Employee
                 var today = DateTime.Today;
                 var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
                 int newEmployees = ces941Employees.Count(e =>
-                    e.EmpStartDate != null
-                    && DateTime.Parse(e.EmpStartDate.ToString()) >= firstDayOfMonth
-                );
+                {
+                    if (e.EmpStartDate == null)
+                        return false;
+                    return DateTime.TryParse(e.EmpStartDate.ToString(), out DateTime startDate)
+                        && startDate >= firstDayOfMonth;
+                });
 
                 // คำนวณพนักงานลาออกเดือนนี้
                 int resignedEmployees = ces941Employees.Count(e =>
-                    e.EmpResignDate != null
-                    && DateTime.Parse(e.EmpResignDate.ToString()) >= firstDayOfMonth
-                );
+                {
+                    if (e.EmpResignDate == null)
+                        return false;
+                    return DateTime.TryParse(e.EmpResignDate.ToString(), out DateTime resignDate)
+                        && resignDate >= firstDayOfMonth;
+                });
 
                 // ดึงข้อมูลพนักงานที่มีวันเกิดวันนี้
                 var birthdayEmployees = ces941Employees
@@ -2505,7 +2720,8 @@ namespace IPS_TH.Controllers.Employee
                         if (e.BirthDate == null || e.EmpResignDate != null)
                             return false;
 
-                        var birthDate = DateTime.Parse(e.BirthDate.ToString());
+                        if (!DateTime.TryParse(e.BirthDate.ToString(), out DateTime birthDate))
+                            return false;
                         var birthDateThisYear = new DateTime(
                             today.Year,
                             birthDate.Month,
@@ -2522,10 +2738,11 @@ namespace IPS_TH.Controllers.Employee
                         // แสดงวันเกิดที่ผ่านมาแล้วไม่เกิน 15 วัน หรือกำลังจะมาถึงในอีก 15 วัน
                         return daysUntilBirthday >= -15 && daysUntilBirthday <= 15;
                     })
-                    .Select(e =>
+                    .Select<dynamic, dynamic>(e =>
                     {
                         // คำนวณอายุ
-                        var birthDate = DateTime.Parse(e.BirthDate.ToString());
+                        if (!DateTime.TryParse(e.BirthDate.ToString(), out DateTime birthDate))
+                            return new { name = "", age = 0, department = "" };
                         var age = today.Year - birthDate.Year;
 
                         // ถ้ายังไม่ถึงวันเกิดในปีนี้ ให้ลดอายุลง 1 ปี
@@ -2576,7 +2793,8 @@ namespace IPS_TH.Controllers.Employee
                     {
                         if (e.EmpStartDate == null)
                             return false;
-                        var startDate = DateTime.Parse(e.EmpStartDate.ToString());
+                        if (!DateTime.TryParse(e.EmpStartDate.ToString(), out DateTime startDate))
+                            return false;
                         return startDate.Date == today.Date;
                     })
                     .Select(e =>
@@ -2629,16 +2847,22 @@ namespace IPS_TH.Controllers.Employee
                     var lastDay = firstDay.AddMonths(1).AddDays(-1);
 
                     var newCount = ces941Employees.Count(e =>
-                        e.EmpStartDate != null
-                        && DateTime.Parse(e.EmpStartDate.ToString()) >= firstDay
-                        && DateTime.Parse(e.EmpStartDate.ToString()) <= lastDay
-                    );
+                    {
+                        if (e.EmpStartDate == null)
+                            return false;
+                        return DateTime.TryParse(e.EmpStartDate.ToString(), out DateTime startDate)
+                            && startDate >= firstDay
+                            && startDate <= lastDay;
+                    });
 
                     var resignedCount = ces941Employees.Count(e =>
-                        e.EmpResignDate != null
-                        && DateTime.Parse(e.EmpResignDate.ToString()) >= firstDay
-                        && DateTime.Parse(e.EmpResignDate.ToString()) <= lastDay
-                    );
+                    {
+                        if (e.EmpResignDate == null)
+                            return false;
+                        return DateTime.TryParse(e.EmpResignDate.ToString(), out DateTime resignDate)
+                            && resignDate >= firstDay
+                            && resignDate <= lastDay;
+                    });
 
                     monthlyStats.Add(
                         new
@@ -2657,7 +2881,8 @@ namespace IPS_TH.Controllers.Employee
                         if (e.EmpResignDate == null)
                             return false;
 
-                        var resignDate = DateTime.Parse(e.EmpResignDate.ToString());
+                        if (!DateTime.TryParse(e.EmpResignDate.ToString(), out DateTime resignDate))
+                            return false;
                         // ตรวจสอบว่าลาออกแล้ว และเรียงลำดับตามวันที่ลาออกล่าสุด
                         return resignDate.Date <= today.Date;
                     })
@@ -2672,8 +2897,10 @@ namespace IPS_TH.Controllers.Employee
                         }
 
                         // คำนวณระยะเวลาการทำงาน
-                        var startDate = DateTime.Parse(e.EmpStartDate.ToString());
-                        var resignDate = DateTime.Parse(e.EmpResignDate.ToString());
+                        if (!DateTime.TryParse(e.EmpStartDate.ToString(), out DateTime startDate))
+                            return null;
+                        if (!DateTime.TryParse(e.EmpResignDate.ToString(), out DateTime resignDate))
+                            return null;
                         var workDuration = resignDate - startDate;
 
                         // แปลงเป็นปีและเดือน
@@ -2782,20 +3009,20 @@ namespace IPS_TH.Controllers.Employee
                             weekTimeID = door.weekTimeID,
                             personID = personId,
                             accessCard = cardAccess.Any(a =>
-                                a.doorID == door.doorID && a.reserve1 != 2
+                                a.doorID == door.doorID && (a.reserve1 == null || a.reserve1.ToString() != "2")
                             )
                                 ? 1
                                 : 0,
                             accessFinger = fingerAccess.Any(a =>
-                                a.doorID == door.doorID && a.reserve1 != 2
+                                a.doorID == door.doorID && (a.reserve1 == null || a.reserve1.ToString() != "2")
                             )
                                 ? 1
                                 : 0,
                             hasCardAccess = cardAccess.Any(a =>
-                                a.doorID == door.doorID && a.reserve1 != 2
+                                a.doorID == door.doorID && (a.reserve1 == null || a.reserve1.ToString() != "2")
                             ),
                             hasFingerprintAccess = fingerAccess.Any(a =>
-                                a.doorID == door.doorID && a.reserve1 != 2
+                                a.doorID == door.doorID && (a.reserve1 == null || a.reserve1.ToString() != "2")
                             ),
                         })
                         .ToList();
@@ -4860,7 +5087,7 @@ namespace IPS_TH.Controllers.Employee
                     }
 
                     // นับเฉพาะสิทธิ์ที่ยังไม่ถูกยกเลิก (reserve1 != 2)
-                    if (access.reserve1 != 2)
+                    if (access.reserve1 == null || access.reserve1.ToString() != "2")
                     {
                         if (!doorAccessCountDict.ContainsKey(baseId))
                         {
@@ -5220,7 +5447,7 @@ namespace IPS_TH.Controllers.Employee
                                 SELECT DISTINCT personID 
                                 FROM PubDoorAuth 
                                 WHERE doorID = @doorID 
-                                AND reserve1 != 2"; // เฉพาะที่ยังไม่ถูกยกเลิกสิทธิ์
+                                AND (TRY_CAST(reserve1 AS INT) IS NULL OR TRY_CAST(reserve1 AS INT) != 2)"; // เฉพาะที่ยังไม่ถูกยกเลิกสิทธิ์
 
                             var authorizedPersons = await sql944Connection.QueryAsync<string>(
                                 doorAccessSql,

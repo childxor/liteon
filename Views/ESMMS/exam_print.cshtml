@@ -111,10 +111,53 @@
                     <img class="q-img" src="@resolved" alt="image" />
                 }
                 <div class="choices">
-                    <div>A. @q.choice_a</div>
-                    <div>B. @q.choice_b</div>
-                    <div>C. @q.choice_c</div>
-                    <div>D. @q.choice_d</div>
+                    @{
+                        var ca = (q.correct_answer ?? string.Empty).Trim().ToUpperInvariant();
+                        var badgeA = ca == "A" ? " <span class=\"badge bg-success\">ถูก</span>" : string.Empty;
+                        var badgeB = ca == "B" ? " <span class=\"badge bg-success\">ถูก</span>" : string.Empty;
+                        var badgeC = ca == "C" ? " <span class=\"badge bg-success\">ถูก</span>" : string.Empty;
+                        var badgeD = ca == "D" ? " <span class=\"badge bg-success\">ถูก</span>" : string.Empty;
+                        string Resolve(string? path)
+                        {
+                            if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+                            var p = path.Trim();
+                            if (p.StartsWith("http://", System.StringComparison.OrdinalIgnoreCase) || p.StartsWith("https://",
+                            System.StringComparison.OrdinalIgnoreCase)) return p;
+                            if (p.StartsWith("~/") || p.StartsWith("/")) return Url.Content(p);
+                            if (p.StartsWith("uploads/", System.StringComparison.OrdinalIgnoreCase)) return Url.Content("~/" + p);
+                            if (p.StartsWith("wwwroot/", System.StringComparison.OrdinalIgnoreCase)) return Url.Content("~/" +
+                            p.Substring("wwwroot/".Length));
+                            return Url.Content("~/uploads/questions/" + p);
+                        }
+                        var aImg = Resolve(q.choice_a_image_path);
+                        var bImg = Resolve(q.choice_b_image_path);
+                        var cImg = Resolve(q.choice_c_image_path);
+                        var dImg = Resolve(q.choice_d_image_path);
+                    }
+                    <div>A. @q.choice_a @Html.Raw(badgeA)
+                        @if (!string.IsNullOrWhiteSpace(aImg))
+                        {
+                            <div><img class="q-img" src="@aImg" /></div>
+                        }
+                    </div>
+                    <div>B. @q.choice_b @Html.Raw(badgeB)
+                        @if (!string.IsNullOrWhiteSpace(bImg))
+                        {
+                            <div><img class="q-img" src="@bImg" /></div>
+                        }
+                    </div>
+                    <div>C. @q.choice_c @Html.Raw(badgeC)
+                        @if (!string.IsNullOrWhiteSpace(cImg))
+                        {
+                            <div><img class="q-img" src="@cImg" /></div>
+                        }
+                    </div>
+                    <div>D. @q.choice_d @Html.Raw(badgeD)
+                        @if (!string.IsNullOrWhiteSpace(dImg))
+                        {
+                            <div><img class="q-img" src="@dImg" /></div>
+                        }
+                    </div>
                 </div>
             </li>
         }
