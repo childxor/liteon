@@ -50,7 +50,7 @@
                     <div class="col-12">
                         <div class="card shadow-sm border-0 rounded-3">
                             <div class="card-header bg-gradient-light py-3">
-                                <h5 class="mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>สรุปสถานะฝึกอบรม</h5>
+                                <h5 class="mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>@Context.Session.GetTranslation("esmms_dashboard_title")</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row" id="trainingDashboard">
@@ -59,7 +59,7 @@
                                             <div class="card-body text-center">
                                                 <i class="fas fa-check-circle fa-2x mb-2"></i>
                                                 <h4 class="mb-1" id="normalCount">0</h4>
-                                                <p class="mb-0">สถานะปกติ</p>
+                                                <p class="mb-0">@Context.Session.GetTranslation("esmms_status_normal")</p>
                                             </div>
                                         </div>
                                     </div>
@@ -68,7 +68,7 @@
                                             <div class="card-body text-center">
                                                 <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
                                                 <h4 class="mb-1" id="expiringCount">0</h4>
-                                                <p class="mb-0">ใกล้หมดอายุ</p>
+                                                <p class="mb-0">@Context.Session.GetTranslation("esmms_status_expiring")</p>
                                             </div>
                                         </div>
                                     </div>
@@ -77,7 +77,7 @@
                                             <div class="card-body text-center">
                                                 <i class="fas fa-clock fa-2x mb-2"></i>
                                                 <h4 class="mb-1" id="processingCount">0</h4>
-                                                <p class="mb-0">กำลังดำเนินการ</p>
+                                                <p class="mb-0">@Context.Session.GetTranslation("esmms_status_processing")</p>
                                             </div>
                                         </div>
                                     </div>
@@ -86,7 +86,7 @@
                                             <div class="card-body text-center">
                                                 <i class="fas fa-times-circle fa-2x mb-2"></i>
                                                 <h4 class="mb-1" id="expiredCount">0</h4>
-                                                <p class="mb-0">หมดอายุ/ยังไม่สอบ</p>
+                                                <p class="mb-0">@Context.Session.GetTranslation("esmms_status_expired")</p>
                                             </div>
                                         </div>
                                     </div>
@@ -101,20 +101,20 @@
                     <div class="col-12">
                         <div class="card shadow-sm border-0 rounded-3">
                             <div class="card-header bg-gradient-light py-3">
-                                <h5 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>ตัวกรองข้อมูล</h5>
+                                <h5 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>@Context.Session.GetTranslation("esmms_filters_title")</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label for="departmentFilter" class="form-label fw-medium">แผนก</label>
+                                        <label for="departmentFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_department")</label>
                                         <div class="d-flex gap-2 mb-2">
                                             <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllDept">
-                                                <i class="fas fa-check-square me-1"></i>เลือกทั้งหมด
+                                                <i class="fas fa-check-square me-1"></i>@Context.Session.GetTranslation("esmms_select_all")
                                             </button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllDept">
-                                                <i class="fas fa-square me-1"></i>ยกเลิกทั้งหมด
+                                                <i class="fas fa-square me-1"></i>@Context.Session.GetTranslation("esmms_clear_all")
                                             </button>
-                                            <span class="badge bg-info align-self-center" id="deptCount">0 แผนก</span>
+                                            <span class="badge bg-info align-self-center" id="deptCount">0 @Context.Session.GetTranslation("esmms_filter_department")</span>
                                         </div>
                                         <select class="form-select" id="departmentFilter" multiple style="height: 120px;">
                                             @if (ViewBag.Dept != null)
@@ -125,40 +125,50 @@
                                                 }
                                             }
                                         </select>
-                                        <div class="form-text">กด Ctrl+Click เพื่อเลือกหลายแผนก</div>
+                                        <div class="form-text">@Context.Session.GetTranslation("esmms_multi_select_hint_dept")</div>
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="statusFilter" class="form-label fw-medium">สถานะฝึกอบรม</label>
+                                        <label for="statusFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_training_status")</label>
                                         <select class="form-select" id="statusFilter">
-                                            <option value="">ทั้งหมด</option>
-                                            <option value="green">ปกติ</option>
-                                            <option value="yellow">ใกล้หมดอายุ</option>
-                                            <option value="blue">กำลังดำเนินการ</option>
-                                            <option value="red">หมดอายุ/ยังไม่สอบ</option>
+                                            <option value="">@Context.Session.GetTranslation("common_all")</option>
+                                            <option value="green">@Context.Session.GetTranslation("esmms_status_normal")</option>
+                                            <option value="yellow">@Context.Session.GetTranslation("esmms_status_expiring")</option>
+                                            <option value="blue">@Context.Session.GetTranslation("esmms_status_processing")</option>
+                                            <option value="red">@Context.Session.GetTranslation("esmms_status_expired")</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="workStatusFilter" class="form-label fw-medium">สถานะการทำงาน</label>
+                                        <label for="workStatusFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_work_status")</label>
                                         <select class="form-select" id="workStatusFilter">
-                                            <option value="">ทั้งหมด</option>
-                                            <option value="active" selected>เปิดใช้งาน</option>
-                                            <option value="inactive">ปิดใช้งาน</option>
-                                            <option value="resigned">ลาออกแล้ว</option>
+                                            <option value="">@Context.Session.GetTranslation("common_all")</option>
+                                            <option value="active" selected>@Context.Session.GetTranslation("common_active")</option>
+                                            <option value="inactive">@Context.Session.GetTranslation("common_inactive")</option>
+                                            <option value="resigned">@Context.Session.GetTranslation("common_resigned")</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="pdlineFilter" class="form-label fw-medium">ไลน์ผลิต</label>
+                                        <label for="pdlineFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_pdline")</label>
                                         <select class="form-select" id="pdlineFilter" multiple style="height: 120px;"></select>
-                                        <div class="form-text">กด Ctrl+Click เพื่อเลือกหลายไลน์</div>
+                                        <div class="form-text">@Context.Session.GetTranslation("esmms_multi_select_hint_line")</div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="hasProductionLineFilter" class="filter-has-production-line">
+                                            <label class="form-check-label" for="hasProductionLineFilter">
+                                                <i class="fas fa-industry me-1"></i>@Context.Session.GetTranslation("only_show_people_with_production_lines")
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="row mt-3">
                                     <div class="col-12">
                                         <button type="button" class="btn btn-primary me-2" id="applyFilter">
-                                            <i class="fas fa-search me-1"></i>กรองข้อมูล
+                                            <i class="fas fa-search me-1"></i>@Context.Session.GetTranslation("btn_filter")
                                         </button>
                                         <button type="button" class="btn btn-outline-secondary" id="clearFilter">
-                                            <i class="fas fa-times me-1"></i>ล้างตัวกรอง
+                                            <i class="fas fa-times me-1"></i>@Context.Session.GetTranslation("btn_clear")
                                         </button>
                                     </div>
                                 </div>
@@ -173,19 +183,19 @@
                         <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
                             <div
                                 class="card-header bg-gradient-light py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>รายชื่อพนักงานและสถานะฝึกอบรม</h5>
+                                <h5 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>@Context.Session.GetTranslation("esmms_table_title")</h5>
                                 <div class="d-flex align-items-center gap-2">
                                     <div id="current-filters" class="d-flex flex-wrap gap-2 me-2"></div>
-                                    <button class="btn btn-sm btn-outline-primary rounded-pill" id="reloadTableButton" title="รีโหลดตาราง">
-                                        <i class="fas fa-sync-alt me-1"></i>รีโหลด
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill" id="reloadTableButton" title="@Context.Session.GetTranslation("btn_reload")">
+                                        <i class="fas fa-sync-alt me-1"></i>@Context.Session.GetTranslation("btn_reload")
                                     </button>
-                                    <a class="btn btn-sm btn-outline-secondary rounded-pill" id="setupEmailRecipientsButton" href="@Url.Action("esmms_exam","Exam")" title="ตั้งค่าผู้รับอีเมลสรุป" target="_blank">
-                                        <i class="fas fa-envelope me-1"></i>ตั้งค่าผู้รับอีเมลสรุป
+                                    <a class="btn btn-sm btn-outline-secondary rounded-pill" id="setupEmailRecipientsButton" href="@Url.Action("esmms_exam","Exam")" title="@Context.Session.GetTranslation("esmms_setup_email_recipients")" target="_blank">
+                                        <i class="fas fa-envelope me-1"></i>@Context.Session.GetTranslation("esmms_setup_email_recipients")
                                     </a>
                                     @if (canAdd)
                                     {
                                         <button class="btn btn-sm btn-success rounded-pill add-employee"><i
-                                                class="fas fa-user-plus me-2"></i>เพิ่มพนักงาน</button>
+                                                class="fas fa-user-plus me-2"></i>@Context.Session.GetTranslation("btn_add_employee")</button>
                                     }
                                 </div>
                             </div>
@@ -292,6 +302,14 @@
                                             <label><i class="fas fa-fingerprint me-1"></i>ลายนิ้วมือ</label>
                                         </div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" id="filterHasProductionLine" class="filter-has-production-line">
+                                            <label class="form-check-label" for="filterHasProductionLine">
+                                                <i class="fas fa-industry me-1"></i>@Context.Session.GetTranslation("only_show_people_with_production_lines")
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="d-flex justify-content-end gap-2 mt-4">
                                     <button type="button" class="btn btn-outline-secondary rounded-pill reset-filter">
@@ -373,7 +391,7 @@
                 // เพิ่มคลาส spinning และเปลี่ยนข้อความ
                 reloadButton.addClass('spinning');
                 reloadButton.prop('disabled', true);
-                reloadButton.html('<i class="fas fa-sync-alt me-1"></i>กำลังโหลด...');
+                reloadButton.html('<i class="fas fa-sync-alt me-1"></i>' + '@Context.Session.GetTranslation("common_loading")');
                 
                 // รีโหลดตาราง
                 $('#employeeTable').DataTable().ajax.reload(function() {
@@ -383,7 +401,7 @@
                     reloadButton.html('<i class="fas fa-sync-alt me-1"></i>รีโหลด');
                     
                     // แสดงข้อความสำเร็จ
-                    showSuccessToast('โหลดข้อมูลใหม่เรียบร้อยแล้ว');
+                    showSuccessToast('@Context.Session.GetTranslation("toast_reload_success")');
                 }, false); // false = ไม่รีเซ็ตหน้า
             }
 
@@ -1057,6 +1075,10 @@
                 $('#filter-storage').data('shift', storedFilters.shift || ''); 
                 $('#filter-storage').data('fingerprint', storedFilters.fingerprint || '');
                 $('#filter-storage').data('pdline', storedFilters.pdline || '');
+                $('#filter-storage').data('hasProductionLine', storedFilters.hasProductionLine || false);
+                
+                // ตั้งค่า checkbox จาก localStorage
+                $('#hasProductionLineFilter').prop('checked', storedFilters.hasProductionLine || false);
                 // ปิด error popup เริ่มต้นของ DataTables เพื่อไม่ให้แจ้งเตือนกรณี abort
                 if ($.fn && $.fn.dataTable) {
                     $.fn.dataTable.ext.errMode = function(settings, techNote, message) {
@@ -1095,6 +1117,7 @@
                             d.shift = ($('#filter-storage').data('shift') || '').toString().trim();
                             d.fingerprint = $('#filter-storage').data('fingerprint');
                             d.pdline = ($('#filter-storage').data('pdline') || '').toString().trim();
+                            d.hasProductionLine = $('#filter-storage').data('hasProductionLine') || false;
                             d.mergeTraining = true; // ให้เซิร์ฟเวอร์ merge ข้อมูล ESMMS มาด้วย
                         },
                         dataSrc: function(json) {
@@ -1136,12 +1159,16 @@
                             orderable: false,
                             width: '32px',
                             render: function(data, type, row) {
-                                return '<button type="button" class="btn btn-sm btn-outline-secondary" title="ดูประวัติการสอบ" data-action="toggle-child"><i class="fas fa-chevron-down"></i></button>';
+                                var hasTrainingData = row.trainingStatuses && row.trainingStatuses.length > 0;
+                                var isDisabled = !hasTrainingData;
+                                var buttonClass = isDisabled ? 'btn btn-xs btn-outline-secondary px-2 py-1 disabled' : 'btn btn-xs btn-success px-2 py-1';
+                                var title = isDisabled ? 'ไม่มีข้อมูลการฝึกอบรม' : 'ดูประวัติการสอบ';
+                                return '<button type="button" class="' + buttonClass + '" title="' + title + '" data-action="toggle-child" style="font-size: 11px;" ' + (isDisabled ? 'disabled' : '') + '><i class="fas fa-chevron-down" style="font-size: 10px;"></i></button>';
                             }
                         },
                         {
                             data: 'personID',
-                            title: '<i class="fas fa-id-card me-1"></i> รหัสพนักงาน',
+                            title: '<i class="fas fa-id-card me-1"></i> ' + '@Context.Session.GetTranslation("col_employee_id")',
                             render: function(data, type, row) {
                                 return '<div class="d-flex align-items-center">' +
                                     '<span class="badge bg-primary me-2">' + data + '</span>' +
@@ -1151,7 +1178,7 @@
                         },
                         {
                             data: null,
-                            title: '<i class="fas fa-user-tag me-1"></i> ชื่อ-นามสกุล',
+                            title: '<i class="fas fa-user-tag me-1"></i> ' + '@Context.Session.GetTranslation("col_fullname")',
                             render: function(data, type, row) {
                                 // กำหนดไอคอนเพศ
                                 var genderIcon = row.gender === 'M' ?
@@ -1185,7 +1212,7 @@
                         }, 
                         {
                             data: null,
-                            title: '<i class="fas fa-building me-1"></i> แผนก',
+                            title: '<i class="fas fa-building me-1"></i> ' + '@Context.Session.GetTranslation("col_department")',
                             render: function(data, type, row) {
                                 var deptName = row.WorkArea || row.department || 'ไม่ระบุแผนก';
                                 return '<div><span class="fw-medium">' + deptName + '</span></div>';
@@ -1193,7 +1220,7 @@
                         },
                         {
                             data: null,
-                            title: '<i class="fas fa-industry me-1"></i> ไลน์ผลิต',
+                            title: '<i class="fas fa-industry me-1"></i> ' + '@Context.Session.GetTranslation("col_pdline")',
                             orderable: false,
                             className: 'text-center',
                             render: function(data, type, row) {
@@ -1229,80 +1256,83 @@
                         },
                         {
                             data: null,
-                            title: '<i class="fas fa-certificate me-1"></i> สถานะฝึกอบรม',
+                            title: '<i class="fas fa-certificate me-1"></i> ' + '@Context.Session.GetTranslation("col_training_status")',
                             orderable: false,
                             className: 'text-center text-nowrap training-status-col',
                             render: function(data, type, row) {
                                 var s = row.__trainingStatus;
                                 if (!s) return '<span class="badge bg-danger" data-bs-toggle="tooltip" title="ไม่มีข้อมูลการฝึกอบรม">หมดอายุ/ยังไม่ได้สอบ</span>';
+                                
                                 var cls = s.status === 'green' ? 'bg-success' : (s.status === 'yellow' ? 'bg-warning text-dark' : (s.status === 'blue' ? 'bg-info text-dark' : 'bg-danger'));
                                 var text = s.status === 'green' ? 'ปกติ' : (s.status === 'yellow' ? 'ใกล้หมดอายุ' : (s.status === 'blue' ? 'กำลังดำเนินการ' : 'หมดอายุ/ยังไม่สอบ'));
 
-                                // วันที่
-                                var expRaw = s.end_at || s.expire_at || null;
-                                var exp = expRaw ? moment(expRaw).format('DD/MM/YYYY') : '';
-                                var assigned = s.assigned_at ? moment(s.assigned_at).format('DD/MM/YYYY HH:mm') : '';
+                                // ตรวจสอบว่ามีการทดสอบและยังไม่หมดอายุ
+                                var hasValidTraining = false;
+                                if (row.trainingStatuses && row.trainingStatuses.length > 0) {
+                                    var now = new Date();
+                                    hasValidTraining = row.trainingStatuses.some(function(training) {
+                                        if (training.is_passed === true) {
+                                            var expDate = training.end_at || training.expire_at;
+                                            if (expDate) {
+                                                var exp = new Date(expDate);
+                                                return exp > now;
+                                            }
+                                        }
+                                        return false;
+                                    });
+                                }
 
-                                // ไลน์ผลิต (รองรับ pd_line และ mapping dict)
-                                var pdName = s.pdline_name || s.pd_line || '';
-                                try { if (window.pdlineDict && pdName && window.pdlineDict[pdName]) { pdName = window.pdlineDict[pdName]; } } catch(e){}
+                                // ถ้ามีการทดสอบที่ผ่านและยังไม่หมดอายุ แสดงแค่ "ปกติ"
+                                if (hasValidTraining && s.status === 'green') {
+                                    return '<span class="badge bg-success" data-bs-toggle="tooltip" title="มีการทดสอบผ่านและยังไม่หมดอายุ">ปกติ</span>';
+                                }
 
-                                var examTitle = s.exam_title || '-';
-                                var course = s.course_code ? (s.course_code + (s.course_name? (' - ' + s.course_name):'')) : (s.course_name||'-');
-                                var passText = (s.is_passed===true ? 'ผ่าน' : (s.is_passed===false ? 'ไม่ผ่าน' : '-'));
-                                var scoreText = (s.score!=null ? s.score : '-') + (s.pass_score!=null ? (' / ' + s.pass_score) : '');
-
-                                // Badge คะแนน
-                                var scoreBadge = '';
-                                if (s.score != null) {
-                                    var sc = Number(s.score);
-                                    var sbCls = 'bg-secondary';
-                                    if (!isNaN(sc)) {
-                                        if (sc >= 8) sbCls = 'bg-success';
-                                        else if (sc >= 5) sbCls = 'bg-warning text-dark';
-                                        else sbCls = 'bg-danger';
+                                // กรณีอื่นๆ แสดงตามปกติ
+                                return '<span class="badge '+cls+'" data-bs-toggle="tooltip" title="'+text+'">'+text+'</span>';
+                            }
+                        },
+                        {
+                            data: null,
+                            title: '<i class="fas fa-graduation-cap me-1"></i> ' + '@Context.Session.GetTranslation("col_training_courses")',
+                            orderable: false,
+                            width: '200px',
+                            className: 'text-center',
+                            render: function(data, type, row) {
+                                if (!row.trainingStatuses || row.trainingStatuses.length === 0) {
+                                    return '<span class="text-muted">-</span>';
+                                }
+                                
+                                var courses = [];
+                                var uniqueCourses = new Set();
+                                
+                                row.trainingStatuses.forEach(function(training) {
+                                    if (training.course_name && !uniqueCourses.has(training.course_name)) {
+                                        uniqueCourses.add(training.course_name);
+                                        var courseName = training.course_name;
+                                        var courseCode = training.course_code || '';
+                                        var isPassed = training.is_passed === true;
+                                        var badgeClass = isPassed ? 'bg-success' : 'bg-secondary';
+                                        var icon = isPassed ? 'fa-check-circle' : 'fa-circle';
+                                        
+                                        courses.push('<span class="badge ' + badgeClass + ' me-1 mb-1" data-bs-toggle="tooltip" title="' + 
+                                            (courseCode ? courseCode + ' - ' : '') + courseName + 
+                                            (isPassed ? ' (ผ่าน)' : ' (ไม่ผ่าน)') + '">' +
+                                            '<i class="fas ' + icon + ' me-1"></i>' + 
+                                            courseName + 
+                                            '</span>');
                                     }
-                                    scoreBadge = ' <span class="badge '+sbCls+' ms-1"><i class="fas fa-star me-1"></i>'+ sc + (s.pass_score!=null ? (' / ' + s.pass_score) : '') +'</span>';
+                                });
+                                
+                                if (courses.length === 0) {
+                                    return '<span class="text-muted">-</span>';
                                 }
-
-                                // Badge ผ่าน/ไม่ผ่าน
-                                var passBadge = '';
-                                if (s.is_passed === true) passBadge = ' <span class="badge bg-success ms-1">ผ่าน</span>';
-                                else if (s.is_passed === false) passBadge = ' <span class="badge bg-danger ms-1">ไม่ผ่าน</span>';
-
-                                // Badge เหลือวัน
-                                var daysBadge = '';
-                                if (expRaw) {
-                                    try {
-                                        var now = new Date();
-                                        var dExp = new Date(expRaw);
-                                        var days = Math.floor((dExp - now) / 86400000);
-                                        if (days < 0) daysBadge = ' <span class="badge bg-danger ms-1">หมดอายุแล้ว</span>';
-                                        else if (days <= 30) daysBadge = ' <span class="badge bg-warning text-dark ms-1">เหลือ '+days+' วัน</span>';
-                                        else daysBadge = ' <span class="badge bg-success ms-1">เหลือ '+days+' วัน</span>';
-                                    } catch(e){}
-                                }
-
-                                // Tooltip
-                                var tipParts = [
-                                    'ชุดสอบ: ' + examTitle,
-                                    'คอร์ส: ' + course,
-                                    'คะแนน: ' + scoreText + ' (' + passText + ')'
-                                ];
-                                if (pdName) tipParts.push('ไลน์ผลิต: ' + pdName);
-                                if (assigned) tipParts.push('กำหนด: ' + assigned);
-                                if (exp) tipParts.push('หมดอายุ: ' + exp);
-                                var tip = tipParts.join('<br/>').replace(/\"/g, '&quot;');
-
-                                var expHtml = exp ? (' <small class="text-muted ms-1">' + exp + '</small>') : '';
-
-                                return '<span class="badge '+cls+'" data-bs-toggle="tooltip" data-bs-html="true" title="'+ tip +'">'+text+'</span>'
-                                       + passBadge + scoreBadge + daysBadge + expHtml;
+                                
+                                return '<div class="d-flex flex-wrap gap-1 justify-content-center">' + courses.join('') + '</div>';
                             }
                         },
                         {
                             data: 'resignDate',
-                            title: '<i class="fas fa-toggle-on me-1"></i> สถานะการทำงาน',
+                            title: '<i class="fas fa-toggle-on me-1"></i> ' + '@Context.Session.GetTranslation("col_work_status")',
                             render: function(data, type, row) {
                                 if (data) {
                                     return '<span class="badge bg-danger">ลาออกแล้ว</span>';
@@ -1429,10 +1459,22 @@
                                 var pd = x.pd_line || '-';
                                 try { if (window.pdlineDict && window.pdlineDict[pd]) pd = window.pdlineDict[pd]; } catch(e){}
 
+                                // สร้างลิงก์สำหรับดาวน์โหลดไฟล์ Excel
+                                var examTitleHtml = '-';
+                                if (x.exam_title) {
+                                    examTitleHtml = '<a href="#" class="download-excel-link text-primary fw-medium" ' +
+                                        'data-exam-title="' + x.exam_title + '" ' +
+                                        'data-person-id="' + row.personID + '" ' +
+                                        'data-course-id="' + (x.course_id || '') + '" ' +
+                                        'title="คลิกเพื่อดาวน์โหลดไฟล์ Excel">' +
+                                        '<i class="fas fa-file-excel me-1 text-success"></i>' + x.exam_title +
+                                        '</a>';
+                                }
+
                                 html += ''
                                   + '<tr>'
                                   + '  <td class="text-nowrap">'+ assigned +'</td>'
-                                  + '  <td class="text-nowrap">'+ (x.exam_title || '-') +'</td>'
+                                  + '  <td class="text-nowrap">'+ examTitleHtml +'</td>'
                                   + '  <td>'+ course +'</td>'
                                   + '  <td class="text-center">'+ scoreHtml +'</td>'
                                   + '  <td class="text-nowrap">'+ pd +'</td>'
@@ -1449,6 +1491,17 @@
                               + '</div>';
 
                             row.child(html).show();
+                            
+                            // เพิ่ม event handler สำหรับลิงก์ดาวน์โหลดไฟล์ Excel
+                            $('.download-excel-link').off('click').on('click', function(e) {
+                                e.preventDefault();
+                                var examTitle = $(this).data('exam-title');
+                                var personId = $(this).data('person-id');
+                                var courseId = $(this).data('course-id');
+                                
+                                // เรียกใช้ฟังก์ชันดาวน์โหลดไฟล์ Excel
+                                downloadExamExcel(examTitle, personId, courseId);
+                            });
                          })
                          .fail(function(){
                             row.child('<div class="p-3 text-danger">โหลดประวัติการสอบไม่สำเร็จ</div>').show();
@@ -1456,6 +1509,39 @@
                     }
                 });
             });
+            // ฟังก์ชันดาวน์โหลดไฟล์ Excel สำหรับชุดสอบ
+            function downloadExamExcel(examTitle, personId, courseId) {
+                if (!examTitle) {
+                    showErrorToast('ไม่พบชื่อชุดสอบ');
+                    return;
+                }
+                
+                // แสดง loading
+                Swal.fire({
+                    title: 'กำลังดาวน์โหลดไฟล์...',
+                    html: '<div class="spinner-border text-primary" role="status"></div><br><small>กรุณารอสักครู่</small>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+                
+                // สร้าง URL สำหรับดาวน์โหลดไฟล์ Excel
+                var downloadUrl = appBasePath + 'Employee/DownloadExamExcel?examTitle=' + encodeURIComponent(examTitle) + 
+                    '&personId=' + encodeURIComponent(personId) + 
+                    '&courseId=' + encodeURIComponent(courseId || '');
+                
+                // สร้างลิงก์ชั่วคราวเพื่อดาวน์โหลด
+                var link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = examTitle + '_' + personId + '.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // ปิด loading
+                Swal.close();
+                showSuccessToast('เริ่มดาวน์โหลดไฟล์: ' + examTitle);
+            }
+
             // กำหนดตัวแปรสิทธิ์สำหรับใช้ใน JavaScript
             var userPermissions = {
                 canAdd: @Json.Serialize(canAdd),
@@ -1546,6 +1632,7 @@
                 var departmentFilter = $('#departmentFilter').val();
                 var workStatusFilter = $('#workStatusFilter').val();
                 var pdlineFilter = $('#pdlineFilter').val();
+                var hasProductionLineFilter = $('#hasProductionLineFilter').is(':checked');
 
                 if (Array.isArray(departmentFilter)) departmentFilter = departmentFilter.join(',');
                 if (Array.isArray(pdlineFilter)) pdlineFilter = pdlineFilter.join(',');
@@ -1553,6 +1640,7 @@
                 $('#filter-storage').data('department', departmentFilter);
                 $('#filter-storage').data('status', workStatusFilter);
                 $('#filter-storage').data('pdline', pdlineFilter || '');
+                $('#filter-storage').data('hasProductionLine', hasProductionLineFilter);
 
                 Swal.fire({
                     title: 'กำลังกรองข้อมูล...',
@@ -1575,11 +1663,13 @@
                 $('#statusFilter').val('');
                 $('#workStatusFilter').val('');
                 $('#pdlineFilter').val([]);
+                $('#hasProductionLineFilter').prop('checked', false);
                 updateDeptCount();
 
                 $('#filter-storage').data('department', '');
                 $('#filter-storage').data('status', '');
                 $('#filter-storage').data('pdline', '');
+                $('#filter-storage').data('hasProductionLine', false);
 
                 Swal.fire({
                     title: 'กำลังโหลดข้อมูลทั้งหมด...',
@@ -1757,10 +1847,12 @@
                     $('.filter-shift').val($('#filter-storage').data('shift') || '');
                     $('.filter-status').val($('#filter-storage').data('status') || 'active');
                     $('.filter-door').val($('#filter-storage').data('door') || '');
+                    $('.filter-has-production-line').prop('checked', $('#filter-storage').data('hasProductionLine') || false);
                     // จัดการปุ่มรีเซ็ต
                     $('.reset-filter').on('click', function() {
                         $('.filter-shift, .filter-door, .filter-fingerprint').val('');
                         $('.filter-status').val('active');
+                        $('.filter-has-production-line').prop('checked', false);
                         
                         // ตรวจสอบสิทธิ์การเข้าถึงแผนก
                         if (!userPermissions.isAdmin) {
@@ -1775,12 +1867,14 @@
                         let status = $('.filter-status').val();
                         let door = $('.filter-door').val();
                         let fingerprint = $('.filter-fingerprint').val();
+                        let hasProductionLine = $('.filter-has-production-line').is(':checked');
                         // เก็บค่าที่เลือก
                         $('#filter-storage').data('department', department);
                         $('#filter-storage').data('shift', shift);
                         $('#filter-storage').data('status', status);
                         $('#filter-storage').data('door', door);
                         $('#filter-storage').data('fingerprint', fingerprint);
+                        $('#filter-storage').data('hasProductionLine', hasProductionLine);
                         // บันทึกลง localStorage
                         saveFiltersToLocalStorage();
                         // รีโหลดตาราง
@@ -4652,7 +4746,8 @@
                     door: $('#filter-storage').data('door') || '',
                     department: $('#filter-storage').data('department') || '',
                     shift: $('#filter-storage').data('shift') || '',
-                    fingerprint: $('#filter-storage').data('fingerprint') || ''
+                    fingerprint: $('#filter-storage').data('fingerprint') || '',
+                    hasProductionLine: $('#filter-storage').data('hasProductionLine') || false
                 };
                 localStorage.setItem('employeeFilters', JSON.stringify(filters));
             }
@@ -4664,7 +4759,8 @@
                     door: '',
                     department: '',
                     shift: '',
-                    fingerprint: ''
+                    fingerprint: '',
+                    hasProductionLine: false
                 };
             }
             // อัพเดท UI แสดงตัวกรองที่ใช้อยู่
@@ -4674,7 +4770,8 @@
                     door: $('#filter-storage').data('door') || '',
                     department: $('#filter-storage').data('department') || '',
                     shift: $('#filter-storage').data('shift') || '',
-                    fingerprint: $('#filter-storage').data('fingerprint') || ''
+                    fingerprint: $('#filter-storage').data('fingerprint') || '',
+                    hasProductionLine: $('#filter-storage').data('hasProductionLine') || false
                 };
                 $('#current-filters').empty();
                 let hasFilter = false;
@@ -4718,6 +4815,13 @@
                         <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="status"></button>
                     </span>`);
                 }
+                if (filters.hasProductionLine) {
+                    hasFilter = true;
+                    $('#current-filters').append(`<span class="badge bg-success rounded-pill">
+                        <i class="fas fa-industry me-1"></i>มีไลน์ผลิต
+                        <button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="hasProductionLine"></button>
+                    </span>`);
+                }
                 if (hasFilter) {
                     $('#current-filters').append(`<span class="badge bg-warning rounded-pill clear-all-filters" style="cursor: pointer;">
                         <i class="fas fa-times-circle me-1"></i>ล้างตัวกรองทั้งหมด
@@ -4735,6 +4839,10 @@
                     if (filterType === 'status') {
                         $('#filter-storage').data('status', 'active');
                     }
+                    // ถ้าเป็น hasProductionLine ให้รีเซ็ตเป็น false
+                    if (filterType === 'hasProductionLine') {
+                        $('#filter-storage').data('hasProductionLine', false);
+                    }
                     // ถ้าเป็น department และไม่ใช่ admin ให้รีเซ็ตกลับไปยังแผนกผู้ใช้
                     if (filterType === 'department' && !userPermissions.isAdmin) {
                         $('#filter-storage').data('department', userPermissions.currentUserDepartment || '');
@@ -4750,6 +4858,7 @@
                     $('#filter-storage').data('door', '');
                     $('#filter-storage').data('status', 'active');
                     $('#filter-storage').data('fingerprint', '');
+                    $('#filter-storage').data('hasProductionLine', false);
                     saveFiltersToLocalStorage();
                     $('#employeeTable').DataTable().ajax.reload();
                     updateFilterBadges();

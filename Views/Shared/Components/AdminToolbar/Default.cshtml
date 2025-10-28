@@ -31,7 +31,7 @@
                 Admin
             </div>
             <div class="admin-actions">
-                <button class="btn btn-sm btn-outline-light me-2" onclick="window.loadLanguageData()"
+                <button class="btn btn-sm btn-outline-light me-2" onclick="window.openLanguageModal()"
                     data-bs-toggle="tooltip" title="จัดการข้อมูลภาษา">
                     <i class="fas fa-language"></i>
                 </button>
@@ -51,26 +51,30 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">
-                        <i class="fas fa-language me-2"></i>
-                        จัดการข้อมูลภาษา - Module: @displayModuleId
-                    </h6>
+                    <div class="d-flex align-items-center w-100">
+                        <h6 class="modal-title me-auto">
+                            <i class="fas fa-language me-2"></i>
+                            จัดการข้อมูลภาษา (ทุกโมดูล)
+                        </h6>
+                        <div class="input-group input-group-sm w-auto me-2">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" placeholder="ค้นหา..." id="languageSearchBox">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddLanguage">
+                            <i class="fas fa-plus me-1"></i> เพิ่ม
+                        </button>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped" id="languageTable">
+                        <table class="table table-sm table-striped align-middle" id="languageTable" style="width:100%">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
                                     <th>Keyword</th>
-                                    <th>Module ID</th>
                                     <th>ไทย</th>
                                     <th>English</th>
                                     <th>中文</th>
-                                    <th>Created By</th>
-                                    <th>Created Date</th>
-                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -80,6 +84,50 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Language Modal -->
+    <div class="modal fade" id="editLanguageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="fas fa-edit me-2"></i>แก้ไขคำแปล</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+                    <div class="mb-2">
+                        <label class="form-label">Keyword</label>
+                        <input type="text" class="form-control form-control-sm" id="editKeyword">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Module ID</label>
+                        <input type="text" class="form-control form-control-sm" id="editModuleId">
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <label class="form-label mb-0">ไทย</label>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAutoTranslate">
+                                <i class="fas fa-magic me-1"></i> แปลอัตโนมัติ
+                            </button>
+                        </div>
+                        <textarea class="form-control form-control-sm" id="editTh" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">English</label>
+                        <textarea class="form-control form-control-sm" id="editEn" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">中文</label>
+                        <textarea class="form-control form-control-sm" id="editCn" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveLanguage">บันทึก</button>
                 </div>
             </div>
         </div>
@@ -216,24 +264,61 @@
 </style>
 
 <script>
-    // รอให้ jQuery โหลดเสร็จก่อน
-    if (typeof $ !== 'undefined') {
+    // ให้มีฟังก์ชัน global ก่อน jQuery โหลด เพื่อไม่ให้ onclick หาไม่เจอ
+    window.openLanguageModal = function () {
+        if (typeof $ === 'undefined') {
+            // รอให้ jQuery โหลดแล้วเรียกใหม่
+            setTimeout(window.openLanguageModal, 200);
+            return;
+        }
+        $('#languageModal').modal('show');
+        if (typeof window.fetchAllLanguages === 'function') {
+            window.fetchAllLanguages();
+        }
+    };
+
+    // ตัวช่วยรอ jQuery แล้วค่อย init สคริปต์จริง
+    (function waitForjQuery(initFn) {
+        if (typeof window.jQuery !== 'undefined') {
+            initFn();
+        } else {
+            setTimeout(function () { waitForjQuery(initFn); }, 100);
+        }
+    })(function initAdminLanguageScripts() {
         $(document).ready(function () {
             // ฟังก์ชันโหลดข้อมูลภาษา
-            window.loadLanguageData = function () {
-                var moduleId = '@moduleId';
-                console.log('Loading language data for module:', moduleId);
+            // เปิด modal และโหลดข้อมูลทั้งหมด (ยืนยันทับด้วยเวอร์ชันที่มี jQuery แล้ว)
+            window.openLanguageModal = function () {
+                $('#languageModal').modal('show');
+                window.fetchAllLanguages();
+            };
 
+            // โหลดภาษาทุกโมดูล (รองรับค้นหา)
+            window.fetchAllLanguages = function () {
+                var q = $('#languageSearchBox').val() || '';
                 $.ajax({
-                    url: '/Authen/GetLanguageDataByModule',
+                    url: '@Url.Action("GetAllLanguageData", "Language")',
                     type: 'GET',
-                    data: { moduleId: moduleId },
+                    data: { q: q },
                     success: function (response) {
                         if (response && response.success) {
                             window.renderLanguageTable(response.data);
-                            $('#languageModal').modal('show');
+                            // จัดการ DataTable: ทำลายแล้วสร้างใหม่ เพื่อให้ใช้ลำดับจากเซิร์ฟเวอร์ (id desc)
+                            if ($.fn.DataTable) {
+                                if ($.fn.DataTable.isDataTable('#languageTable')) {
+                                    $('#languageTable').DataTable().destroy();
+                                }
+                                $('#languageTable').DataTable({
+                                    pageLength: 25,
+                                    ordering: false, // ใช้ลำดับจากเซิร์ฟเวอร์ (GetAllLanguageData: Id desc)
+                                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'ทั้งหมด']]
+                                });
+                            } else {
+                                console.warn('DataTables ยังไม่พร้อม จะลองใหม่ภายหลัง');
+                                setTimeout(function () { if (window.fetchAllLanguages) window.fetchAllLanguages(); }, 300);
+                            }
                         } else {
-                            alert('ไม่สามารถโหลดข้อมูลภาษาได้: ' + (response.message || 'Unknown error'));
+                            alert('ไม่สามารถโหลดข้อมูลภาษาได้: ' + (response?.message || 'Unknown error'));
                         }
                     },
                     error: function (xhr, status, error) {
@@ -251,24 +336,19 @@
                 if (data && data.length > 0) {
                     data.forEach(function (item) {
                         var row = '<tr>' +
-                            '<td>' + (item.id || '-') + '</td>' +
-                            '<td>' + (item.keyword || '-') + '</td>' +
-                            '<td>' + (item.moduleId || '-') + '</td>' +
+                            '<td><code>' + (item.keyword || '-') + '</code></td>' +
                             '<td>' + (item.th || '-') + '</td>' +
                             '<td>' + (item.en || '-') + '</td>' +
                             '<td>' + (item.cn || '-') + '</td>' +
-                            '<td>' + (item.createdBy || '-') + '</td>' +
-                            '<td>' + window.formatDate(item.createdDate) + '</td>' +
-                            '<td>' + (item.recordStatus || '-') + '</td>' +
-                            '<td>' +
-                            '<button class="btn btn-sm btn-outline-primary me-1" onclick="window.editLanguage(' + item.id + ')">แก้ไข</button>' +
-                            '<button class="btn btn-sm btn-outline-danger" onclick="window.deleteLanguage(' + item.id + ')">ลบ</button>' +
+                            '<td class="text-nowrap">' +
+                            '<button class="btn btn-sm btn-outline-primary me-1" data-id="' + item.id + '" data-action="edit">แก้ไข</button>' +
+                            '<button class="btn btn-sm btn-outline-danger" data-id="' + item.id + '" data-action="delete">ลบ</button>' +
                             '</td>' +
                             '</tr>';
                         tbody.append(row);
                     });
                 } else {
-                    tbody.append('<tr><td colspan="10" class="text-center">ไม่มีข้อมูล</td></tr>');
+                    tbody.append('<tr><td colspan="5" class="text-center">ไม่มีข้อมูล</td></tr>');
                 }
             };
 
@@ -289,16 +369,189 @@
             };
 
             // ฟังก์ชันแก้ไขภาษา
-            window.editLanguage = function (id) {
-                alert('ฟังก์ชันแก้ไขจะเปิดใช้งานในอนาคต (ID: ' + id + ')');
-            };
+            // เปิด modal แก้ไข
+            $(document).on('click', '#languageTable [data-action="edit"]', function () {
+                var id = $(this).data('id');
+                var row = $(this).closest('tr');
+                $('#editId').val(id);
+                $('#editKeyword').val(row.find('td').eq(0).text());
+                $('#editModuleId').val('');
+                $('#editTh').val(row.find('td').eq(1).text());
+                $('#editEn').val(row.find('td').eq(2).text());
+                $('#editCn').val(row.find('td').eq(3).text());
+                $('#editLanguageModal').modal('show');
+            });
+
+            // โหมดเพิ่ม
+            $('#btnAddLanguage').on('click', function () {
+                $('#editId').val('');
+                $('#editKeyword').val('');
+                $('#editModuleId').val('');
+                $('#editTh').val('');
+                $('#editEn').val('');
+                $('#editCn').val('');
+                $('#editLanguageModal').modal('show');
+            });
+            // ปุ่มแปลอัตโนมัติ และยูทิลสำหรับแปล
+            function createSlug(text) {
+                return (text || '').toString().trim().toLowerCase()
+                    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+                    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 60);
+            }
+
+            function checkAndSetKeyword(k, i) {
+                var candidate = i > 0 ? (k + '_' + i) : k;
+                $.get('@Url.Action("GetKeywordCount", "Language")', { keyword: candidate })
+                    .done(function (res) {
+                        if (res && res.success) {
+                            if ((res.count || 0) === 0) {
+                                $('#editKeyword').val(candidate);
+                                $('#editKeyword').removeClass('is-invalid').addClass('is-valid');
+                                $('#editKeyword').next('.form-text.keyword-hint').remove();
+                                $('<div class="form-text keyword-hint text-success">พร้อมใช้งาน</div>').insertAfter('#editKeyword');
+                            } else {
+                                $('#editKeyword').removeClass('is-valid').addClass('is-invalid');
+                                $('#editKeyword').next('.form-text.keyword-hint').remove();
+                                $('<div class="form-text keyword-hint text-danger">ซ้ำ ' + res.count + ' รายการ</div>').insertAfter('#editKeyword');
+                                checkAndSetKeyword(k, (i || 0) + 1);
+                            }
+                        }
+                    });
+            }
+
+            function runAutoTranslate() {
+                var thText = $('#editTh').val();
+                if (!thText) return;
+
+                // แปลอัตโนมัติเป็น TH/EN/CN แล้วใส่ลงช่องทันที
+                $.ajax({
+                    url: '@Url.Action("TranslateText", "Language")',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({ text: thText, sourceLang: 'th' }),
+                    success: function (res) {
+                        if (res && res.status && res.data) {
+                            $('#editTh').val(res.data.th || '');
+                            $('#editEn').val(res.data.en || '');
+                            $('#editCn').val(res.data.cn || '');
+
+                            // ถ้าผู้ใช้ยังไม่แตะ keyword สร้างจาก EN
+                            if (!$('#editKeyword').data('touched')) {
+                                var k = createSlug(res.data.en || '');
+                                if (!k) { k = 'kw_' + Date.now().toString(36); }
+                                checkAndSetKeyword(k, 0);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ปุ่มแปลอัตโนมัติ
+            $(document).on('click', '#btnAutoTranslate', function () {
+                runAutoTranslate();
+            });
+
+            // ถ้ายังอยากรองรับ auto ขณะพิมพ์ สามารถเปิดใช้งานได้
+            // let thDebounceTimer;
+            // $('#editTh').on('input', function () {
+            //     clearTimeout(thDebounceTimer);
+            //     thDebounceTimer = setTimeout(runAutoTranslate, 500);
+            // });
+
+            // เมื่อผู้ใช้แก้ไข Keyword เอง ให้ตรวจซ้ำทันที และตั้ง flag ว่าผู้ใช้แก้ด้วยตัวเอง
+            $('#editKeyword').on('input', function () {
+                var k = ($(this).val() || '').toString().trim();
+                $(this).data('touched', true);
+                if (!k) {
+                    $('#editKeyword').removeClass('is-valid is-invalid');
+                    $('#editKeyword').next('.form-text.keyword-hint').remove();
+                    return;
+                }
+                $.get('@Url.Action("GetKeywordCount", "Language")', { keyword: k })
+                    .done(function (res) {
+                        $('#editKeyword').next('.form-text.keyword-hint').remove();
+                        if (res && res.success) {
+                            if ((res.count || 0) > 0) {
+                                $('#editKeyword').removeClass('is-valid').addClass('is-invalid');
+                                $('<div class="form-text keyword-hint text-danger">ซ้ำ ' + res.count + ' รายการ</div>').insertAfter('#editKeyword');
+                            } else {
+                                $('#editKeyword').removeClass('is-invalid').addClass('is-valid');
+                                $('<div class="form-text keyword-hint text-success">พร้อมใช้งาน</div>').insertAfter('#editKeyword');
+                            }
+                        }
+                    });
+            });
 
             // ฟังก์ชันลบภาษา
-            window.deleteLanguage = function (id) {
-                if (confirm('คุณต้องการลบข้อมูลภาษานี้หรือไม่?')) {
-                    alert('ฟังก์ชันลบจะเปิดใช้งานในอนาคต (ID: ' + id + ')');
-                }
-            };
+            // ลบรายการ
+            $(document).on('click', '#languageTable [data-action="delete"]', function () {
+                var id = $(this).data('id');
+                if (!confirm('คุณต้องการลบข้อมูลภาษานี้หรือไม่?')) return;
+
+                $.ajax({
+                    url: '@Url.Action("Delete", "Language")',
+                    type: 'POST',
+                    data: { id: id },
+                    success: function (res) {
+                        if (res && res.status) {
+                            if ($.fn.DataTable && $.fn.DataTable.isDataTable('#languageTable')) {
+                                $('#languageTable').DataTable().destroy();
+                            }
+                            $('#languageTable tbody').html('<tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr>');
+                            window.fetchAllLanguages();
+                            toastr.success('ลบข้อมูลสำเร็จ');
+                        } else {
+                            toastr.error(res?.message || 'ลบไม่สำเร็จ');
+                        }
+                    },
+                    error: function () {
+                        toastr.error('เกิดข้อผิดพลาดในการลบ');
+                    }
+                });
+            });
+
+            // บันทึกข้อมูล (เพิ่ม/แก้ไข)
+            $('#btnSaveLanguage').on('click', function () {
+                var payload = {
+                    Id: $('#editId').val(),
+                    Keyword: $('#editKeyword').val(),
+                    ModuleId: $('#editModuleId').val(),
+                    Th: $('#editTh').val(),
+                    En: $('#editEn').val(),
+                    Cn: $('#editCn').val(),
+                    UpdatedBy: '@(Context.Session.GetString("EmployeeName") ?? "System")'
+                };
+
+                // เคลียร์ฟิลด์ที่ว่างเพื่อหลีกเลี่ยงปัญหา model binding (เช่น Id เป็น "")
+                if (!payload.Id) { delete payload.Id; }
+                if (!payload.ModuleId || payload.ModuleId.trim().length === 0) { delete payload.ModuleId; }
+
+                var isCreate = !('Id' in payload);
+                var url = isCreate ? '@Url.Action("Create", "Language")' : '@Url.Action("Update", "Language")';
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res && res.status) {
+                            $('#editLanguageModal').modal('hide');
+                            if ($.fn.DataTable && $.fn.DataTable.isDataTable('#languageTable')) {
+                                $('#languageTable').DataTable().destroy();
+                            }
+                            $('#languageTable tbody').html('<tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr>');
+                            window.fetchAllLanguages();
+                            toastr.success(isCreate ? 'เพิ่มข้อมูลสำเร็จ' : 'บันทึกข้อมูลสำเร็จ');
+                        } else {
+                            toastr.error(res?.message || (isCreate ? 'เพิ่มไม่สำเร็จ' : 'บันทึกไม่สำเร็จ'));
+                        }
+                    },
+                    error: function () {
+                        toastr.error('เกิดข้อผิดพลาดในการบันทึก');
+                    }
+                });
+            });
 
             // ฟังก์ชันเปิด/ปิดแถบเครื่องมือ Admin
             window.toggleAdminToolbar = function () {
@@ -318,7 +571,7 @@
                 console.log('Translating page for module:', moduleId);
 
                 $.ajax({
-                    url: '/Authen/GetLanguageDataByModule',
+                    url: '@Url.Action("GetLanguageDataByModule", "Language")',
                     type: 'GET',
                     data: { moduleId: moduleId },
                     success: function (response) {
@@ -342,40 +595,10 @@
                 });
             };
 
-            // เปิด modal เมื่อคลิกปุ่ม
-            $('#languageModal').on('show.bs.modal', function () {
-                window.loadLanguageData();
+            // ค้นหาแบบทันที
+            $('#languageSearchBox').on('input', function () {
+                window.fetchAllLanguages();
             });
         });
-    } else {
-        // ถ้า jQuery ยังไม่โหลด ให้รอ
-        setTimeout(function () {
-            if (typeof $ !== 'undefined') {
-                $(document).ready(function () {
-                    // เรียกใช้ฟังก์ชันที่จำเป็น
-                    window.loadLanguageData = function () {
-                        console.log('jQuery loaded, but loadLanguageData not implemented yet');
-                    };
-                    window.translatePage = function () {
-                        console.log('jQuery loaded, but translatePage not implemented yet');
-                    };
-                    window.toggleAdminToolbar = function () {
-                        var toolbar = document.getElementById('adminToolbar');
-                        if (toolbar) {
-                            if (toolbar.style.display === 'none' || toolbar.style.display === '') {
-                                toolbar.style.display = 'block';
-                            } else {
-                                toolbar.style.display = 'none';
-                            }
-                        }
-                    };
-
-                    // เปิด modal เมื่อคลิกปุ่ม
-                    $('#languageModal').on('show.bs.modal', function () {
-                        window.loadLanguageData();
-                    });
-                });
-            }
-        }, 1000);
-    }
+    });
 </script>

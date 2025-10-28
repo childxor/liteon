@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using OfficeOpenXml;
 
 namespace IPS_TH.Controllers.Employee
 {
@@ -1199,14 +1200,15 @@ namespace IPS_TH.Controllers.Employee
 
         [HttpGet]
         [Route("Employee/GetEmployeesListData")]
-        public async Task<IActionResult> GetEmployeesListData(
+        public async Task<IActionResult> GetEmployeesListData( 
             string status = "",
             string door = "",
             string department = "", 
             string shift = "",
             string fingerprint = "",
             string pdline = "",
-            bool mergeTraining = false
+            bool hasProductionLine = false,
+            bool mergeTraining = true
         )
         {
             try
@@ -1292,7 +1294,8 @@ namespace IPS_TH.Controllers.Employee
                     department,
                     shift,
                     fingerprint,
-                    pdline
+                    pdline,
+                    hasProductionLine
                 );
 
                 // Debug logging
@@ -1974,7 +1977,8 @@ namespace IPS_TH.Controllers.Employee
             string department,
             string shift,
             string fingerprint,
-            string pdline
+            string pdline,
+            bool hasProductionLine = false
         )
         {
             // กรองตามสถานะ
@@ -2154,6 +2158,27 @@ namespace IPS_TH.Controllers.Employee
                 };
             }
 
+            // กรองตามการมีไลน์ผลิต
+            if (hasProductionLine)
+            {
+                employeesList = employeesList.Where(e =>
+                {
+                    var emp = (dynamic)e;
+                    // ตรวจสอบว่ามีข้อมูล trainingStatuses และมีข้อมูลไลน์ผลิต
+                    if (HasProp(emp, "trainingStatuses") && emp.trainingStatuses != null)
+                    {
+                        var trainingStatuses = emp.trainingStatuses;
+                        if (trainingStatuses is IEnumerable<dynamic> trainingList)
+                        {
+                            return trainingList.Any(t => 
+                                HasProp(t, "pd_line") && 
+                                !string.IsNullOrEmpty(t.pd_line?.ToString())
+                            );
+                        }
+                    }
+                    return false;
+                }).ToList();
+            }
 
             return employeesList;
         }
@@ -5817,6 +5842,69 @@ namespace IPS_TH.Controllers.Employee
             catch (Exception ex)
             {
                 return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        [Route("Employee/DownloadExamExcel")]
+        public async Task<IActionResult> DownloadExamExcel(string examTitle, string personId, string courseId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(examTitle))
+                {
+                    return BadRequest("ไม่พบชื่อชุดสอบ");
+                }
+
+                // สร้างชื่อไฟล์
+                var fileName = $"{examTitle}_{personId}_{DateTime.Now:yyyyMMdd}.xlsx";
+                
+                // สร้างข้อมูล Excel (ตัวอย่าง - ต้องปรับตามโครงสร้างข้อมูลจริง)
+                var data = new List<object>
+                {
+                    new { 
+                        PersonID = personId,
+                        ExamTitle = examTitle,
+                        CourseID = courseId,
+                        DownloadDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    }
+                };
+
+                // สร้างไฟล์ Excel (ใช้ EPPlus หรือ library อื่น)
+                // ตัวอย่างการสร้างไฟล์ Excel แบบง่าย
+                var stream = new MemoryStream();
+                using (var package = new OfficeOpenXml.ExcelPackage(stream))
+                {
+                    var worksheet = package.Workbook.Worksheets.Add("ExamData");
+                    
+                    // Header
+                    worksheet.Cells[1, 1].Value = "รหัสพนักงาน";
+                    worksheet.Cells[1, 2].Value = "ชุดสอบ";
+                    worksheet.Cells[1, 3].Value = "รหัสคอร์ส";
+                    worksheet.Cells[1, 4].Value = "วันที่ดาวน์โหลด";
+                    
+                    // Data
+                    worksheet.Cells[2, 1].Value = personId;
+                    worksheet.Cells[2, 2].Value = examTitle;
+                    worksheet.Cells[2, 3].Value = courseId ?? "";
+                    worksheet.Cells[2, 4].Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    
+                    // Auto fit columns
+                    worksheet.Cells.AutoFitColumns();
+                    
+                    package.Save();
+                }
+                
+                stream.Position = 0;
+                
+                return File(stream.ToArray(), 
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                    fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error downloading exam Excel: {ex.Message}");
+                return BadRequest("เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์");
             }
         }
 

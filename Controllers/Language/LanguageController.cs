@@ -26,16 +26,15 @@ namespace IPS_TH.Controllers
                 .Select(x => new 
                 {
                     x.Id,
-                    x.Keyword,
-                    x.Th,
-                    x.En,
-                    x.Jp,
-                    x.Cn,
-                    x.CreatedBy,
-                    x.CreatedDate,
-                    x.UpdatedBy,
-                    x.UpdatedDate,
-                    x.RecordStatus
+                    Keyword = x.Keyword,
+                    Th = x.Th,
+                    En = x.En,
+                    Cn = x.Cn,
+                    CreatedBy = EF.Property<string>(x, "CreatedBy"),
+                    CreatedDate = EF.Property<DateTime?>(x, "CreatedDate"),
+                    UpdatedBy = EF.Property<string>(x, "UpdatedBy"),
+                    UpdatedDate = EF.Property<DateTime?>(x, "UpdatedDate"),
+                    RecordStatus = x.RecordStatus
                 })
                 .Take(200)
                 .ToListAsync());
@@ -51,17 +50,28 @@ namespace IPS_TH.Controllers
                     return Json(new { status = false, message = "ข้อมูลไม่ถูกต้อง" });
                 }
 
-                model.CreatedDate = DateTime.Now;
+                // ปรับค่าเริ่มต้นให้ครบ
+                model.Keyword = (model.Keyword ?? string.Empty).Trim();
+                model.ModuleId = (model.ModuleId ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(model.ModuleId))
+                {
+                    model.ModuleId = "1";
+                }
+                model.Th = model.Th ?? string.Empty;
+                model.En = model.En ?? string.Empty;
+                model.Cn = model.Cn ?? string.Empty;
+                model.RecordStatus = string.IsNullOrEmpty(model.RecordStatus) ? "N" : model.RecordStatus;
+                model.CreatedDate = model.CreatedDate ?? DateTime.Now;
                 model.UpdatedDate = DateTime.Now;
-                model.CreatedBy = User.Identity?.Name ?? "System";
+                model.CreatedBy = string.IsNullOrEmpty(model.CreatedBy) ? (User.Identity?.Name ?? "System") : model.CreatedBy;
                 model.UpdatedBy = User.Identity?.Name ?? "System";
-                model.RecordStatus = "N";
 
                 if (string.IsNullOrEmpty(model.Keyword))
                 {
                     return Json(new { status = false, message = "กรุณาระบุ Keyword" });
                 }
 
+                // เช็คซ้ำ keyword แบบ global ไม่สน moduleId
                 var exists = await _context.sys_language
                     .AnyAsync(x => x.Keyword == model.Keyword && x.RecordStatus != "D");
                 if (exists)
@@ -90,13 +100,18 @@ namespace IPS_TH.Controllers
                     return Json(new { status = false, message = "ไม่พบข้อมูล" });
                 }
 
-                existingData.Keyword = model.Keyword;
-                existingData.Th = model.Th;
-                existingData.En = model.En;
-                existingData.Jp = model.Jp;
-                existingData.Cn = model.Cn;
+                // อัปเดตแบบ null-safe
+                existingData.Keyword = (model.Keyword ?? existingData.Keyword)?.Trim();
+                existingData.Th = model.Th ?? existingData.Th;
+                existingData.En = model.En ?? existingData.En;
+                existingData.Cn = model.Cn ?? existingData.Cn;
+                var normalizedModuleId = string.IsNullOrWhiteSpace(model.ModuleId)
+                    ? (string.IsNullOrWhiteSpace(existingData.ModuleId) ? "1" : existingData.ModuleId)
+                    : model.ModuleId.Trim();
+                existingData.ModuleId = normalizedModuleId;
+                existingData.RecordStatus = string.IsNullOrEmpty(model.RecordStatus) ? (existingData.RecordStatus ?? "N") : model.RecordStatus;
                 existingData.UpdatedDate = DateTime.Now;
-                existingData.UpdatedBy = model.UpdatedBy;
+                existingData.UpdatedBy = string.IsNullOrEmpty(model.UpdatedBy) ? (User.Identity?.Name ?? "System") : model.UpdatedBy;
 
                 await _context.SaveChangesAsync();
                 return Json(new { status = true, message = "แก้ไขข้อมูลสำเร็จ" });
@@ -118,8 +133,7 @@ namespace IPS_TH.Controllers
                     return Json(new { status = false, message = "ไม่พบข้อมูล" });
                 }
 
-                data.RecordStatus = "D";
-                data.UpdatedDate = DateTime.Now;
+                _context.sys_language.Remove(data);
                 await _context.SaveChangesAsync();
                 return Json(new { status = true, message = "ลบข้อมูลสำเร็จ" });
             }
@@ -140,27 +154,115 @@ namespace IPS_TH.Controllers
                 }
 
                 var languageData = await _context.sys_language
-                    .Where(x => x.ModuleId == moduleId && x.RecordStatus != "D")
+                    .Where(x => EF.Property<string>(x, "ModuleId") == moduleId && x.RecordStatus != "D")
                     .OrderByDescending(x => x.Id)
                     .Take(200)
                     .Select(x => new 
                     {
                         id = x.Id,
                         keyword = x.Keyword,
-                        moduleId = x.ModuleId,
+                        moduleId = EF.Property<string>(x, "ModuleId"),
                         th = x.Th,
                         en = x.En,
-                        jp = x.Jp,
                         cn = x.Cn,
-                        createdBy = x.CreatedBy,
-                        createdDate = x.CreatedDate,
-                        updatedBy = x.UpdatedBy,
-                        updatedDate = x.UpdatedDate,
+                        createdBy = EF.Property<string>(x, "CreatedBy"),
+                        createdDate = EF.Property<DateTime?>(x, "CreatedDate"),
+                        updatedBy = EF.Property<string>(x, "UpdatedBy"),
+                        updatedDate = EF.Property<DateTime?>(x, "UpdatedDate"),
                         recordStatus = x.RecordStatus
                     })
                     .ToListAsync();
 
                 return Json(new { success = true, data = languageData });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllLanguageData(string q)
+        {
+            try
+            {
+                var query = _context.sys_language
+                    .Where(x => x.RecordStatus != "D");
+
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    q = q.Trim();
+                    query = query.Where(x =>
+                        (x.Keyword ?? "").Contains(q) ||
+                        (EF.Property<string>(x, "ModuleId") ?? "").Contains(q) ||
+                        (x.Th ?? "").Contains(q) ||
+                        (x.En ?? "").Contains(q) ||
+                        (x.Cn ?? "").Contains(q)
+                    );
+                }
+
+                var languageData = await query
+                    .OrderByDescending(x => x.Id)
+                    .Take(1000)
+                    .Select(x => new
+                    {
+                        id = x.Id,
+                        keyword = x.Keyword,
+                        moduleId = EF.Property<string>(x, "ModuleId"),
+                        th = x.Th,
+                        en = x.En,
+                        cn = x.Cn,
+                        createdBy = EF.Property<string>(x, "CreatedBy"),
+                        createdDate = EF.Property<DateTime?>(x, "CreatedDate"),
+                        updatedBy = EF.Property<string>(x, "UpdatedBy"),
+                        updatedDate = EF.Property<DateTime?>(x, "UpdatedDate"),
+                        recordStatus = x.RecordStatus
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = languageData });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> IsKeywordAvailable(string keyword)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    return Json(new { success = false, message = "กรุณาระบุ Keyword" });
+                }
+
+                var exists = await _context.sys_language
+                    .AnyAsync(x => x.Keyword == keyword && x.RecordStatus != "D");
+
+                return Json(new { success = true, available = !exists });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetKeywordCount(string keyword)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    return Json(new { success = true, count = 0 });
+                }
+
+                var count = await _context.sys_language
+                    .CountAsync(x => x.Keyword == keyword && x.RecordStatus != "D");
+
+                return Json(new { success = true, count = count });
             }
             catch (Exception ex)
             {
@@ -180,7 +282,6 @@ namespace IPS_TH.Controllers
                 {
                     { "th", "th" },
                     { "en", "en" },
-                    { "jp", "ja" },
                     { "cn", "zh-TW" }
                 };
 

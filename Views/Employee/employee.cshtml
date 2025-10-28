@@ -1207,6 +1207,9 @@
                             // ใช้ WrkPlanID เป็นตัวกรองกะหลัก
                             d.shift = ($('#filter-storage').data('shift') || '').toString().trim();
                             d.fingerprint = $('#filter-storage').data('fingerprint');
+                            d.pdline = $('#filter-storage').data('pdline') || '';
+                            d.hasProductionLine = $('#filter-storage').data('hasProductionLine') || false;
+                            d.mergeTraining = true; // ให้เซิร์ฟเวอร์ merge ข้อมูล ESMMS มาด้วย
                         },
                         dataSrc: function(json) {
                             console.log('DataTables dataSrc received:', json);

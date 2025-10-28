@@ -56,8 +56,8 @@ namespace IPS_TH.Controllers
                 ?? _configuration["SQL944ConnectionString"];
             _defaultConnectionString = _configuration.GetConnectionString("DefaultConnection");
             _employeeController = employeeController;
-                        _ces941ConnectionString = _configuration.GetConnectionString("CES941");
-                        _hrIpsConnectionString = _configuration.GetConnectionString("HR_IPS");
+            _ces941ConnectionString = _configuration.GetConnectionString("CES941");
+            _hrIpsConnectionString = _configuration.GetConnectionString("HR_IPS");
         }
 
         [HttpGet]
@@ -186,14 +186,14 @@ namespace IPS_TH.Controllers
                 HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? deptInfoFromHRMIPS.WorkArea ?? string.Empty);
                 HttpContext.Session.SetString("UserName", domainUsername);
                 HttpContext.Session.SetString("EmployeeID", !string.IsNullOrEmpty(adUser?.EmployeeId) ? adUser.EmployeeId : (userAccount.Emp_no ?? string.Empty));
-                HttpContext.Session.SetString("EmployeeName", adUser?.DisplayName ?? ($"{adUser?.GivenName} {adUser?.Surname}".Trim())) ;
+                HttpContext.Session.SetString("EmployeeName", adUser?.DisplayName ?? ($"{adUser?.GivenName} {adUser?.Surname}".Trim()));
 
-                await LoadLanguageData(userAccount.Language ?? "th", userAccount.Language);
+                await LoadLanguageData(userAccount.Language ?? "th");
 
                 // อัปเดตเวลาเข้าสู่ระบบ
                 await _context.Database.ExecuteSqlRawAsync("UPDATE sys_user SET LastLogin = GETDATE() WHERE Id = {0}", userAccount.Id);
 
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Home"); 
             }
             catch (Exception)
             {
@@ -403,7 +403,7 @@ namespace IPS_TH.Controllers
                 HttpContext.Session.SetString("UserName", domainUsername ?? "");
 
                 // โหลดข้อมูลภาษาเมื่อ login
-                await LoadLanguageData(userAccount.Language ?? "th", userAccount.Language);
+                await LoadLanguageData(userAccount.Language ?? "th");
 
                 // ไม่บังคับให้กรอก emp_no/department สำหรับพนักงานใหม่อีกต่อไป
                 bool needsProfileUpdate = false;
@@ -1024,7 +1024,7 @@ namespace IPS_TH.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateLanguage(string language, string moduleId)
+        public async Task<IActionResult> UpdateLanguage(string language)
         {
             try
             {
@@ -1059,7 +1059,7 @@ namespace IPS_TH.Controllers
                             HttpContext.Session.Remove("ModuleMenu");
 
                             // โหลดข้อมูลภาษาใหม่
-                            await LoadLanguageData(language, moduleId);
+                            await LoadLanguageData(language);
 
                             // ดึงข้อมูลภาษาที่โหลดใหม่
                             var languageDataJson = HttpContext.Session.GetString("LanguageData");
@@ -1102,7 +1102,7 @@ namespace IPS_TH.Controllers
             return Encoding.UTF8.GetString(plainTextBytes);
         }
 
-        private async Task LoadLanguageData(string language, string moduleId)
+        private async Task LoadLanguageData(string language)
         {
             try
             {
@@ -1113,47 +1113,9 @@ namespace IPS_TH.Controllers
                     System.Diagnostics.Debug.WriteLine("ไม่พบข้อมูลภาษา ใช้ค่าเริ่มต้นเป็นภาษาไทย");
                 }
 
-                // ถอดรหัส moduleId
-                string decodedModuleId = string.Empty;
-                try
-                {
-                    decodedModuleId = Decode(moduleId);
-                    System.Diagnostics.Debug.WriteLine(
-                        $"ถอดรหัส moduleId: {moduleId} -> {decodedModuleId}"
-                    );
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"ไม่สามารถถอดรหัส moduleId ได้: {ex.Message}"
-                    );
-                    decodedModuleId = string.Empty;
-                }
-                moduleId = decodedModuleId;
-
-                // แปลง moduleId เป็น int หากมีค่า และตรวจสอบว่าเป็นตัวเลขหรือไม่
-                int? moduleIdInt = null;
-                if (
-                    !string.IsNullOrEmpty(moduleId)
-                    && int.TryParse(moduleId, out int parsedModuleId)
-                )
-                {
-                    moduleIdInt = parsedModuleId;
-                    System.Diagnostics.Debug.WriteLine($"แปลง moduleId เป็น int: {moduleIdInt}");
-                }
-
                 // ดึงข้อมูลภาษาจากฐานข้อมูล
                 var query = _context.sys_language.Where(l => l.RecordStatus == "N");
                 System.Diagnostics.Debug.WriteLine("เริ่มดึงข้อมูลภาษาจากฐานข้อมูล");
-
-                // เพิ่มเงื่อนไข moduleId ถ้ามีค่า
-                if (moduleIdInt.HasValue)
-                {
-                    query = query.Where(l => l.ModuleId == moduleIdInt.Value.ToString());
-                    System.Diagnostics.Debug.WriteLine(
-                        $"กรองข้อมูลภาษาตาม moduleId: {moduleIdInt.Value}"
-                    );
-                }
 
                 var languageData = await query
                     .Select(l => new
@@ -1165,10 +1127,6 @@ namespace IPS_TH.Controllers
                         zh = l.Cn,
                     })
                     .ToListAsync();
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"พบข้อมูลภาษาทั้งหมด {languageData.Count} รายการ"
-                );
 
                 // สร้าง Dictionary เพื่อเก็บข้อมูลภาษาตาม keyword
                 var translations = new Dictionary<string, string>();
@@ -1192,28 +1150,20 @@ namespace IPS_TH.Controllers
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine(
-                    $"แปลงข้อมูลภาษาเป็น Dictionary สำเร็จ มีข้อมูลทั้งหมด {translations.Count} รายการ"
-                );
-
                 // เก็บข้อมูลภาษาลงใน Session
                 HttpContext.Session.SetString(
                     "LanguageData",
                     JsonConvert.SerializeObject(translations)
                 );
 
-                System.Diagnostics.Debug.WriteLine("บันทึกข้อมูลภาษาลงใน Session สำเร็จ");
             }
             catch (Exception ex)
             {
-                // บันทึกข้อผิดพลาด
-                System.Diagnostics.Debug.WriteLine($"Error loading language data: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             }
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLanguageData(string moduleId)
+        public async Task<IActionResult> GetLanguageData()
         {
             try
             {
@@ -1230,17 +1180,12 @@ namespace IPS_TH.Controllers
                 var languageDataJson = HttpContext.Session.GetString("LanguageData");
 
                 // ถ้าไม่มี moduleId ให้ใช้ segment จาก path
-                if (string.IsNullOrEmpty(moduleId))
-                {
-                    moduleId = HttpContext.Request.Path.Value.Split('/').Last();
-                }
-
-                await LoadLanguageData(currentLanguage, moduleId);
+                await LoadLanguageData(currentLanguage);
 
                 // ถ้าไม่มีข้อมูลใน Session ให้โหลดใหม่
                 if (string.IsNullOrEmpty(languageDataJson))
                 {
-                    await LoadLanguageData(currentLanguage, moduleId);
+                    await LoadLanguageData(currentLanguage);
                     languageDataJson = HttpContext.Session.GetString("LanguageData");
                 }
 

@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="DinkToPdf" Version="1.0.8" />
-    <PackageReference Include="EPPlus" Version="8.0.2" />
+    <PackageReference Include="EPPlus" Version="8.2.1" />
     <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.95" />
     <PackageReference Include="itext7" Version="9.2.0" />
     <PackageReference Include="itext7.bouncy-castle-adapter" Version="9.2.0" />
