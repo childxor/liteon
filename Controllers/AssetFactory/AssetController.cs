@@ -1160,6 +1160,7 @@ namespace IPS_TH.Controllers.AssetFactory
         }
 
         [HttpGet]
+        [Route("Asset/GetAssetMacAddresses")]
         public async Task<IActionResult> GetAssetMacAddresses(int assetId)
         {
             try
@@ -1759,6 +1760,7 @@ namespace IPS_TH.Controllers.AssetFactory
         }
 
         [HttpGet]
+        [Route("Asset/GetByOwner")]
         public async Task<IActionResult> GetByOwner(string owner)
         {
             try

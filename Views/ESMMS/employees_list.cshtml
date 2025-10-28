@@ -106,17 +106,19 @@
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label for="departmentFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_department")</label>
-                                        <div class="d-flex gap-2 mb-2">
+                                        <label for="departmentFilter" class="form-label fw-medium">
+                                            <i class="fas fa-building me-2 text-primary"></i>@Context.Session.GetTranslation("esmms_filter_department")
+                                        </label>
+                                        <div class="filter-controls">
                                             <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllDept">
                                                 <i class="fas fa-check-square me-1"></i>@Context.Session.GetTranslation("esmms_select_all")
                                             </button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllDept">
                                                 <i class="fas fa-square me-1"></i>@Context.Session.GetTranslation("esmms_clear_all")
                                             </button>
-                                            <span class="badge bg-info align-self-center" id="deptCount">0 @Context.Session.GetTranslation("esmms_filter_department")</span>
+                                            <span class="filter-count-badge" id="deptCount">0 @Context.Session.GetTranslation("esmms_filter_department")</span>
                                         </div>
-                                        <select class="form-select" id="departmentFilter" multiple style="height: 120px;">
+                                        <select class="form-select" id="departmentFilter" multiple>
                                             @if (ViewBag.Dept != null)
                                             {
                                                 @foreach (var dept in ViewBag.Dept)
@@ -124,8 +126,14 @@
                                                     <option value="@dept.deptID">@dept.deptID</option>
                                                 }
                                             }
+                                            else
+                                            {
+                                                <option value="">ไม่มีข้อมูลแผนก</option>
+                                            }
                                         </select>
-                                        <div class="form-text">@Context.Session.GetTranslation("esmms_multi_select_hint_dept")</div>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>@Context.Session.GetTranslation("esmms_multi_select_hint_dept")
+                                        </div>
                                     </div>
                                     <div class="col-md-3">
                                         <label for="statusFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_training_status")</label>
@@ -147,9 +155,22 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="pdlineFilter" class="form-label fw-medium">@Context.Session.GetTranslation("esmms_filter_pdline")</label>
-                                        <select class="form-select" id="pdlineFilter" multiple style="height: 120px;"></select>
-                                        <div class="form-text">@Context.Session.GetTranslation("esmms_multi_select_hint_line")</div>
+                                        <label for="pdlineFilter" class="form-label fw-medium">
+                                            <i class="fas fa-industry me-2 text-success"></i>@Context.Session.GetTranslation("esmms_filter_pdline")
+                                        </label>
+                                        <div class="filter-controls">
+                                            <button type="button" class="btn btn-sm btn-outline-success" id="selectAllPdline">
+                                                <i class="fas fa-check-square me-1"></i>เลือกทั้งหมด
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllPdline">
+                                                <i class="fas fa-square me-1"></i>ยกเลิกทั้งหมด
+                                            </button>
+                                            <span class="filter-count-badge bg-success" id="pdlineCount">0 ไลน์ผลิต</span>
+                                        </div>
+                                        <select class="form-select" id="pdlineFilter" multiple></select>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>@Context.Session.GetTranslation("esmms_multi_select_hint_line")
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="row mt-3">
@@ -164,10 +185,10 @@
                                 </div>
                                 <div class="row mt-3">
                                     <div class="col-12">
-                                        <button type="button" class="btn btn-primary me-2" id="applyFilter">
+                                        <button type="button" class="btn btn-primary me-2 rounded-pill" id="applyFilter">
                                             <i class="fas fa-search me-1"></i>@Context.Session.GetTranslation("btn_filter")
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary" id="clearFilter">
+                                        <button type="button" class="btn btn-outline-secondary rounded-pill" id="clearFilter">
                                             <i class="fas fa-times me-1"></i>@Context.Session.GetTranslation("btn_clear")
                                         </button>
                                     </div>
@@ -225,113 +246,307 @@
                 </div>
             </div>
 
-            <!-- New row template for filter -->
-            <script type="text/template" id="filterRowTemplate">
-                <tr id="filter-row" class="bg-light">
-                    <td colspan="13">
-                        <div class="card shadow-sm border-0 rounded-3 my-3 fade-in">
-                            <div class="card-header bg-gradient-light py-3">
-                                <h5 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>ตัวกรองข้อมูล</h5>
-                            </div>
-                            <div class="card-body p-4">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <select class="form-select filter-department">
-                                               <option value="" selected>ทั้งหมด</option>
-                                               @foreach (var item in ViewBag.Dept)
-                                               {
-                                                   <option value="@item.deptID">@item.deptID</option>
-                                               }
-                                            </select>
-                                            <label><i class="fas fa-building me-1"></i>แผนก</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <select class="form-select filter-shift">
-                                                <option value="" selected>ทั้งหมด</option>
-                                                @foreach (var item in ViewBag.Shiftfromces941)
-                                                {
-                                                    <option value="@item.wrkPlanID">@item.wrkPlanID</option>
-                                                }
-                                            </select>
-                                            <label><i class="fas fa-clock me-1"></i>กะการทำงาน</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <select class="form-select filter-status">
-                                                <option value="" selected>ทั้งหมด</option>
-                                                <option value="active" selected>ยังไม่ลาออก</option>
-                                                <option value="resigned">ลาออก</option>
-                                                <option value="incomplete">ข้อมูลไม่ครบถ้วน</option>
-                                                <option value="ces941only">มีเฉพาะใน CES941</option>
-                                                <option value="sql944only">มีเฉพาะใน SQL944</option>
-                                            </select>
-                                            <label><i class="fas fa-toggle-on me-1"></i>สถานะ</label>
-                                        </div> 
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <select class="form-select filter-door">
-                                                <option value="" selected>ทั้งหมด</option>
-                                                <option value="0001601">Build1 - Chemical room</option>
-                                                <option value="0001801">Build1 - Comsumables room</option>
-                                                <option value="0001101">Build1 - DCC room</option>
-                                                <option value="0001201">Build1 - DQE room</option>
-                                                <option value="0000101">Build1 - HR Attendance 01</option>
-                                                <option value="0000201">Build1 - HR Attendance 02</option>
-                                                <option value="0001301">Build1 - IQC room</option>
-                                                <option value="0001701">Build1 - Jig room</option>
-                                                <option value="0001001">Build1 - MIS server room</option>
-                                                <option value="0002001">Build1 - Store electonic</option>
-                                                <option value="0001401">Build1 - Store Finish goods 01</option>
-                                                <option value="0001901">Build1 - Store raw material</option>
-                                            </select>
-                                            <label><i class="fas fa-door-open me-1"></i>ประตู</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <select class="form-select filter-fingerprint">
-                                                <option value="">ทั้งหมด</option>
-                                                <option value="has">มีลายนิ้วมือ</option>
-                                                <option value="none">ไม่มีลายนิ้วมือ</option>
-                                            </select>
-                                            <label><i class="fas fa-fingerprint me-1"></i>ลายนิ้วมือ</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check mt-4">
-                                            <input class="form-check-input" type="checkbox" id="filterHasProductionLine" class="filter-has-production-line">
-                                            <label class="form-check-label" for="filterHasProductionLine">
-                                                <i class="fas fa-industry me-1"></i>@Context.Session.GetTranslation("only_show_people_with_production_lines")
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-end gap-2 mt-4">
-                                    <button type="button" class="btn btn-outline-secondary rounded-pill reset-filter">
-                                        <i class="fas fa-undo me-2"></i>รีเซ็ต
-                                    </button>
-                                    <button type="button" class="btn btn-primary rounded-pill apply-filter">
-                                        <i class="fas fa-check me-2"></i>ตกลง
-                                    </button>
-                                    <button type="button" class="btn btn-danger rounded-pill close-filter">
-                                        <i class="fas fa-times me-2"></i>ปิด
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </script>
         </div>
 
         @section Scripts {
         <!-- เพิ่ม library XLSX.js สำหรับ Export Excel -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        <!-- เพิ่ม library Select2 -->
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        <!-- เพิ่ม CSS สำหรับปรับปรุง UI -->
+        <style>
+            /* ปรับปรุง Select2 ให้สวยขึ้นและทันสมัย */
+            .select2-container--bootstrap-5 {
+                width: 100% !important;
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection {
+                border: 2px solid #e9ecef;
+                border-radius: 0.5rem;
+                min-height: 42px;
+                padding: 0.5rem 0.75rem;
+                transition: all 0.3s ease;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection:hover {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection--focused {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+                background: #ffffff;
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection--multiple {
+                padding: 0.375rem 0.5rem;
+                min-height: 42px;
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+                background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+                border: none;
+                border-radius: 0.375rem;
+                padding: 0.375rem 0.75rem;
+                margin: 0.125rem;
+                color: white;
+                font-weight: 500;
+                box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+                transition: all 0.2s ease;
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove {
+                color: rgba(255, 255, 255, 0.8);
+                margin-right: 0.375rem;
+                font-weight: bold;
+                transition: all 0.2s ease;
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove:hover {
+                color: #ffffff;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .select2-container--bootstrap-5 .select2-dropdown {
+                border: 2px solid #e9ecef;
+                border-radius: 0.5rem;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                overflow: hidden;
+                margin-top: 0.25rem;
+            }
+            
+            .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+                border: 1px solid #e9ecef;
+                border-radius: 0.375rem;
+                padding: 0.5rem 0.75rem;
+                margin: 0.5rem;
+                width: calc(100% - 1rem);
+                transition: all 0.3s ease;
+            }
+            
+            .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+                outline: none;
+            }
+            
+            .select2-container--bootstrap-5 .select2-results__option {
+                padding: 0.75rem 1rem;
+                transition: all 0.2s ease;
+                border-bottom: 1px solid #f8f9fa;
+            }
+            
+            .select2-container--bootstrap-5 .select2-results__option:last-child {
+                border-bottom: none;
+            }
+            
+            .select2-container--bootstrap-5 .select2-results__option--highlighted {
+                background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+                color: white;
+                transform: translateX(4px);
+            }
+            
+            .select2-container--bootstrap-5 .select2-results__option--selected {
+                background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+                color: #495057;
+                font-weight: 600;
+            }
+            
+            .select2-container--bootstrap-5 .select2-results__option--selected::after {
+                content: "✓";
+                float: right;
+                color: #0d6efd;
+                font-weight: bold;
+            }
+            
+            /* เพิ่มเอฟเฟกต์ Loading */
+            .select2-container--bootstrap-5 .select2-selection__rendered {
+                position: relative;
+            }
+            
+            .select2-container--bootstrap-5 .select2-selection__rendered::before {
+                content: "";
+                position: absolute;
+                top: 50%;
+                right: 2rem;
+                width: 16px;
+                height: 16px;
+                border: 2px solid #e9ecef;
+                border-top: 2px solid #0d6efd;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .select2-container--bootstrap-5.select2-container--loading .select2-selection__rendered::before {
+                opacity: 1;
+            }
+            
+            @@keyframes spin {
+                0% { transform: translateY(-50%) rotate(0deg); }
+                100% { transform: translateY(-50%) rotate(360deg); }
+            }
+            
+            /* ปรับปรุงปุ่มเลือก/ยกเลิกทั้งหมด */
+            .filter-controls {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 0.75rem;
+                flex-wrap: wrap;
+            }
+            
+            .filter-controls .btn {
+                border-radius: 0.5rem;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            
+            .filter-controls .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+            
+            .filter-controls .btn:active {
+                transform: translateY(0);
+            }
+            
+            .filter-count-badge {
+                background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 0.5rem;
+                font-weight: 600;
+                box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
+                transition: all 0.3s ease;
+            }
+            
+            .filter-count-badge:hover {
+                transform: scale(1.05);
+                box-shadow: 0 4px 8px rgba(23, 162, 184, 0.4);
+            }
+            
+            .filter-count-badge.bg-success {
+                background: linear-gradient(135deg, #198754 0%, #157347 100%) !important;
+                box-shadow: 0 2px 4px rgba(25, 135, 84, 0.3);
+            }
+            
+            .filter-count-badge.bg-success:hover {
+                box-shadow: 0 4px 8px rgba(25, 135, 84, 0.4);
+            }
+            
+            /* เพิ่มเอฟเฟกต์สำหรับตัวกรองปัจจุบัน */
+            #current-filters .badge {
+                transition: all 0.3s ease;
+                animation: slideInFromRight 0.3s ease-out;
+            }
+            
+            #current-filters .badge:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+            
+            @@keyframes slideInFromRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            /* ปรับปรุงปุ่มลบตัวกรอง */
+            .btn-close {
+                transition: all 0.2s ease;
+            }
+            
+            .btn-close:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                transform: scale(1.2);
+            }
+            
+            /* เพิ่มเอฟเฟกต์ loading สำหรับ select2 */
+            .select2-container--loading .select2-selection__rendered::before {
+                opacity: 1;
+            }
+            
+            /* ปรับปรุงการแสดงผลของ dropdown */
+            .select2-dropdown {
+                animation: fadeInDown 0.3s ease-out;
+            }
+            
+            @@keyframes fadeInDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            /* ปรับปรุง Filter Section */
+            .card-header {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            .form-label {
+                color: #495057;
+                font-weight: 600;
+            }
+            
+            .btn-sm {
+                border-radius: 0.25rem;
+                font-weight: 500;
+            }
+            
+            .badge {
+                font-size: 0.75rem;
+                font-weight: 500;
+            }
+            
+            /* ปรับปรุง Animation */
+            .fade-in {
+                animation: fadeIn 0.3s ease-in;
+            }
+            
+            @@keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            /* ปรับปรุง Hover Effects */
+            .btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                transition: all 0.15s ease-in-out;
+            }
+            
+            .card:hover {
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                transition: box-shadow 0.15s ease-in-out;
+            }
+        </style>
         <script>
             // ประกาศตัวแปร appBasePath
             var appBasePath = '@Url.Content("~/")';
@@ -449,8 +664,8 @@
 					var map = {};
 					merged.forEach(function (x) { map[String(x.emp_no || '').trim()] = x; });
 
-					// ใช้ cache pdline ถ้ามี ไม่งั้นดึงครั้งเดียวแล้ว cache
-					var useDict = (window.pdlineDict && Object.keys(window.pdlineDict).length > 0) ? window.pdlineDict : null;
+					// ใช้ cache pdline ถ้ามี ไม่งั้นใช้ข้อมูลว่าง
+					var useDict = (window.pdlineDict && Object.keys(window.pdlineDict).length > 0) ? window.pdlineDict : {};
 					var applyAndDraw = function(dict){
 						dict = dict || {};
 						dt.rows({ page: 'current' }).every(function () {
@@ -472,20 +687,7 @@
 						}
 					};
 
-					if (useDict) {
-						applyAndDraw(useDict);
-					} else {
-						$.get('@Url.Action("GetPdlines","OracleStations")')
-							.done(function(pdlines){
-								var dict = {};
-								if (Array.isArray(pdlines)) {
-									pdlines.forEach(function(it){ dict[String(it.Id||it.id)] = it.Name||it.name; });
-								}
-								window.pdlineDict = dict;
-								applyAndDraw(dict);
-							})
-							.fail(function(){ applyAndDraw({}); });
-					}
+					applyAndDraw(useDict);
 				});
 			}
 
@@ -1377,6 +1579,18 @@
                 table.on('draw.dt', function(){
                     updateTrainingDashboard();
                 });
+                
+                // ตั้งค่า Select2 หลังจาก DataTable เสร็จ
+                table.on('init.dt', function() {
+                    console.log('DataTable initialized, setting up Select2...');
+                    setupSelect2();
+                });
+                
+                // ถ้า DataTable เสร็จแล้ว ให้ตั้งค่า Select2 ทันที
+                if (table.state() !== null) {
+                    console.log('DataTable already initialized, setting up Select2...');
+                    setupSelect2();
+                }
 
                 // Toggle child rows: แสดงประวัติการสอบ
                 $('#employeeTable tbody').on('click', 'button[data-action="toggle-child"]', function(e){
@@ -1659,10 +1873,10 @@
 
             // ฟังก์ชันล้างตัวกรอง
             function clearFilters() {
-                $('#departmentFilter option').prop('selected', false);
+                $('#departmentFilter').val(null).trigger('change');
                 $('#statusFilter').val('');
                 $('#workStatusFilter').val('');
-                $('#pdlineFilter').val([]);
+                $('#pdlineFilter').val(null).trigger('change');
                 $('#hasProductionLineFilter').prop('checked', false);
                 updateDeptCount();
 
@@ -1704,30 +1918,221 @@
 
             // ฟังก์ชันอัพเดทจำนวนแผนกที่เลือก
             function updateDeptCount() {
-                var selectedCount = $('#departmentFilter option:selected').length;
+                var selectedCount = $('#departmentFilter').val() ? $('#departmentFilter').val().length : 0;
+                var selectedDepts = $('#departmentFilter').val() || [];
+                
                 $('#deptCount').text(selectedCount + ' แผนก');
                 
                 if (selectedCount === 0) {
-                    $('#deptCount').removeClass('bg-info').addClass('bg-secondary');
+                    $('#deptCount').removeClass('filter-count-badge').addClass('badge bg-secondary');
                 } else {
-                    $('#deptCount').removeClass('bg-secondary').addClass('bg-info');
+                    $('#deptCount').removeClass('badge bg-secondary').addClass('filter-count-badge');
                 }
+                
+                // อัพเดทการแสดงผลตัวกรองที่เลือกไว้
+                updateCurrentFilters();
+            }
+            
+            // ฟังก์ชันอัพเดทการแสดงผลตัวกรองปัจจุบัน
+            function updateCurrentFilters() {
+                var selectedDepts = $('#departmentFilter').val() || [];
+                var selectedStatus = $('#statusFilter').val();
+                var selectedWorkStatus = $('#workStatusFilter').val();
+                var selectedPdlines = $('#pdlineFilter').val() || [];
+                var hasProductionLine = $('#hasProductionLineFilter').is(':checked');
+                
+                $('#current-filters').empty();
+                
+                // แสดงแผนกที่เลือก
+                if (selectedDepts.length > 0) {
+                    selectedDepts.forEach(function(dept) {
+                        $('#current-filters').append(
+                            '<span class="badge bg-primary rounded-pill me-1 mb-1">' +
+                                '<i class="fas fa-building me-1"></i>' + dept +
+                                '<button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="dept" data-value="' + dept + '"></button>' +
+                            '</span>'
+                        );
+                    });
+                }
+                
+                // แสดงสถานะฝึกอบรม
+                if (selectedStatus) {
+                    var statusLabels = {
+                        'green': 'ปกติ',
+                        'yellow': 'ใกล้หมดอายุ',
+                        'blue': 'กำลังดำเนินการ',
+                        'red': 'หมดอายุ'
+                    };
+                    $('#current-filters').append(
+                        '<span class="badge bg-warning rounded-pill me-1 mb-1">' +
+                            '<i class="fas fa-certificate me-1"></i>สถานะ: ' + (statusLabels[selectedStatus] || selectedStatus) +
+                            '<button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="status"></button>' +
+                        '</span>'
+                    );
+                }
+                
+                // แสดงสถานะการทำงาน
+                if (selectedWorkStatus && selectedWorkStatus !== 'active') {
+                    var workStatusLabels = {
+                        'inactive': 'ไม่ใช้งาน',
+                        'resigned': 'ลาออกแล้ว'
+                    };
+                    $('#current-filters').append(
+                        '<span class="badge bg-danger rounded-pill me-1 mb-1">' +
+                            '<i class="fas fa-user-times me-1"></i>สถานะ: ' + (workStatusLabels[selectedWorkStatus] || selectedWorkStatus) +
+                            '<button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="workStatus"></button>' +
+                        '</span>'
+                    );
+                }
+                
+                // แสดงไลน์ผลิตที่เลือก
+                if (selectedPdlines.length > 0) {
+                    selectedPdlines.forEach(function(pdline) {
+                        $('#current-filters').append(
+                            '<span class="badge bg-success rounded-pill me-1 mb-1">' +
+                                '<i class="fas fa-industry me-1"></i>' + pdline +
+                                '<button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="pdline" data-value="' + pdline + '"></button>' +
+                            '</span>'
+                        );
+                    });
+                }
+                
+                // แสดงตัวกรองไลน์ผลิต
+                if (hasProductionLine) {
+                    $('#current-filters').append(
+                        '<span class="badge bg-info rounded-pill me-1 mb-1">' +
+                            '<i class="fas fa-filter me-1"></i>มีไลน์ผลิตเท่านั้น' +
+                            '<button class="btn-close btn-close-white ms-2 p-0" style="font-size: 0.5rem;" data-filter="hasProductionLine"></button>' +
+                        '</span>'
+                    );
+                }
+                
+                // เพิ่มปุ่มล้างตัวกรองทั้งหมด
+                if (selectedDepts.length > 0 || selectedStatus || (selectedWorkStatus && selectedWorkStatus !== 'active') || selectedPdlines.length > 0 || hasProductionLine) {
+                    $('#current-filters').append(
+                        '<span class="badge bg-dark rounded-pill me-1 mb-1 clear-all-filters" style="cursor: pointer;">' +
+                            '<i class="fas fa-times-circle me-1"></i>ล้างทั้งหมด' +
+                        '</span>'
+                    );
+                }
+                
+                // เพิ่ม event listener สำหรับปุ่มลบตัวกรอง
+                $('.btn-close[data-filter]').on('click', function() {
+                    var filterType = $(this).data('filter');
+                    var filterValue = $(this).data('value');
+                    
+                    switch(filterType) {
+                        case 'dept':
+                            var currentDepts = $('#departmentFilter').val() || [];
+                            var newDepts = currentDepts.filter(function(dept) { return dept !== filterValue; });
+                            $('#departmentFilter').val(newDepts).trigger('change');
+                            break;
+                        case 'status':
+                            $('#statusFilter').val('').trigger('change');
+                            break;
+                        case 'workStatus':
+                            $('#workStatusFilter').val('active').trigger('change');
+                            break;
+                        case 'pdline':
+                            var currentPdlines = $('#pdlineFilter').val() || [];
+                            var newPdlines = currentPdlines.filter(function(pdline) { return pdline !== filterValue; });
+                            $('#pdlineFilter').val(newPdlines).trigger('change');
+                            break;
+                        case 'hasProductionLine':
+                            $('#hasProductionLineFilter').prop('checked', false).trigger('change');
+                            break;
+                    }
+                });
+                
+                // เพิ่ม event listener สำหรับปุ่มล้างทั้งหมด
+                $('.clear-all-filters').on('click', function() {
+                    $('#departmentFilter').val(null).trigger('change');
+                    $('#statusFilter').val('');
+                    $('#workStatusFilter').val('active');
+                    $('#pdlineFilter').val(null).trigger('change');
+                    $('#hasProductionLineFilter').prop('checked', false);
+                });
             }
 
             // ปุ่มเลือก/ยกเลิกเลือกแผนกทั้งหมด
             $('#selectAllDept').on('click', function() {
-                $('#departmentFilter option').prop('selected', true);
+                var allValues = $('#departmentFilter option').map(function() {
+                    return $(this).val();
+                }).get();
+                $('#departmentFilter').val(allValues).trigger('change');
                 updateDeptCount();
             });
 
             $('#clearAllDept').on('click', function() {
-                $('#departmentFilter option').prop('selected', false);
+                $('#departmentFilter').val(null).trigger('change');
                 updateDeptCount();
             });
 
-            // อัพเดทจำนวนเมื่อมีการเปลี่ยนแปลง
+            // ปุ่มเลือก/ยกเลิกเลือกไลน์ผลิตทั้งหมด
+            $('#selectAllPdline').on('click', function() {
+                var allValues = $('#pdlineFilter option').map(function() {
+                    return $(this).val();
+                }).get();
+                $('#pdlineFilter').val(allValues).trigger('change');
+                updatePdlineCount();
+            });
+
+            $('#clearAllPdline').on('click', function() {
+                $('#pdlineFilter').val(null).trigger('change');
+                updatePdlineCount();
+            });
+
+            // อัพเดทจำนวนเมื่อมีการเปลี่ยนแปลง (เพิ่ม debounce เพื่อประสิทธิภาพ)
+            var deptChangeTimeout;
             $('#departmentFilter').on('change', function() {
-                updateDeptCount();
+                clearTimeout(deptChangeTimeout);
+                deptChangeTimeout = setTimeout(function() {
+                    updateDeptCount();
+                }, 100);
+            });
+            
+            var pdlineChangeTimeout;
+            $('#pdlineFilter').on('change', function() {
+                clearTimeout(pdlineChangeTimeout);
+                pdlineChangeTimeout = setTimeout(function() {
+                    updatePdlineCount();
+                }, 100);
+            });
+            
+            // เพิ่มฟีเจอร์ keyboard navigation
+            $('#departmentFilter').on('select2:open', function() {
+                setTimeout(function() {
+                    $('.select2-search__field').focus();
+                }, 100);
+            });
+            
+            $('#pdlineFilter').on('select2:open', function() {
+                setTimeout(function() {
+                    $('.select2-search__field').focus();
+                }, 100);
+            });
+            
+            // เพิ่มฟีเจอร์ auto-complete สำหรับการค้นหา
+            $('#departmentFilter').on('select2:select', function(e) {
+                var data = e.params.data;
+                console.log('Selected department:', data.text);
+                
+                // เพิ่มเอฟเฟกต์ visual feedback
+                $(this).addClass('select2-container--loading');
+                setTimeout(function() {
+                    $('#departmentFilter').removeClass('select2-container--loading');
+                }, 300);
+            });
+            
+            $('#pdlineFilter').on('select2:select', function(e) {
+                var data = e.params.data;
+                console.log('Selected production line:', data.text);
+                
+                // เพิ่มเอฟเฟกต์ visual feedback
+                $(this).addClass('select2-container--loading');
+                setTimeout(function() {
+                    $('#pdlineFilter').removeClass('select2-container--loading');
+                }, 300);
             });
             
             // กรองสถานะฝึกอบรมเมื่อมีการเปลี่ยนแปลง
@@ -1737,22 +2142,169 @@
 
             // อัพเดทจำนวนเมื่อโหลดหน้า
             updateDeptCount();
+            updatePdlineCount();
             
-            // เลือกแผนกเริ่มต้น: MFG, QMQA, QMQS
-            function setDefaultDepartments() {
-                var defaultDepts = ['MFG', 'QMQA', 'QMQS','IE','IT'];
-                $('#departmentFilter').val(defaultDepts).trigger('change');
+            // ฟังก์ชันอัพเดทจำนวนไลน์ผลิตที่เลือก
+            function updatePdlineCount() {
+                var selectedCount = $('#pdlineFilter').val() ? $('#pdlineFilter').val().length : 0;
+                var selectedPdlines = $('#pdlineFilter').val() || [];
+                
+                $('#pdlineCount').text(selectedCount + ' ไลน์ผลิต');
+                
+                if (selectedCount === 0) {
+                    $('#pdlineCount').removeClass('filter-count-badge').addClass('badge bg-secondary');
+                } else {
+                    $('#pdlineCount').removeClass('badge bg-secondary').addClass('filter-count-badge bg-success');
+                }
+                
+                // อัพเดทการแสดงผลตัวกรองที่เลือกไว้
+                updateCurrentFilters();
             }
             
-            // เรียกใช้ฟังก์ชันเลือกแผนกเริ่มต้นหลังจาก DataTable ถูกสร้างแล้ว
-            setTimeout(function() {
-                setDefaultDepartments();
-            }, 100);
+            // ฟังก์ชันตั้งค่า Select2
+            function setupSelect2() {
+                console.log('Setting up Select2...');
+                console.log('Department options count:', $('#departmentFilter option').length);
+                
+                // ตั้งค่า Select2 สำหรับแผนก
+                if (!$('#departmentFilter').hasClass('select2-hidden-accessible')) {
+                    $('#departmentFilter').select2({
+                        placeholder: 'เลือกแผนก...',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        theme: 'bootstrap-5',
+                        language: {
+                            noResults: function() {
+                                return '<div class="text-center py-3"><i class="fas fa-search me-2"></i>ไม่พบข้อมูลที่ค้นหา</div>';
+                            },
+                            searching: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+                            },
+                            loadingMore: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลเพิ่มเติม...</div>';
+                            },
+                            maximumSelected: function(args) {
+                                return "สามารถเลือกได้สูงสุด " + args.maximum + " รายการ";
+                            },
+                            inputTooShort: function(args) {
+                                return "กรุณาพิมพ์อย่างน้อย " + args.minimum + " ตัวอักษร";
+                            }
+                        },
+                        templateResult: function(dept) {
+                            if (dept.loading) {
+                                return dept.text;
+                            }
+                            var $result = $(
+                                '<div class="d-flex align-items-center p-2">' +
+                                    '<i class="fas fa-building text-primary me-2"></i>' +
+                                    '<span class="fw-medium">' + dept.text + '</span>' +
+                                    '<small class="text-muted ms-auto">แผนก</small>' +
+                                '</div>'
+                            );
+                            return $result;
+                        },
+                        templateSelection: function(dept) {
+                            return '<span class="d-flex align-items-center">' +
+                                '<i class="fas fa-building me-1"></i>' +
+                                '<span>' + dept.text + '</span>' +
+                            '</span>';
+                        },
+                        escapeMarkup: function(markup) {
+                            return markup;
+                        }
+                    });
+                    
+                    console.log('Department Select2 initialized');
+                    
+                    // เลือกแผนกเริ่มต้น
+                    var defaultDepts = ['MFG', 'QMQA', 'QMQS','IE','IT'];
+                    console.log('Setting default departments:', defaultDepts);
+                    $('#departmentFilter').val(defaultDepts).trigger('change');
+                    console.log('Default departments set');
+                }
+            }
 
-            // โหลดรายการไลน์ผลิตแบบ AJAX และคงค่าที่ผู้ใช้เลือกไว้
+            // โหลดรายการไลน์ผลิตแบบ AJAX และตั้งค่า Select2
             (function loadPdlines(){
+                console.log('Loading production lines...');
                 var selectEl = $('#pdlineFilter');
-                if (selectEl.children('option').length > 0) return;
+                console.log('Current options count:', selectEl.children('option').length);
+                if (selectEl.children('option').length > 0) {
+                    console.log('Options already exist, skipping load');
+                    return;
+                }
+                
+                // ใช้ cache ถ้ามีอยู่แล้ว
+                if (window.pdlineDict && Object.keys(window.pdlineDict).length > 0) {
+                    var opts = Object.keys(window.pdlineDict).map(function(id) {
+                        var name = window.pdlineDict[id];
+                        return '<option value="'+name+'">'+name+'</option>';
+                    }).join('');
+                    selectEl.html(opts);
+                    
+                    // ลบ Select2 เดิมถ้ามี (ป้องกันการตั้งค่าซ้ำ)
+                    if (selectEl.hasClass('select2-hidden-accessible')) {
+                        selectEl.select2('destroy');
+                    }
+                    
+                    // ตั้งค่า Select2 หลังจากมีข้อมูลแล้ว
+                    selectEl.select2({
+                        placeholder: 'เลือกไลน์ผลิต...',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        theme: 'bootstrap-5',
+                        language: {
+                            noResults: function() {
+                                return '<div class="text-center py-3"><i class="fas fa-search me-2"></i>ไม่พบข้อมูลที่ค้นหา</div>';
+                            },
+                            searching: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+                            },
+                            loadingMore: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลเพิ่มเติม...</div>';
+                            },
+                            maximumSelected: function(args) {
+                                return "สามารถเลือกได้สูงสุด " + args.maximum + " รายการ";
+                            },
+                            inputTooShort: function(args) {
+                                return "กรุณาพิมพ์อย่างน้อย " + args.minimum + " ตัวอักษร";
+                            }
+                        },
+                        templateResult: function(line) {
+                            if (line.loading) {
+                                return line.text;
+                            }
+                            var $result = $(
+                                '<div class="d-flex align-items-center p-2">' +
+                                    '<i class="fas fa-industry text-success me-2"></i>' +
+                                    '<span class="fw-medium">' + line.text + '</span>' +
+                                    '<small class="text-muted ms-auto">ไลน์ผลิต</small>' +
+                                '</div>'
+                            );
+                            return $result;
+                        },
+                        templateSelection: function(line) {
+                            return '<span class="d-flex align-items-center">' +
+                                '<i class="fas fa-industry me-1"></i>' +
+                                '<span>' + line.text + '</span>' +
+                            '</span>';
+                        },
+                        escapeMarkup: function(markup) {
+                            return markup;
+                        }
+                    });
+                    
+                    console.log('Production line Select2 initialized with', selectEl.children('option').length, 'options');
+                    
+                    var storedPdline = ($('#filter-storage').data('pdline')||'').toString();
+                    if (storedPdline) {
+                        selectEl.val(storedPdline.split(',')).trigger('change');
+                    }
+                    return;
+                }
+                
                 $.get('@Url.Action("GetPdlines","OracleStations")')
                  .done(function(res){
                     var list = [];
@@ -1802,8 +2354,65 @@
                     window.pdlineDict = window.pdlineDict || {};
                     Object.assign(window.pdlineDict, dict);
 
+                    // ลบ Select2 เดิมถ้ามี (ป้องกันการตั้งค่าซ้ำ)
+                    if (selectEl.hasClass('select2-hidden-accessible')) {
+                        selectEl.select2('destroy');
+                    }
+
+                    // ตั้งค่า Select2 หลังจากมีข้อมูลแล้ว
+                    selectEl.select2({
+                        placeholder: 'เลือกไลน์ผลิต...',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        theme: 'bootstrap-5',
+                        language: {
+                            noResults: function() {
+                                return '<div class="text-center py-3"><i class="fas fa-search me-2"></i>ไม่พบข้อมูลที่ค้นหา</div>';
+                            },
+                            searching: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+                            },
+                            loadingMore: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลเพิ่มเติม...</div>';
+                            },
+                            maximumSelected: function(args) {
+                                return "สามารถเลือกได้สูงสุด " + args.maximum + " รายการ";
+                            },
+                            inputTooShort: function(args) {
+                                return "กรุณาพิมพ์อย่างน้อย " + args.minimum + " ตัวอักษร";
+                            }
+                        },
+                        templateResult: function(line) {
+                            if (line.loading) {
+                                return line.text;
+                            }
+                            var $result = $(
+                                '<div class="d-flex align-items-center p-2">' +
+                                    '<i class="fas fa-industry text-success me-2"></i>' +
+                                    '<span class="fw-medium">' + line.text + '</span>' +
+                                    '<small class="text-muted ms-auto">ไลน์ผลิต</small>' +
+                                '</div>'
+                            );
+                            return $result;
+                        },
+                        templateSelection: function(line) {
+                            return '<span class="d-flex align-items-center">' +
+                                '<i class="fas fa-industry me-1"></i>' +
+                                '<span>' + line.text + '</span>' +
+                            '</span>';
+                        },
+                        escapeMarkup: function(markup) {
+                            return markup;
+                        }
+                    });
+                    
+                    console.log('Production line Select2 initialized with', selectEl.children('option').length, 'options');
+
                     var storedPdline = ($('#filter-storage').data('pdline')||'').toString();
-                    if (storedPdline) selectEl.val(storedPdline.split(','));
+                    if (storedPdline) {
+                        selectEl.val(storedPdline.split(',')).trigger('change');
+                    }
                  })
                  .fail(function(){
                     var list = [
@@ -1819,6 +2428,61 @@
                     selectEl.html(opts);
                     window.pdlineDict = window.pdlineDict || {};
                     Object.assign(window.pdlineDict, dict);
+                    
+                    // ลบ Select2 เดิมถ้ามี (ป้องกันการตั้งค่าซ้ำ)
+                    if (selectEl.hasClass('select2-hidden-accessible')) {
+                        selectEl.select2('destroy');
+                    }
+                    
+                    // ตั้งค่า Select2 หลังจากมีข้อมูลแล้ว
+                    selectEl.select2({
+                        placeholder: 'เลือกไลน์ผลิต...',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        theme: 'bootstrap-5',
+                        language: {
+                            noResults: function() {
+                                return '<div class="text-center py-3"><i class="fas fa-search me-2"></i>ไม่พบข้อมูลที่ค้นหา</div>';
+                            },
+                            searching: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
+                            },
+                            loadingMore: function() {
+                                return '<div class="text-center py-2"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลเพิ่มเติม...</div>';
+                            },
+                            maximumSelected: function(args) {
+                                return "สามารถเลือกได้สูงสุด " + args.maximum + " รายการ";
+                            },
+                            inputTooShort: function(args) {
+                                return "กรุณาพิมพ์อย่างน้อย " + args.minimum + " ตัวอักษร";
+                            }
+                        },
+                        templateResult: function(line) {
+                            if (line.loading) {
+                                return line.text;
+                            }
+                            var $result = $(
+                                '<div class="d-flex align-items-center p-2">' +
+                                    '<i class="fas fa-industry text-success me-2"></i>' +
+                                    '<span class="fw-medium">' + line.text + '</span>' +
+                                    '<small class="text-muted ms-auto">ไลน์ผลิต</small>' +
+                                '</div>'
+                            );
+                            return $result;
+                        },
+                        templateSelection: function(line) {
+                            return '<span class="d-flex align-items-center">' +
+                                '<i class="fas fa-industry me-1"></i>' +
+                                '<span>' + line.text + '</span>' +
+                            '</span>';
+                        },
+                        escapeMarkup: function(markup) {
+                            return markup;
+                        }
+                    });
+                    
+                    console.log('Production line Select2 initialized (fail case) with', selectEl.children('option').length, 'options');
                  });
             })();
 

@@ -9,7 +9,7 @@ using System.Text;
 using Dapper;
 using IPS_TH.Data;
 using IPS_TH.Models.AssetFactory; 
-using IPS_TH.Models.Attendance; // ใช้ namespace ที่ถูกต้อง
+using IPS_TH.Models.Attendance; // ใช้ namespace ที่ถูกต้อง 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Data.SqlClient;

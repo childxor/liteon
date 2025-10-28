@@ -8,7 +8,7 @@
     var permissions = ViewData["Permissions"] as Dictionary<string, bool>;
     bool canAdd = permissions?["CanAdd"] ?? false;
     bool canEdit = permissions?["CanEdit"] ?? false;
-    bool canDelete = permissions?["CanDelete"] ?? false;
+    bool canDelete = permissions?["CanDelete"] ?? false; 
     bool canView = permissions?["CanView"] ?? false;
 }
 
@@ -303,11 +303,13 @@
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
                                         <select class="form-select" id="status" name="Status" required>
+                                            <option value="">-- เลือกสถานะ --</option>
                                             <option value="1">ใช้งานได้</option>
                                             <option value="2">กำลังซ่อม</option>
                                             <option value="3">ชำรุด</option>
                                             <option value="4">จำหน่าย</option>
                                             <option value="5">ไม่ใช้งาน</option>
+                                            <option value="6">อะไหล่</option>
                                         </select>
                                         <div class="invalid-feedback">
                                             กรุณาเลือกสถานะ
@@ -881,30 +883,19 @@
         var canDelete = @Json.Serialize(canDelete);
         var canView = @Json.Serialize(canView);
 
-        window.statusMap = {};
-
-        function loadStatuses() {
-            $.get(appBasePath + 'Asset/GetAssetStatuses', function (data) {
-                var statusSelect = $('#status');
-                statusSelect.empty();
-                statusSelect.append('<option value=\"">-- เลือกสถานะ --</option>');
-                window.statusMap = {}; // reset
-                data.forEach(function (item) {
-                    statusSelect.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
-                    window.statusMap[item.Id] = item.Text;
-                });
-            });
-        }
+        window.statusMap = {
+            '1': 'ใช้งานได้',
+            '2': 'กำลังซ่อม',
+            '3': 'ชำรุด',
+            '4': 'จำหน่าย',
+            '5': 'ไม่ใช้งาน',
+            '6': 'อะไหล่'
+        };
 
         // ใช้ใน DataTable render
         function getStatusName(status) {
             return window.statusMap[status] || 'ไม่ระบุ';
         }
-
-        // เรียกใช้ loadStatuses() ตอน ready
-        $(document).ready(function () {
-            loadStatuses();
-        });
 
         // โหลด option สถานะ
         function loadStatusesForFilter() {
@@ -1048,23 +1039,6 @@
             return window.statusMap[status] || 'ไม่ระบุ';
         }
 
-        function loadStatuses() {
-            $.get(appBasePath + 'Asset/GetAssetStatuses', function (data) {
-                var statusSelect = $('#status');
-                statusSelect.empty();
-                statusSelect.append('<option value=\"">-- เลือกสถานะ --</option>');
-                window.statusMap = {}; // reset
-                data.forEach(function (item) {
-                    statusSelect.append('<option value=\"' + item.Id + '\">' + item.Text + '</option>');
-                    window.statusMap[item.Id] = item.Text;
-                });
-            });
-        }
-
-        // เรียกใช้ loadStatuses() ตอน ready หรือก่อนเปิด modal
-        $(document).ready(function () {
-            loadStatuses();
-        });
 
         function getLocationName(location) {
             const locations = {
@@ -1560,7 +1534,10 @@
 
                         // เปิด Modal ก่อน
                         $('#assetModalLabel').html('<i class="fas fa-edit me-2"></i>แก้ไขทรัพย์สิน IT');
-                        $('#assetModal').modal('show');
+                        
+                        // ใช้ Bootstrap 5 Modal API
+                        var myModal = new bootstrap.Modal(document.getElementById('assetModal'));
+                        myModal.show();
 
                         // รอให้ Modal เปิดเสร็จแล้วค่อย init Select2
                         $('#assetModal').on('shown.bs.modal', function () {
@@ -1705,7 +1682,8 @@
                 // โหลดข้อมูลพนักงานก่อนแล้วค่อย init Select2
                 initSelect2();
                 $('#location').prop('disabled', false); // Reset location dropdown
-                $('#assetModal').modal('show');
+                var myModal = new bootstrap.Modal(document.getElementById('assetModal'));
+                myModal.show();
             });
 
             // Event handler สำหรับปุ่มแสดง/ซ่อนรายละเอียด
@@ -1733,7 +1711,8 @@
             $('#btnConfirmDelete').click(function () {
                 const id = $(this).data('id');
                 deleteAsset(id, $('#deleteItemName').text());
-                $('#deleteModal').modal('hide');
+                var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
             });
 
             // เพิ่มการตรวจสอบข้อมูลก่อนบันทึก
@@ -1854,7 +1833,8 @@
                                     });
                                 }, 100);
                             });
-                            $('#assetModal').modal('hide');
+                            var assetModal = bootstrap.Modal.getInstance(document.getElementById('assetModal'));
+                            assetModal.hide();
                             
                             // อัปเดตข้อมูลสรุป
                             onAssetDataChanged();
@@ -2101,7 +2081,8 @@
                         $('#endDate').val(data.EndDate ? new Date(data.EndDate).toISOString().split('T')[0] : '');
                         if (typeof loadLines === 'function') loadLines();
                         $('#assetModalLabel').html('<i class="fas fa-copy me-2"></i>ทำซ้ำทรัพย์สิน IT');
-                        $('#assetModal').modal('show');
+                        var myModal = new bootstrap.Modal(document.getElementById('assetModal'));
+                        myModal.show();
                         $('#assetModal').on('shown.bs.modal', function () {
                             if (typeof initSelect2 === 'function') initSelect2();
                             

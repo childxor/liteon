@@ -1186,7 +1186,7 @@ namespace IPS_TH.Controllers.Employee
                     new
                     {
                         success = true,
-                        permissions = CurrentPermissions,
+                        permissions = CurrentPermissions, 
                         userDepartment = CurrentUserDepartment,
                         canView = CheckPermission("CanView"),
                     }
