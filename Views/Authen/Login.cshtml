@@ -258,11 +258,39 @@
         </form>
     </div>
 
+    <div class="modal fade" id="workInfoModal" tabindex="-1" aria-labelledby="workInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="workInfoModalLabel">กรุณาเลือกข้อมูลแผนก</h5>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="workInfoUserId" />
+                    <div class="mb-3">
+                        <label for="workAreaSelect" class="form-label">Work Area</label>
+                        <select id="workAreaSelect" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="departmentSelect" class="form-label">Department</label>
+                        <select id="departmentSelect" class="form-select"></select>
+                    </div>
+                    <div class="alert alert-info mb-0" role="alert">
+                        โปรดเลือกข้อมูลให้ครบถ้วนเพื่อใช้งานระบบต่อ
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary w-100" id="saveWorkInfoButton">บันทึก</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        let workInfoModalInstance;
+
         $(document).ready(function () {
-            // อัพเดท username
             function updateUsername() {
                 const rawUsername = $('#rawUsername').val().trim();
                 const fullUsername = 'LITEON\\' + rawUsername;
@@ -271,9 +299,8 @@
             }
 
             $('#rawUsername').on('input', updateUsername);
-            updateUsername(); // เซ็ตค่าเริ่มต้น
+            updateUsername();
 
-            // Toggle password
             $('#togglePassword').click(function () {
                 const passwordInput = $('#password');
                 const icon = $(this).find('i');
@@ -287,7 +314,6 @@
                 }
             });
 
-            // Handle form submission
             $('#loginForm').submit(function (e) {
                 e.preventDefault();
 
@@ -305,7 +331,6 @@
                     return;
                 }
 
-                // Custom loading animation
                 const loadingHtml = `
                     <div class="loading-overlay">
                         <div class="loading-spinner"></div>
@@ -331,134 +356,191 @@
                     }
                 });
             });
+
+            $('#saveWorkInfoButton').on('click', saveWorkInfoSelection);
         });
 
         function handleLoginResponse(response) {
-            // ลบ loading overlay ก่อน
             $('.loading-overlay').remove();
 
-            if (response.success) {
-                if (response.needsProfileUpdate) {
-                    $('#updateUserId').val(response.userId);
-                    // โหลดข้อมูลแผนกก่อนแสดง modal
-                    loadDepartments().then(() => {
-                        var myModal = new bootstrap.Modal(document.getElementById('profileUpdateModal'), {
-                            backdrop: 'static',
-                            keyboard: false
-                        });
-                        myModal.show();
-                    });
-                } else {
+            if (response && response.success) {
+                if (response.requiresWorkInfoSelection) {
+                    openWorkInfoModal(response);
+                } else if (response.redirectUrl) {
                     window.location.href = response.redirectUrl;
+                } else {
+                    window.location.href = '@Url.Action("Index", "Home")';
                 }
             } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
-                    text: response.error || 'ไม่สามารถเข้าสู่ระบบได้',
+                    text: (response && response.error) ? response.error : 'ไม่สามารถเข้าสู่ระบบได้',
                     confirmButtonText: 'ลองใหม่',
                     confirmButtonColor: '#005bea'
                 });
             }
         }
 
-        // ฟังก์ชันสำหรับโหลดข้อมูลแผนก
-        async function loadDepartments() {
-            try {
-                const response = await $.ajax({
-                    url: '@Url.Action("GetDepartments", "Authen")',
-                    type: 'GET'
-                });
+        function openWorkInfoModal(response) {
+            $('#workInfoUserId').val(response.userId);
+            const modalElement = document.getElementById('workInfoModal');
 
-                if (response.success) {
-                    const departmentSelect = $('#department');
-                    departmentSelect.empty();
-                    departmentSelect.append('<option value="">กรุณาเลือกแผนก</option>');
+            const showModalWithOptions = function (options) {
+                populateSelectOptions($('#workAreaSelect'), options.workAreas, 'กรุณาเลือก Work Area');
+                populateSelectOptions(
+                    $('#departmentSelect'),
+                    options.departments,
+                    'กรุณาเลือก Department',
+                    function (item) {
+                        const code = item && (item.code || item.Code) ? (item.code || item.Code) : '';
+                        const name = item && (item.name || item.Name) ? (item.name || item.Name) : '';
+                        if (code && name) {
+                            return `${code} - ${name}`;
+                        }
+                        return name || code;
+                    },
+                    function (item) {
+                        const nameValue = item && (item.name || item.Name)
+                            ? (item.name || item.Name).toString()
+                            : '';
+                        return nameValue.trim();
+                    }
+                );
 
-                    response.data.forEach(dept => {
-                        departmentSelect.append(`<option value="${dept.name}">${dept.name}</option>`);
-                    });
-                } else {
-                    console.error('Failed to load departments:', response.message);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: 'ไม่สามารถโหลดข้อมูลแผนกได้',
-                        confirmButtonText: 'ตกลง',
-                        confirmButtonColor: '#005bea'
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading departments:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#005bea'
+                workInfoModalInstance = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: false
                 });
+                workInfoModalInstance.show();
+            };
+
+            const hasInlineOptions = Array.isArray(response.workAreas) && response.workAreas.length > 0
+                && Array.isArray(response.departments) && response.departments.length > 0;
+
+            if (hasInlineOptions) {
+                showModalWithOptions({
+                    workAreas: response.workAreas,
+                    departments: response.departments
+                });
+            } else {
+                loadWorkInfoOptions()
+                    .then(showModalWithOptions)
+                    .catch(function (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: error || 'ไม่สามารถโหลดข้อมูล Work Area และ Department ได้',
+                            confirmButtonText: 'ตกลง',
+                            confirmButtonColor: '#005bea'
+                        });
+                    });
             }
         }
 
-        function submitProfileUpdate() {
-            var empNo = $('#empNo').val().trim();
-            var department = $('#department option:selected').text();
-            var departmentValue = $('#department').val();
-
-            if (!empNo) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'กรุณากรอกรหัสพนักงาน',
-                    text: 'จำเป็นต้องกรอกรหัสพนักงานเพื่อเข้าใช้ระบบ',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#005bea'
-                });
-                $('#empNo').focus();
+        function populateSelectOptions($select, items, placeholder, textSelector, valueSelector) {
+            $select.empty();
+            $select.append(`<option value="">${placeholder}</option>`);
+            if (!Array.isArray(items)) {
                 return;
             }
 
-            if (!departmentValue || !department) {
+            items.forEach(function (item) {
+                if (item === null || item === undefined) {
+                    return;
+                }
+
+                let value = valueSelector ? valueSelector(item) : item;
+                let text = textSelector ? textSelector(item) : item;
+
+                if (typeof value === 'string') {
+                    value = value.trim();
+                } else if (value !== null && value !== undefined) {
+                    value = value.toString().trim();
+                }
+                if (typeof text === 'string') {
+                    text = text.trim();
+                } else if (text !== null && text !== undefined) {
+                    text = text.toString().trim();
+                }
+
+                if (!value || !text) {
+                    return;
+                }
+
+                const option = $('<option></option>').val(value).text(text);
+                if (typeof item === 'object' && item !== null) {
+                    const codeSource = item.code || item.Code || '';
+                    const code = codeSource ? codeSource.toString() : '';
+                    if (code) {
+                        option.attr('data-code', code);
+                    }
+                }
+                $select.append(option);
+            }
+            );
+        }
+
+        function loadWorkInfoOptions() {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '@Url.Action("GetWorkInfoOptions", "Authen")',
+                    type: 'GET',
+                    success: function (result) {
+                        if (result.success) {
+                            resolve({
+                                workAreas: result.workAreas || [],
+                                departments: result.departments || []
+                            });
+                        } else {
+                            reject(result.message || 'ไม่สามารถโหลดข้อมูลได้');
+                        }
+                    },
+                    error: function () {
+                        reject('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+                    }
+                });
+            });
+        }
+
+        function saveWorkInfoSelection() {
+            const userId = $('#workInfoUserId').val();
+            const workArea = ($('#workAreaSelect').val() || '').toString().trim();
+            const department = ($('#departmentSelect').val() || '').toString().trim();
+
+            if (!workArea || !department) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'กรุณาเลือกแผนก',
-                    text: 'จำเป็นต้องเลือกแผนกที่คุณสังกัด',
+                    title: 'กรุณาเลือกข้อมูลให้ครบถ้วน',
+                    text: 'จำเป็นต้องเลือกทั้ง Work Area และ Department',
                     confirmButtonText: 'ตกลง',
                     confirmButtonColor: '#005bea'
                 });
-                $('#department').focus();
                 return;
             }
 
-            // เพิ่ม loading overlay
             $('body').append(`
                 <div class="loading-overlay">
                     <div class="loading-spinner"></div>
                 </div>
             `);
 
-            var userId = $('#updateUserId').val();
-
             $.ajax({
-                url: '@Url.Action("UpdateUserProfile", "Authen")',
+                url: '@Url.Action("SaveUserWorkInfo", "Authen")',
                 type: 'POST',
-                data: {
-                    userId: userId,
-                    empNo: empNo,
-                    department: department
-                },
-                success: function (response) {
+                data: { userId, workArea, department },
+                success: function (result) {
                     $('.loading-overlay').remove();
-                    if (response.success) {
-                        var myModal = bootstrap.Modal.getInstance(document.getElementById('profileUpdateModal'));
-                        if (myModal) {
-                            myModal.hide();
+                    if (result.success) {
+                        if (workInfoModalInstance) {
+                            workInfoModalInstance.hide();
                         }
-                        window.location.href = '@Url.Action("Index", "Home")';
+                        window.location.href = result.redirectUrl || '@Url.Action("Index", "Home")';
                     } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'เกิดข้อผิดพลาด',
-                            text: response.error || 'ไม่สามารถบันทึกข้อมูลได้',
+                            text: result.message || 'ไม่สามารถบันทึกข้อมูลได้',
                             confirmButtonText: 'ตกลง',
                             confirmButtonColor: '#005bea'
                         });
@@ -477,11 +559,10 @@
             });
         }
 
-        // เพิ่มโค้ดเพื่อเคลียร์ localStorage และ sessionStorage
         @if (TempData["ClearClientStorage"] != null && (bool)TempData["ClearClientStorage"] == true)
             {
                 <text>
-                        // เคลียร์ localStorage และ sessionStorage
+                                // เคลียร์ localStorage และ sessionStorage
                     localStorage.clear();
                     sessionStorage.clear();
                     console.log("ล้างข้อมูล localStorage และ sessionStorage เรียบร้อยแล้ว");

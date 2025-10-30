@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Security.Principal;
@@ -38,6 +40,12 @@ namespace IPS_TH.Controllers
 
         private readonly string _ces941ConnectionString;
         private readonly string _hrIpsConnectionString;
+
+        private sealed class DepartmentSelectionOption
+        {
+            public string Code { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+        }
 
         // Constructor ที่รับ ApplicationDbContext
         public AuthenController(
@@ -182,9 +190,68 @@ namespace IPS_TH.Controllers
 
                 var deptInfo = await GetDeptInfoFromCES941ByAdUser(domainUsername);
                 var deptInfoFromHRMIPS = await GetDeptInfoFromHRMIPSByAdUser(domainUsername);
-                HttpContext.Session.SetString("Department", deptInfo.TitleShort ?? deptInfoFromHRMIPS.TitleShort ?? string.Empty);
-                HttpContext.Session.SetString("WorkArea", deptInfo.WorkArea ?? deptInfoFromHRMIPS.WorkArea ?? string.Empty);
+
+                string autoDepartment = !string.IsNullOrWhiteSpace(deptInfo.TitleShort)
+                    ? deptInfo.TitleShort
+                    : deptInfoFromHRMIPS.TitleShort;
+                string autoWorkArea = !string.IsNullOrWhiteSpace(deptInfo.WorkArea)
+                    ? deptInfo.WorkArea
+                    : deptInfoFromHRMIPS.WorkArea;
+
+                if (string.IsNullOrWhiteSpace(autoDepartment))
+                {
+                    autoDepartment = userAccount.Department ?? string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(autoWorkArea))
+                {
+                    autoWorkArea = userAccount.WorkArea ?? string.Empty;
+                }
+
+                if (!string.IsNullOrWhiteSpace(autoDepartment))
+                {
+                    HttpContext.Session.SetString("Department", autoDepartment);
+                }
+                else
+                {
+                    HttpContext.Session.Remove("Department");
+                }
+
+                if (!string.IsNullOrWhiteSpace(autoWorkArea))
+                {
+                    HttpContext.Session.SetString("WorkArea", autoWorkArea);
+                }
+                else
+                {
+                    HttpContext.Session.Remove("WorkArea");
+                }
+
                 HttpContext.Session.SetString("UserName", domainUsername);
+
+                bool autoUserUpdated = false;
+
+                if (!string.IsNullOrWhiteSpace(autoDepartment) && userAccount.Department != autoDepartment)
+                {
+                    userAccount.Department = autoDepartment;
+                    autoUserUpdated = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(autoWorkArea) && userAccount.WorkArea != autoWorkArea)
+                {
+                    userAccount.WorkArea = autoWorkArea;
+                    autoUserUpdated = true;
+                }
+
+                if (autoUserUpdated)
+                {
+                    _context.sys_user.Update(userAccount);
+                    await _context.SaveChangesAsync();
+                    HttpContext.Session.SetString("UserData", JsonConvert.SerializeObject(userAccount));
+                }
+                else
+                {
+                    HttpContext.Session.SetString("UserData", JsonConvert.SerializeObject(userAccount));
+                }
                 HttpContext.Session.SetString("EmployeeID", !string.IsNullOrEmpty(adUser?.EmployeeId) ? adUser.EmployeeId : (userAccount.Emp_no ?? string.Empty));
                 HttpContext.Session.SetString("EmployeeName", adUser?.DisplayName ?? ($"{adUser?.GivenName} {adUser?.Surname}".Trim()));
 
@@ -277,6 +344,55 @@ namespace IPS_TH.Controllers
                 var row = result.FirstOrDefault();
                 return (row?.TitleShort?.ToString() ?? string.Empty, row?.WorkArea?.ToString() ?? string.Empty);
             }
+        }
+
+        private async Task<(List<string> workAreas, List<DepartmentSelectionOption> departments)> GetWorkInfoSelectionAsync()
+        {
+            var workAreas = new List<string>();
+            var departments = new List<DepartmentSelectionOption>();
+
+            if (string.IsNullOrEmpty(_ces941ConnectionString))
+            {
+                return (workAreas, departments);
+            }
+
+            using (var connection = new SqlConnection(_ces941ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                var workAreaQuery = @"SELECT DISTINCT WorkArea
+                        FROM vEmployee
+                        WHERE WorkArea IS NOT NULL
+                        ORDER BY WorkArea";
+
+                var departmentQuery = @"SELECT DISTINCT WrkPlanID, TitleShort
+                        FROM vEmployee
+                        WHERE WrkPlanID IS NOT NULL AND TitleShort IS NOT NULL
+                        ORDER BY WrkPlanID";
+
+                var workAreaResult = await connection.QueryAsync<string>(workAreaQuery);
+                var departmentResult = await connection.QueryAsync<dynamic>(departmentQuery);
+
+                workAreas = workAreaResult
+                    .Where(row => !string.IsNullOrWhiteSpace(row))
+                    .Select(row => row.Trim())
+                    .ToList();
+
+                departments = departmentResult
+                    .Select(row => new DepartmentSelectionOption
+                    {
+                        Code = row?.WrkPlanID?.ToString()?.Trim() ?? string.Empty,
+                        Name = row?.TitleShort?.ToString()?.Trim() ?? string.Empty,
+                    })
+                    .Where(option => !string.IsNullOrEmpty(option.Code) && !string.IsNullOrEmpty(option.Name))
+                    .GroupBy(option => option.Name)
+                    .Select(group => group.First())
+                    .OrderBy(option => option.Code)
+                    .ThenBy(option => option.Name)
+                    .ToList();
+            }
+
+            return (workAreas, departments);
         }
 
         [HttpPost]
@@ -387,7 +503,7 @@ namespace IPS_TH.Controllers
                     .sys_role.Where(r => RolesSplit.Contains(r.Id.ToString()))
                     .ToListAsync();
 
-                bool isAdmin = roleNames.Any(r => r.RoleName == "Administrators");
+                bool isAdmin = roleNames.Any(r => r.RoleName == "Administrators"); 
 
                 HttpContext.Session.SetString("UserData", JsonConvert.SerializeObject(userAccount));
                 HttpContext.Session.SetString(
@@ -398,15 +514,68 @@ namespace IPS_TH.Controllers
                 HttpContext.Session.SetString("Language", userAccount.Language ?? "th");
                 var deptInfoFromCES941 = await GetDeptInfoFromCES941ByAdUser(domainUsername);
                 var deptInfoFromHRMIPS = await GetDeptInfoFromHRMIPSByAdUser(domainUsername);
-                HttpContext.Session.SetString("Department", deptInfoFromCES941.TitleShort ?? deptInfoFromHRMIPS.TitleShort ?? "");
-                HttpContext.Session.SetString("WorkArea", deptInfoFromCES941.WorkArea ?? deptInfoFromHRMIPS.WorkArea ?? "");
-                HttpContext.Session.SetString("UserName", domainUsername ?? "");
+
+                string resolvedDepartment = !string.IsNullOrWhiteSpace(deptInfoFromCES941.TitleShort)
+                    ? deptInfoFromCES941.TitleShort
+                    : deptInfoFromHRMIPS.TitleShort;
+                string resolvedWorkArea = !string.IsNullOrWhiteSpace(deptInfoFromCES941.WorkArea)
+                    ? deptInfoFromCES941.WorkArea
+                    : deptInfoFromHRMIPS.WorkArea;
+
+                if (string.IsNullOrWhiteSpace(resolvedDepartment))
+                {
+                    resolvedDepartment = userAccount.Department ?? string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(resolvedWorkArea))
+                {
+                    resolvedWorkArea = userAccount.WorkArea ?? string.Empty;
+                }
+
+                bool requiresWorkInfoSelection = string.IsNullOrWhiteSpace(resolvedDepartment)
+                    || string.IsNullOrWhiteSpace(resolvedWorkArea);
+
+                if (!requiresWorkInfoSelection)
+                {
+                    HttpContext.Session.SetString("Department", resolvedDepartment);
+                    HttpContext.Session.SetString("WorkArea", resolvedWorkArea);
+                }
+                else
+                {
+                    HttpContext.Session.Remove("Department");
+                    HttpContext.Session.Remove("WorkArea");
+                }
+
+                HttpContext.Session.SetString("UserName", domainUsername ?? string.Empty);
+
+                bool userDataChanged = false;
+
+                if (!string.IsNullOrWhiteSpace(resolvedDepartment) && userAccount.Department != resolvedDepartment)
+                {
+                    userAccount.Department = resolvedDepartment;
+                    userDataChanged = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(resolvedWorkArea) && userAccount.WorkArea != resolvedWorkArea)
+                {
+                    userAccount.WorkArea = resolvedWorkArea;
+                    userDataChanged = true;
+                }
+
+                if (userDataChanged)
+                {
+                    _context.sys_user.Update(userAccount);
+                    await _context.SaveChangesAsync();
+                }
+
+                HttpContext.Session.SetString("UserData", JsonConvert.SerializeObject(userAccount));
+
+                var selectionOptions = requiresWorkInfoSelection
+                    ? await GetWorkInfoSelectionAsync()
+                    : (workAreas: new List<string>(), departments: new List<DepartmentSelectionOption>());
 
                 // โหลดข้อมูลภาษาเมื่อ login
                 await LoadLanguageData(userAccount.Language ?? "th");
-
-                // ไม่บังคับให้กรอก emp_no/department สำหรับพนักงานใหม่อีกต่อไป
-                bool needsProfileUpdate = false;
 
                 // อัปเดตเวลาเข้าสู่ระบบ
                 await _context.Database.ExecuteSqlRawAsync(
@@ -418,8 +587,11 @@ namespace IPS_TH.Controllers
                     new
                     {
                         success = true,
-                        needsProfileUpdate = needsProfileUpdate,
+                        needsProfileUpdate = false,
+                        requiresWorkInfoSelection,
                         userId = userAccount.Id,
+                        departments = selectionOptions.departments,
+                        workAreas = selectionOptions.workAreas,
                         redirectUrl = Url.Action("Index", "Home"),
                     }
                 );
@@ -1020,6 +1192,85 @@ namespace IPS_TH.Controllers
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetDepartments: {ex.Message}");
                 return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetWorkInfoOptions()
+        {
+            try
+            {
+                var (workAreas, departments) = await GetWorkInfoSelectionAsync();
+                return Json(new { success = true, workAreas, departments });
+            }
+            catch (Exception ex)
+            {
+                return Json(
+                    new
+                    {
+                        success = false,
+                        message = "ไม่สามารถดึงข้อมูล Work Area และ Department ได้: " + ex.Message,
+                    }
+                );
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveUserWorkInfo(int userId, string department, string workArea)
+        {
+            try
+            {
+                if (userId <= 0)
+                {
+                    return Json(new { success = false, message = "ไม่พบรหัสผู้ใช้" });
+                }
+
+                if (string.IsNullOrWhiteSpace(department) || string.IsNullOrWhiteSpace(workArea))
+                {
+                    return Json(new { success = false, message = "กรุณาเลือก Department และ Work Area" });
+                }
+
+                var user = await _context.sys_user.FindAsync(userId);
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "ไม่พบข้อมูลผู้ใช้" });
+                }
+
+                bool hasChanges = false;
+
+                if (!string.Equals(user.Department, department.Trim(), StringComparison.Ordinal))
+                {
+                    user.Department = department.Trim();
+                    hasChanges = true;
+                }
+
+                if (!string.Equals(user.WorkArea, workArea.Trim(), StringComparison.Ordinal))
+                {
+                    user.WorkArea = workArea.Trim();
+                    hasChanges = true;
+                }
+
+                if (hasChanges)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                HttpContext.Session.SetString("Department", user.Department ?? string.Empty);
+                HttpContext.Session.SetString("WorkArea", user.WorkArea ?? string.Empty);
+
+                HttpContext.Session.SetString("UserData", JsonConvert.SerializeObject(user));
+
+                return Json(
+                    new
+                    {
+                        success = true,
+                        redirectUrl = Url.Action("Index", "Home"),
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "ไม่สามารถบันทึกข้อมูลได้: " + ex.Message });
             }
         }
 

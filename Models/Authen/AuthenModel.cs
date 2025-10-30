@@ -54,6 +54,8 @@ namespace IPS_TH.Models
 
         public string? Emp_no { get; set; }
 
+        public string? WorkArea { get; set; }
+
         // เพิ่มการเชื่อมโยงกับ sys_user_role
         public virtual ICollection<sys_user_role> UserRoles { get; set; } // เพิ่มการเชื่อมโยง
     }

@@ -1194,7 +1194,7 @@ namespace IPS_TH.Controllers.Employee
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = ex.Message }); 
             }
         }
 

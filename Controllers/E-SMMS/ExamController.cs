@@ -354,7 +354,7 @@ namespace IPS_TH.Controllers.ESMMS
         [HttpGet] 
         public async Task<IActionResult> esmms_exam()
         {
-            await LoadPermissions("Exam", "Exam");
+            await LoadPermissions("Exam", "esmms_exam");
             var items = await _context
                 .esmms_exam
                 .OrderByDescending(x => x.created_at)
@@ -1120,7 +1120,21 @@ namespace IPS_TH.Controllers.ESMMS
                     }
                 ).ToListAsync();
 
-                return Json(new { data = list });
+                var enriched = list.Select(item => new
+                {
+                    item.exam_id,
+                    item.exam_title,
+                    item.course_code,
+                    item.course_name,
+                    item.score,
+                    item.pd_line,
+                    item.expire_at,
+                    item.assigned_at,
+                    excel_url = item.exam_id.HasValue ? GetExamExcelVirtualPath(item.exam_id.Value) : null,
+                    excel_download_url = item.exam_id.HasValue ? Url.Action(nameof(DownloadExamExcel), new { id = item.exam_id.Value }) : null
+                }).ToList();
+
+                return Json(new { data = enriched });
             }
             catch (Exception ex)
             {
@@ -1841,6 +1855,20 @@ namespace IPS_TH.Controllers.ESMMS
             if (!System.IO.File.Exists(physical)) return null;
             var fileName = Path.GetFileName(physical);
             return Url.Content($"~/uploads/exams/{fileName}");
+        }
+
+        [HttpGet]
+        public IActionResult DownloadExamExcel(int id)
+        {
+            if (id <= 0) return NotFound();
+
+            var physical = GetExamExcelPhysicalPathById(id);
+            if (!System.IO.File.Exists(physical))
+                return NotFound();
+
+            var fileName = $"exam_{id}.xlsx";
+            const string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return PhysicalFile(physical, contentType, fileName);
         }
 
         private async Task<string> SaveExamExcelAsync(int id, IFormFile file)

@@ -1497,39 +1497,77 @@
                             data: null,
                             title: '<i class="fas fa-graduation-cap me-1"></i> ' + '@Context.Session.GetTranslation("col_training_courses")',
                             orderable: false,
-                            width: '200px',
-                            className: 'text-center',
+                            width: '180px',
+                            className: 'text-center align-middle',
                             render: function(data, type, row) {
                                 if (!row.trainingStatuses || row.trainingStatuses.length === 0) {
                                     return '<span class="text-muted">-</span>';
                                 }
-                                
-                                var courses = [];
-                                var uniqueCourses = new Set();
-                                
+
+                                var courseMap = new Map();
+
                                 row.trainingStatuses.forEach(function(training) {
-                                    if (training.course_name && !uniqueCourses.has(training.course_name)) {
-                                        uniqueCourses.add(training.course_name);
-                                        var courseName = training.course_name;
-                                        var courseCode = training.course_code || '';
-                                        var isPassed = training.is_passed === true;
-                                        var badgeClass = isPassed ? 'bg-success' : 'bg-secondary';
-                                        var icon = isPassed ? 'fa-check-circle' : 'fa-circle';
-                                        
-                                        courses.push('<span class="badge ' + badgeClass + ' me-1 mb-1" data-bs-toggle="tooltip" title="' + 
-                                            (courseCode ? courseCode + ' - ' : '') + courseName + 
-                                            (isPassed ? ' (ผ่าน)' : ' (ไม่ผ่าน)') + '">' +
-                                            '<i class="fas ' + icon + ' me-1"></i>' + 
-                                            courseName + 
-                                            '</span>');
+                                    if (!training || !training.course_name) {
+                                        return;
+                                    }
+
+                                    var key = training.course_name;
+                                    if (!courseMap.has(key)) {
+                                        courseMap.set(key, { passed: false, failed: false, pending: false });
+                                    }
+
+                                    var courseStatus = courseMap.get(key);
+                                    if (training.is_passed === true) {
+                                        courseStatus.passed = true;
+                                        courseStatus.failed = false;
+                                        courseStatus.pending = false;
+                                    } else if (training.is_passed === false) {
+                                        if (!courseStatus.passed) {
+                                            courseStatus.failed = true;
+                                        }
+                                    } else {
+                                        if (!courseStatus.passed && !courseStatus.failed) {
+                                            courseStatus.pending = true;
+                                        }
                                     }
                                 });
-                                
-                                if (courses.length === 0) {
+
+                                if (courseMap.size === 0) {
                                     return '<span class="text-muted">-</span>';
                                 }
-                                
-                                return '<div class="d-flex flex-wrap gap-1 justify-content-center">' + courses.join('') + '</div>';
+
+                                var totalCourses = courseMap.size;
+                                var passedCount = 0;
+                                var failedCount = 0;
+                                var pendingCount = 0;
+
+                                courseMap.forEach(function(status) {
+                                    if (status.passed) {
+                                        passedCount++;
+                                    } else if (status.failed) { 
+                                        failedCount++; 
+                                    } else {
+                                        pendingCount++;
+                                    }
+                                });
+
+                                var tooltipLines = [
+                                    '<div class="fw-semibold mb-1"><i class="fas fa-graduation-cap me-1 text-primary"></i>สรุปการฝึกอบรม</div>',
+                                    '<div>ทั้งหมด: ' + totalCourses + ' คอร์ส</div>',
+                                    '<div class="text-success">ผ่าน: ' + passedCount + '</div>',
+                                    '<div class="text-danger">ไม่ผ่าน: ' + failedCount + '</div>'
+                                ];
+
+                                if (pendingCount > 0) {
+                                    tooltipLines.push('<div class="text-info">รอดำเนินการ: ' + pendingCount + '</div>');
+                                }
+
+                                var tooltipHtml = '<div class="small text-start">' + tooltipLines.join('') + '</div>';
+                                tooltipHtml = tooltipHtml.replace(/"/g, '&quot;');
+
+                                return '<span class="badge bg-primary text-nowrap" data-bs-toggle="tooltip" data-bs-html="true" title="' + tooltipHtml + '">' +
+                                    '<i class="fas fa-info-circle me-1"></i>' + totalCourses + ' คอร์ส' +
+                                    '</span>';
                             }
                         },
                         {
@@ -1676,13 +1714,31 @@
                                 // สร้างลิงก์สำหรับดาวน์โหลดไฟล์ Excel
                                 var examTitleHtml = '-';
                                 if (x.exam_title) {
-                                    examTitleHtml = '<a href="#" class="download-excel-link text-primary fw-medium" ' +
-                                        'data-exam-title="' + x.exam_title + '" ' +
-                                        'data-person-id="' + row.personID + '" ' +
-                                        'data-course-id="' + (x.course_id || '') + '" ' +
-                                        'title="คลิกเพื่อดาวน์โหลดไฟล์ Excel">' +
-                                        '<i class="fas fa-file-excel me-1 text-success"></i>' + x.exam_title +
-                                        '</a>';
+                                    var safeTitle = $('<div>').text(x.exam_title).html();
+                                    var fileUrl = x.excel_download_url || x.excel_url;
+                                    var finalUrl = null;
+                                    if (fileUrl) {
+                                        finalUrl = fileUrl;
+                                        if (!/^https?:\/\//i.test(finalUrl)) {
+                                            if (finalUrl.startsWith('~/')) {
+                                                finalUrl = appBasePath + finalUrl.substring(2);
+                                            } else if (finalUrl.startsWith('/')) {
+                                                finalUrl = appBasePath + finalUrl.substring(1);
+                                            } else {
+                                                finalUrl = appBasePath + finalUrl;
+                                            }
+                                        }
+                                    }
+
+                                    if (finalUrl) {
+                                        var fileName = (x.exam_title || 'exam') + '_' + empNo + '.xlsx';
+                                        var safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+                                        examTitleHtml = '<a href="' + finalUrl + '" class="text-primary fw-medium" target="_blank" download="' + safeFileName + '">' +
+                                            '<i class="fas fa-file-excel me-1 text-success"></i>' + safeTitle +
+                                            '</a>';
+                                    } else {
+                                        examTitleHtml = '<span class="text-muted">' + safeTitle + '</span>';
+                                    }
                                 }
 
                                 html += ''
@@ -1705,17 +1761,7 @@
                               + '</div>';
 
                             row.child(html).show();
-                            
-                            // เพิ่ม event handler สำหรับลิงก์ดาวน์โหลดไฟล์ Excel
-                            $('.download-excel-link').off('click').on('click', function(e) {
-                                e.preventDefault();
-                                var examTitle = $(this).data('exam-title');
-                                var personId = $(this).data('person-id');
-                                var courseId = $(this).data('course-id');
-                                
-                                // เรียกใช้ฟังก์ชันดาวน์โหลดไฟล์ Excel
-                                downloadExamExcel(examTitle, personId, courseId);
-                            });
+
                          })
                          .fail(function(){
                             row.child('<div class="p-3 text-danger">โหลดประวัติการสอบไม่สำเร็จ</div>').show();
@@ -1723,39 +1769,6 @@
                     }
                 });
             });
-            // ฟังก์ชันดาวน์โหลดไฟล์ Excel สำหรับชุดสอบ
-            function downloadExamExcel(examTitle, personId, courseId) {
-                if (!examTitle) {
-                    showErrorToast('ไม่พบชื่อชุดสอบ');
-                    return;
-                }
-                
-                // แสดง loading
-                Swal.fire({
-                    title: 'กำลังดาวน์โหลดไฟล์...',
-                    html: '<div class="spinner-border text-primary" role="status"></div><br><small>กรุณารอสักครู่</small>',
-                    showConfirmButton: false,
-                    allowOutsideClick: false
-                });
-                
-                // สร้าง URL สำหรับดาวน์โหลดไฟล์ Excel
-                var downloadUrl = appBasePath + 'Employee/DownloadExamExcel?examTitle=' + encodeURIComponent(examTitle) + 
-                    '&personId=' + encodeURIComponent(personId) + 
-                    '&courseId=' + encodeURIComponent(courseId || '');
-                
-                // สร้างลิงก์ชั่วคราวเพื่อดาวน์โหลด
-                var link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = examTitle + '_' + personId + '.xlsx';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // ปิด loading
-                Swal.close();
-                showSuccessToast('เริ่มดาวน์โหลดไฟล์: ' + examTitle);
-            }
-
             // กำหนดตัวแปรสิทธิ์สำหรับใช้ใน JavaScript
             var userPermissions = {
                 canAdd: @Json.Serialize(canAdd),
