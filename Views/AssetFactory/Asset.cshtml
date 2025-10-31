@@ -1382,7 +1382,7 @@
                                     ${window.canDelete ? `<li><a class="dropdown-item" href="#" onclick="deleteAsset(${row.Id}, '${row.Name}');return false;"><i class='fas fa-trash me-2 text-danger'></i>ลบ</a></li>` : ''}
                                     <li><a class="dropdown-item" href="#" onclick="manageMacAddress(${row.Id}, '${row.Name}');return false;"><i class='fas fa-network-wired me-2 text-info'></i>Mac Address</a></li>
                                 </ul>
-                            </div>`;
+                            </div>`; 
                             return dropdown;
                         }
                     }

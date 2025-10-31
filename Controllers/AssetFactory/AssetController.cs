@@ -449,7 +449,7 @@ namespace IPS_TH.Controllers.AssetFactory
                         FROM MEmpBasic 
                         WHERE Language = 'EN'";
                     var data = await db.QueryAsync(sql);
-                    return data.ToList();
+                    return data.ToList(); 
                 }
             }
             catch (Exception ex)
